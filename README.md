@@ -89,7 +89,7 @@ docker-compose up -d
 
    ```bash
    python app.py
-```
+   ```
 The application will:
 
 Connect to your AWS account.
