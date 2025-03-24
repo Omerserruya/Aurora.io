@@ -1,0 +1,135 @@
+services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    volumes:
+      - ./frontend:/app        # For code visibility during build
+      - /app/node_modules      # Avoid overwriting node_modules
+      - frontend-build:/app/build  # Share built files with Nginx
+    environment:
+      - NODE_ENV=development
+      - REACT_APP_API_URL=http://localhost
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"  # For direct access to React dev server
+
+  users-service:
+    build:
+      context: ./userMgmntService
+      dockerfile: Dockerfile
+    volumes:
+      - ./userMgmntService/src:/app/src
+      - ./userMgmntService/package.json:/app/package.json
+      - ./userMgmntService/tsconfig.json:/app/tsconfig.json
+      - ./shared:/app/shared
+      - ./userMgmntService/.env.dev:/app/.env.dev
+      - ./userMgmntService/uploads:/app/uploads
+    environment:
+      - PORT=4001
+      - NODE_ENV=development
+      - PROFILE_UPLOAD_PATH=/app/uploads/users
+      - MONGODB_URI=mongodb://mongodb:27017/aurora
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "${USERS_SERVICE_PORT:-4001}:4001"  # For direct access
+    depends_on:
+      mongodb:
+        condition: service_healthy
+
+  auth-service:
+    build:
+      context: ./authService
+      dockerfile: Dockerfile
+    volumes:
+      - ./authService/src:/app/src
+      - ./authService/package.json:/app/package.json
+      - ./authService/tsconfig.json:/app/tsconfig.json
+      - ./shared:/app/shared
+    environment:
+      - PORT=4002
+      - NODE_ENV=development
+      - USER_SERVICE_URL=http://users-service:4001
+      - MONGODB_URI=mongodb://mongodb:27017/aurora
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "${AUTH_SERVICE_PORT:-4002}:4002"  # For direct access
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      users-service:
+        condition: service_started
+
+  mongodb:
+    image: mongo:latest
+    command: ["--bind_ip_all", "--logpath", "/dev/null"]
+    environment:
+      - MONGO_INITDB_DATABASE=${MONGO_DATABASE}
+    volumes:
+      - mongodb_data:/data/db
+    ports:
+      - "${MONGO_PORT:-27017}:27017"
+    networks:
+      - default
+    restart: always
+    healthcheck:
+      test: mongosh --eval 'db.runCommand("ping").ok' mongodb://localhost:27017/admin --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  neo4j:
+    image: neo4j:latest
+    environment:
+      - NEO4J_AUTH=neo4j/${NEO4J_PASSWORD}
+      - NEO4J_apoc_export_file_enabled=true
+      - NEO4J_apoc_import_file_enabled=true
+      - NEO4J_apoc_import_file_use__neo4j__config=true
+      - NEO4J_PLUGINS=["apoc"]
+      - NEO4J_dbms_logs_debug_level=INFO
+    volumes:
+      - neo4j_data:/data
+      - neo4j_logs:/logs
+      - neo4j_import:/var/lib/neo4j/import
+      - neo4j_plugins:/plugins
+    ports:
+      - "${NEO4J_PORT:-7474}:7474"
+      - "${NEO4J_BOLT_PORT:-7687}:7687"
+    networks:
+      - default
+    healthcheck:
+      test: wget -O /dev/null -q http://localhost:7474 || exit 1
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "${NGINX_PORT:-80}:80"  # HTTP port for local development
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./userMgmntService/uploads:/app/uploads:ro
+      - frontend-build:/usr/share/nginx/html:ro  # Serve React build files
+    depends_on:
+      - frontend
+      - users-service
+      - auth-service
+    networks:
+      - default
+
+volumes:
+  frontend-build:   # Named volume for frontend build output
+  mongodb_data:     # Persistent storage for MongoDB
+  neo4j_data:       # Persistent storage for Neo4j data
+  neo4j_logs:       # Persistent storage for Neo4j logs
+  neo4j_import:     # Directory for Neo4j imports
+  neo4j_plugins:    # Directory for Neo4j plugins
+
+networks:
+  default:
+    driver: bridge
