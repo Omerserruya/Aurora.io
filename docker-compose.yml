@@ -11,7 +11,7 @@ services:
       - NODE_ENV=development
       - REACT_APP_API_URL=http://localhost
     ports:
-      - "${FRONTEND_PORT:-3000}:3000"  # For direct access to React dev server
+      - "3000:3000"  # For direct access to React dev server
 
   users-service:
     build:
@@ -32,7 +32,7 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     ports:
-      - "${USERS_SERVICE_PORT:-4001}:4001"  # For direct access
+      - "4001:4001"  # For direct access
     depends_on:
       mongodb:
         condition: service_healthy
@@ -54,7 +54,7 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     ports:
-      - "${AUTH_SERVICE_PORT:-4002}:4002"  # For direct access
+      - "4002:4002"  # For direct access
     depends_on:
       mongodb:
         condition: service_healthy
@@ -65,11 +65,11 @@ services:
     image: mongo:latest
     command: ["--bind_ip_all", "--logpath", "/dev/null"]
     environment:
-      - MONGO_INITDB_DATABASE=${MONGO_DATABASE}
+      - MONGO_INITDB_DATABASE=aurora
     volumes:
       - mongodb_data:/data/db
     ports:
-      - "${MONGO_PORT:-27017}:27017"
+      - "27017:27017"
     networks:
       - default
     restart: always
@@ -83,7 +83,7 @@ services:
   neo4j:
     image: neo4j:latest
     environment:
-      - NEO4J_AUTH=neo4j/${NEO4J_PASSWORD}
+      - NEO4J_AUTH=neo4j/aurora123
       - NEO4J_apoc_export_file_enabled=true
       - NEO4J_apoc_import_file_enabled=true
       - NEO4J_apoc_import_file_use__neo4j__config=true
@@ -95,8 +95,8 @@ services:
       - neo4j_import:/var/lib/neo4j/import
       - neo4j_plugins:/plugins
     ports:
-      - "${NEO4J_PORT:-7474}:7474"
-      - "${NEO4J_BOLT_PORT:-7687}:7687"
+      - "7474:7474"
+      - "7687:7687"
     networks:
       - default
     healthcheck:
@@ -109,7 +109,7 @@ services:
   nginx:
     image: nginx:alpine
     ports:
-      - "${NGINX_PORT:-80}:80"  # HTTP port for local development
+      - "80:80"  # HTTP port for local development
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./nginx/conf.d:/etc/nginx/conf.d:ro
@@ -119,6 +119,29 @@ services:
       - frontend
       - users-service
       - auth-service
+    networks:
+      - default
+
+  db-service:
+    build:
+      context: ./dbService
+      dockerfile: Dockerfile
+    volumes:
+      - ./dbService/src:/app/src
+      - ./dbService/package.json:/app/package.json
+      - ./dbService/tsconfig.json:/app/tsconfig.json
+    env_file:
+      - ./dbService/.env.development
+    environment:
+      - PORT=4003
+      - NODE_ENV=development
+    ports:
+      - "4003:4003"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      neo4j:
+        condition: service_healthy
     networks:
       - default
 
