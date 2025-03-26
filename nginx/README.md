@@ -2,12 +2,13 @@
 
 ## Overview
 
-This directory contains the Nginx configuration files for the Aurora.io application. Nginx serves as a reverse proxy and API gateway, routing requests to the appropriate microservices and serving static files.
+This directory contains the Nginx configuration files for the Aurora.io project. Nginx serves as a reverse proxy and API gateway, routing requests to the appropriate microservices and serving static files.
 
 ## Configuration Files
 
 - `nginx.conf`: Main Nginx configuration file
 - `conf.d/default.conf`: Application-specific configuration for routing and security
+- `conf.d/terraform.conf`: Configuration for proxying requests to the Terraform service
 
 ## Features
 
@@ -18,6 +19,27 @@ This directory contains the Nginx configuration files for the Aurora.io applicat
 - CORS configuration
 - Handling of HTTP OPTIONS requests
 - Security headers
+
+## Terraform Service Proxy
+
+The Nginx configuration includes a proxy setup for the Terraform service:
+
+- Base URL: `http://localhost/api/iac/`
+- Proxies to: `http://localhost:7810/`
+- Health check: `http://localhost/api/health`
+
+### Example Requests
+
+```bash
+# Health check
+curl http://localhost/api/health
+
+# Generate Terraform
+curl "http://localhost/api/iac/generate_tf?user_id=123&account_id=456"
+
+# Get Terraform info
+curl http://localhost/api/iac/terraform
+```
 
 ## Routing Configuration
 
@@ -116,4 +138,22 @@ For production, the following changes would be required:
 - Add HTTPS configuration with SSL certificates
 - Restrict CORS to specific domains
 - Update trusted referers to include the production domain
-- Configure SSL redirects 
+- Configure SSL redirects
+
+## Setup Instructions
+
+1. Make sure the Terraform service is running on port 7810
+2. Ensure Nginx is installed and running
+3. Copy the configuration files to the appropriate locations:
+   ```bash
+   sudo cp nginx.conf /etc/nginx/nginx.conf
+   sudo cp conf.d/* /etc/nginx/conf.d/
+   ```
+4. Test the configuration:
+   ```bash
+   sudo nginx -t
+   ```
+5. Reload Nginx:
+   ```bash
+   sudo nginx -s reload
+   ``` 
