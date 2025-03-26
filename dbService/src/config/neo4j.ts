@@ -1,11 +1,10 @@
-import neo4j, { Driver, Session } from 'neo4j-driver';
-import dotenv from 'dotenv';
 
-dotenv.config();
+import neo4j, { Driver } from 'neo4j-driver';
 
 class Neo4jManager {
   private static instance: Neo4jManager;
   private driver: Driver | null = null;
+  private initialized: boolean = false;
 
   private constructor() {}
 
@@ -16,39 +15,52 @@ class Neo4jManager {
     return Neo4jManager.instance;
   }
 
-  public async connect(): Promise<void> {
-    try {
-      const uri = process.env.NEO4J_URI || 'bolt://neo4j:7687';
-      const username = process.env.NEO4J_USERNAME || 'neo4j';
-      const password = process.env.NEO4J_PASSWORD || 'aurora123';
+  private ensureInitialized(): void {
+    if (!this.initialized) {
+      const neo4jUrl = process.env.NEO4J_URL;
+      const neo4jUser = process.env.NEO4J_USER;
+      const neo4jPassword = process.env.NEO4J_PASSWORD;
 
-      this.driver = neo4j.driver(uri, neo4j.auth.basic(username, password));
+      if (!neo4jUrl || !neo4jUser || !neo4jPassword) {
+        throw new Error('Neo4j configuration is incomplete in environment variables');
+      }
+      this.initialized = true;
+    }
+  }
+
+  public async connect(): Promise<void> {
+    if (this.driver) {
+      return;
+    }
+
+    try {
+      this.ensureInitialized();
+      const neo4jUrl = process.env.NEO4J_URL!; // We know it exists because of ensureInitialized
+      const neo4jUser = process.env.NEO4J_USER!;
+      const neo4jPassword = process.env.NEO4J_PASSWORD!;
+
+      this.driver = neo4j.driver(neo4jUrl, neo4j.auth.basic(neo4jUser, neo4jPassword));
       await this.driver.verifyConnectivity();
-      console.log('Successfully connected to Neo4j');
+      console.log('Connected to Neo4j successfully');
     } catch (error) {
-      console.error('Error connecting to Neo4j:', error);
+      console.error('Neo4j connection error:', error);
       throw error;
     }
   }
 
   public async disconnect(): Promise<void> {
-    try {
-      if (this.driver) {
-        await this.driver.close();
-        this.driver = null;
-        console.log('Successfully disconnected from Neo4j');
-      }
-    } catch (error) {
-      console.error('Error disconnecting from Neo4j:', error);
-      throw error;
+    if (this.driver) {
+      await this.driver.close();
+      this.driver = null;
+      console.log('Disconnected from Neo4j');
     }
   }
 
-  public getSession(): Session {
+  public getDriver(): Driver {
     if (!this.driver) {
-      throw new Error('Neo4j driver not connected');
+      throw new Error('Neo4j connection not established');
     }
-    return this.driver.session();
+    return this.driver;
   }
 }
 

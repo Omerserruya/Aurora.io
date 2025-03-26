@@ -146,8 +146,6 @@ services:
       - ./dbService/package.json:/app/package.json
       - ./dbService/tsconfig.json:/app/tsconfig.json
       - ./shared:/app/shared
-    env_file:
-      - ./dbService/.env.development
     environment:
       - PORT=4003
       - NODE_ENV=development

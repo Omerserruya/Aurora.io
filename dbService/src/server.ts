@@ -1,28 +1,28 @@
-import express from 'express';
-import cors from 'cors';
-import dotenv from 'dotenv';
+import dotenv from "dotenv";
 import path from 'path';
+
+// Load environment variables before anything else
+dotenv.config({ path: `.env.${process.env.NODE_ENV}` });
+
+import express, { Express } from 'express';
+import cors from 'cors';
 import cookieParser from 'cookie-parser';
+import awsConnectionRoutes from './routes/awsConnection.routes';
 import MongoDBManager from './config/mongodb';
 import Neo4jManager from './config/neo4j';
-import awsConnectionRoutes from './routes/awsConnection.routes';
-
-// Load environment variables based on NODE_ENV
-const envFile = process.env.NODE_ENV === 'development' ? '.env.development' : '.env';
-dotenv.config({ path: path.resolve(__dirname, '..', envFile) });
 
 const app = express();
-const port = process.env.PORT || 4003;
-
-// Middleware
-app.use(cors({
+const corsOptions = {
   origin: process.env.FRONTEND_URL || 'http://localhost',
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
-}));
+};
+
+// Middleware
+app.use(cors(corsOptions));
 app.use(express.json());
-app.use(cookieParser()); // Add cookie-parser middleware
+app.use(cookieParser());
 
 // Debug middleware to log all requests
 app.use((req, res, next) => {
@@ -36,24 +36,6 @@ app.use((req, res, next) => {
   next();
 });
 
-// Initialize database connections
-const mongoManager = MongoDBManager.getInstance();
-const neo4jManager = Neo4jManager.getInstance();
-
-// Connect to databases on startup
-async function initializeDatabases() {
-  try {
-    await Promise.all([
-      mongoManager.connect(),
-      neo4jManager.connect()
-    ]);
-    console.log('All database connections established successfully');
-  } catch (error) {
-    console.error('Failed to initialize databases:', error);
-    process.exit(1);
-  }
-}
-
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.json({ status: 'healthy' });
@@ -62,11 +44,28 @@ app.get('/health', (req, res) => {
 // AWS Connection routes
 app.use('/aws-connections', awsConnectionRoutes);
 
-// Start the server
-app.listen(port, () => {
-  console.log(`Database service running on port ${port}`);
-  initializeDatabases();
-});
+// Initialize database connections
+const mongoManager = MongoDBManager.getInstance();
+const neo4jManager = Neo4jManager.getInstance();
+
+const initApp = () => {
+  return new Promise<Express>((resolve, reject) => {
+    Promise.all([
+      mongoManager.connect(),
+      neo4jManager.connect()
+    ])
+    .then(() => {
+      console.log('All database connections established successfully');
+      resolve(app);
+    })
+    .catch((error) => {
+      console.error('Failed to initialize databases:', error);
+      reject(error);
+    });
+  });
+};
+
+export default initApp;
 
 // Graceful shutdown
 process.on('SIGTERM', async () => {

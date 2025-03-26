@@ -1,12 +1,10 @@
-import { MongoClient, Db } from 'mongodb';
-import dotenv from 'dotenv';
 
-dotenv.config();
+import mongoose from 'mongoose';
 
 class MongoDBManager {
   private static instance: MongoDBManager;
-  private client: MongoClient | null = null;
-  private db: Db | null = null;
+  private connection: mongoose.Connection | null = null;
+  private initialized: boolean = false;
 
   private constructor() {}
 
@@ -17,38 +15,47 @@ class MongoDBManager {
     return MongoDBManager.instance;
   }
 
+  private ensureInitialized(): void {
+    if (!this.initialized) {
+      const mongoUrl = process.env.MONGODB_URL;
+      if (!mongoUrl) {
+        throw new Error('MONGODB_URL is not defined in environment variables');
+      }
+      this.initialized = true;
+    }
+  }
+
   public async connect(): Promise<void> {
+    if (this.connection) {
+      return;
+    }
+
     try {
-      const uri = process.env.MONGODB_URI || 'mongodb://mongodb:27017/aurora';
-      this.client = new MongoClient(uri);
-      await this.client.connect();
-      this.db = this.client.db();
-      console.log('Successfully connected to MongoDB');
+      this.ensureInitialized();
+      const mongoUrl = process.env.MONGODB_URL!; // We know it exists because of ensureInitialized
+
+      await mongoose.connect(mongoUrl);
+      this.connection = mongoose.connection;
+      console.log('Connected to MongoDB successfully');
     } catch (error) {
-      console.error('Error connecting to MongoDB:', error);
+      console.error('MongoDB connection error:', error);
       throw error;
     }
   }
 
   public async disconnect(): Promise<void> {
-    try {
-      if (this.client) {
-        await this.client.close();
-        this.client = null;
-        this.db = null;
-        console.log('Successfully disconnected from MongoDB');
-      }
-    } catch (error) {
-      console.error('Error disconnecting from MongoDB:', error);
-      throw error;
+    if (this.connection) {
+      await mongoose.disconnect();
+      this.connection = null;
+      console.log('Disconnected from MongoDB');
     }
   }
 
-  public getDb(): Db {
-    if (!this.db) {
-      throw new Error('Database not connected');
+  public getConnection(): mongoose.Connection {
+    if (!this.connection) {
+      throw new Error('MongoDB connection not established');
     }
-    return this.db;
+    return this.connection;
   }
 }
 
