@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 import os
 from src.routes.iac import iac_bp
 
-load_dotenv('.env.development')
+# load_dotenv('.env.development')
 
 app = Flask(__name__)
 CORS(app)
