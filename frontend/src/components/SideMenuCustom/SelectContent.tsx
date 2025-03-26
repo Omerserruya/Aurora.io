@@ -15,6 +15,7 @@ import CircularProgress from '@mui/material/CircularProgress';
 import { AddAccountDialog } from '../AccountConnection';
 import { AWSConnection } from '../../types/awsConnection';
 import api from '../../utils/api';
+import { useAccount } from '../../contexts/AccountContext';
 
 const Avatar = styled(MuiAvatar)(({ theme }) => ({
   width: 28,
@@ -30,7 +31,8 @@ const ListItemAvatar = styled(MuiListItemAvatar)({
 });
 
 export default function SelectContent() {
-  const [selectedAccount, setSelectedAccount] = React.useState<string>('');
+  const { account, setAccount } = useAccount();
+  const [selectedAccount, setSelectedAccount] = React.useState<string>(account?._id || '');
   const [isAddDialogOpen, setIsAddDialogOpen] = React.useState(false);
   const [listAccounts, setListAccounts] = React.useState<any[]>([]);
   const [isLoading, setIsLoading] = React.useState(false);
@@ -39,6 +41,13 @@ export default function SelectContent() {
   React.useEffect(() => {
     fetchAwsConnections();
   }, []);
+
+  // Update selected account when account context changes
+  React.useEffect(() => {
+    if (account?._id) {
+      setSelectedAccount(account._id);
+    }
+  }, [account]);
 
   const fetchAwsConnections = async () => {
     setIsLoading(true);
@@ -97,6 +106,15 @@ export default function SelectContent() {
       setIsAddDialogOpen(true);
     } else {
       setSelectedAccount(value);
+      
+      // Find the selected account object and update the AccountContext
+      const selectedAccountObj = listAccounts.find(acc => acc.id === value);
+      if (selectedAccountObj) {
+        setAccount({
+          _id: selectedAccountObj.id,
+          name: selectedAccountObj.name
+        });
+      }
     }
   };
 
@@ -106,7 +124,16 @@ export default function SelectContent() {
       console.log('Create connection API response:', response);
       
       // Refresh the full list of connections
-      fetchAwsConnections();
+      await fetchAwsConnections();
+      
+      // Set the newly created account as the selected account
+      if (response.data && response.data._id) {
+        setSelectedAccount(response.data._id);
+        setAccount({
+          _id: response.data._id,
+          name: response.data.name
+        });
+      }
       
       setIsAddDialogOpen(false);
     } catch (error) {
