@@ -3,18 +3,20 @@ import { ObjectId } from 'mongodb';
 import AWSConnectionService from '../services/awsConnection.service';
 import { CreateAWSConnectionDTO, UpdateAWSConnectionDTO } from '../schemas/awsConnection.schema';
 
-interface AuthenticatedRequest extends Request {
-  user: {
-    id: string;
-  };
-}
-
 class AWSConnectionController {
   private static instance: AWSConnectionController;
   private awsConnectionService: AWSConnectionService;
 
   private constructor() {
     this.awsConnectionService = AWSConnectionService.getInstance();
+    
+    // Bind methods to this instance to maintain the correct 'this' context
+    this.createConnection = this.createConnection.bind(this);
+    this.getConnection = this.getConnection.bind(this);
+    this.getUserConnections = this.getUserConnections.bind(this);
+    this.updateConnection = this.updateConnection.bind(this);
+    this.deleteConnection = this.deleteConnection.bind(this);
+    this.validateConnection = this.validateConnection.bind(this);
   }
 
   public static getInstance(): AWSConnectionController {
@@ -24,14 +26,14 @@ class AWSConnectionController {
     return AWSConnectionController.instance;
   }
 
-  private getUserId(req: AuthenticatedRequest): ObjectId {
-    if (!req.user?.id) {
+  private getUserId(req: Request): ObjectId {
+    if (!req.params.userId) {
       throw new Error('User not authenticated');
     }
-    return new ObjectId(req.user.id);
+    return new ObjectId(req.params.userId);
   }
 
-  async createConnection(req: AuthenticatedRequest, res: Response): Promise<void> {
+  async createConnection(req: Request, res: Response): Promise<void> {
     try {
       const userId = this.getUserId(req);
       const connectionData: CreateAWSConnectionDTO = {
@@ -51,7 +53,7 @@ class AWSConnectionController {
     }
   }
 
-  async getConnection(req: AuthenticatedRequest, res: Response): Promise<void> {
+  async getConnection(req: Request, res: Response): Promise<void> {
     try {
       const userId = this.getUserId(req);
       const connectionId = new ObjectId(req.params.id);
@@ -72,7 +74,7 @@ class AWSConnectionController {
     }
   }
 
-  async getUserConnections(req: AuthenticatedRequest, res: Response): Promise<void> {
+  async getUserConnections(req: Request, res: Response): Promise<void> {
     try {
       const userId = this.getUserId(req);
       const connections = await this.awsConnectionService.getUserConnections(userId);
@@ -87,7 +89,7 @@ class AWSConnectionController {
     }
   }
 
-  async updateConnection(req: AuthenticatedRequest, res: Response): Promise<void> {
+  async updateConnection(req: Request, res: Response): Promise<void> {
     try {
       const userId = this.getUserId(req);
       const connectionId = new ObjectId(req.params.id);
@@ -109,7 +111,7 @@ class AWSConnectionController {
     }
   }
 
-  async deleteConnection(req: AuthenticatedRequest, res: Response): Promise<void> {
+  async deleteConnection(req: Request, res: Response): Promise<void> {
     try {
       const userId = this.getUserId(req);
       const connectionId = new ObjectId(req.params.id);
@@ -130,7 +132,7 @@ class AWSConnectionController {
     }
   }
 
-  async validateConnection(req: AuthenticatedRequest, res: Response): Promise<void> {
+  async validateConnection(req: Request, res: Response): Promise<void> {
     try {
       const userId = this.getUserId(req);
       const connectionId = new ObjectId(req.params.id);

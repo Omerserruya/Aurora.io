@@ -36,7 +36,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const userId = localStorage.getItem('user_id');
     if (userId) {
       try {
-        const response = await fetch(`/users/${userId}`, {
+        const response = await fetch(`/api/users/${userId}`, {
           credentials: 'include',
           headers: {
             'Content-Type': 'application/json',

@@ -10,8 +10,6 @@ services:
     environment:
       - NODE_ENV=development
       - REACT_APP_API_URL=http://localhost
-    ports:
-      - "3000:3000"  # For direct access to React dev server
 
   users-service:
     build:
@@ -36,6 +34,12 @@ services:
     depends_on:
       mongodb:
         condition: service_healthy
+    healthcheck:
+      test: wget -O /dev/null -q http://localhost:4001 || exit 1
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
   auth-service:
     build:
@@ -59,7 +63,13 @@ services:
       mongodb:
         condition: service_healthy
       users-service:
-        condition: service_started
+        condition: service_healthy
+    healthcheck:
+      test: wget -O /dev/null -q http://localhost:4002/auth || exit 1
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
   mongodb:
     image: mongo:latest
@@ -116,9 +126,14 @@ services:
       - ./userMgmntService/uploads:/app/uploads:ro
       - frontend-build:/usr/share/nginx/html:ro  # Serve React build files
     depends_on:
-      - frontend
-      - users-service
-      - auth-service
+      frontend:
+        condition: service_started
+      users-service:
+        condition: service_healthy
+      auth-service:
+        condition: service_healthy
+      db-service:
+        condition: service_healthy
     networks:
       - default
 
@@ -130,6 +145,7 @@ services:
       - ./dbService/src:/app/src
       - ./dbService/package.json:/app/package.json
       - ./dbService/tsconfig.json:/app/tsconfig.json
+      - ./shared:/app/shared
     env_file:
       - ./dbService/.env.development
     environment:
@@ -142,6 +158,12 @@ services:
         condition: service_healthy
       neo4j:
         condition: service_healthy
+    healthcheck:
+      test: wget -O /dev/null -q http://localhost:4003/health || exit 1
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     networks:
       - default
 

@@ -45,13 +45,13 @@ class AWSConnectionService {
       ...data,
       provider: 'aws',
       credentials: this.encryptCredentials(data.credentials),
-      isValidated: false,
+      isValidated: true,
       createdAt: now,
       updatedAt: now
     };
 
     const result = await db.collection(this.collection).insertOne(connection);
-    return { ...connection, _id: result.insertedId };
+    return connection;
   }
 
   async getConnection(id: ObjectId, userId: ObjectId): Promise<AWSConnection | null> {

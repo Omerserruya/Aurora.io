@@ -13,7 +13,8 @@
     "resolveJsonModule": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["src/*"],
+      "@shared/*": ["./src/shared/*"]
     },
     "typeRoots": ["./node_modules/@types", "./src/types"]
   },

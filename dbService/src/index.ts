@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
+import cookieParser from 'cookie-parser';
 import MongoDBManager from './config/mongodb';
 import Neo4jManager from './config/neo4j';
 import awsConnectionRoutes from './routes/awsConnection.routes';
@@ -13,8 +14,27 @@ dotenv.config({ path: path.resolve(__dirname, '..', envFile) });
 const app = express();
 const port = process.env.PORT || 4003;
 
-app.use(cors());
+// Middleware
+app.use(cors({
+  origin: process.env.FRONTEND_URL || 'http://localhost',
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+}));
 app.use(express.json());
+app.use(cookieParser()); // Add cookie-parser middleware
+
+// Debug middleware to log all requests
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+  console.log('Cookies:', req.cookies);
+  if (req.cookies && req.cookies.accessToken) {
+    console.log('Access Token found in cookies');
+  } else {
+    console.log('No Access Token in cookies');
+  }
+  next();
+});
 
 // Initialize database connections
 const mongoManager = MongoDBManager.getInstance();
@@ -40,7 +60,7 @@ app.get('/health', (req, res) => {
 });
 
 // AWS Connection routes
-app.use('/api/aws-connections', awsConnectionRoutes);
+app.use('/aws-connections', awsConnectionRoutes);
 
 // Start the server
 app.listen(port, () => {

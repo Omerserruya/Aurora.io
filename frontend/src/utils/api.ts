@@ -2,8 +2,8 @@ import axios from 'axios';
 
 // Set the base URL for all API requests
 const api = axios.create({
-  // If environment has a base URL, use it, otherwise use the default domain
-  baseURL: process.env.REACT_APP_API_URL || 'https://node21.cs.colman.ac.il',
+  // Use relative URL with /api prefix for local development
+  baseURL: '/api',
   withCredentials: true, // This is crucial for sending cookies
 });
 
@@ -31,8 +31,8 @@ api.interceptors.response.use(
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
       try {
-        // Try to refresh the token
-        const refreshResponse = await axios.post('/auth/refresh', {}, { 
+        // Try to refresh the token - use correct endpoint
+        const refreshResponse = await axios.post('/api/auth/refresh', {}, { 
           withCredentials: true // Important for cookies
         });
         
