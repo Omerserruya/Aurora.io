@@ -6,6 +6,16 @@ import MenuContent from './MenuContent';
 import UserCard from './UserCard';
 import Divider from '@mui/material/Divider';
 import SelectContent from './SelectContent';
+import auroraLogo from '../../assets/aurora.png';
+import List from '@mui/material/List';
+import ListItem from '@mui/material/ListItem';
+import ListItemButton from '@mui/material/ListItemButton';
+import ListItemIcon from '@mui/material/ListItemIcon';
+import ListItemText from '@mui/material/ListItemText';
+import SettingsRoundedIcon from '@mui/icons-material/SettingsRounded';
+import InfoRoundedIcon from '@mui/icons-material/InfoRounded';
+import { useNavigate, useLocation } from 'react-router-dom';
+
 const drawerWidth = 240;
 
 const Drawer = styled(MuiDrawer)({
@@ -18,7 +28,22 @@ const Drawer = styled(MuiDrawer)({
   },
 });
 
+const LogoContainer = styled(Box)({
+  display: 'flex',
+  justifyContent: 'center',
+  alignItems: 'center',
+  padding: '10px 0',
+});
+
 export default function SideMenu() {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const bottomMenuItems = [
+    { text: 'Settings', icon: <SettingsRoundedIcon />, path: '/setting' },
+    { text: 'About', icon: <InfoRoundedIcon />, path: '/about' },
+  ];
+
   return (
     <Drawer
       variant="permanent"
@@ -32,13 +57,61 @@ export default function SideMenu() {
         }
       }}
     >
-      <Box sx={{ mt: '20px' }}>
-        <SelectContent />
+      <Box sx={{ 
+        display: 'flex', 
+        flexDirection: 'column', 
+        height: '100%',
+        position: 'relative'
+      }}>
+        <LogoContainer>
+          <img 
+            src={auroraLogo} 
+            alt="Aurora Logo" 
+            style={{ 
+              width: '220px', 
+              height: 'auto',
+              display: 'block'
+            }} 
+          />
+        </LogoContainer>
+        
+        <Box sx={{ 
+          mt: '10px', 
+          flexGrow: 1,
+          overflowY: 'auto',
+          pb: '120px' // Increased padding to account for bottom menu items
+        }}>
+          <SelectContent />
+          <MenuContent />
         </Box>
 
-        <MenuContent />
-        <Divider />
-        <UserCard />
+        <Box sx={{ 
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          backgroundColor: 'background.paper',
+          borderTop: '1px solid',
+          borderColor: 'divider'
+        }}>
+          <Divider />
+          <List dense>
+            {bottomMenuItems.map((item) => (
+              <ListItem key={item.text} disablePadding>
+                <ListItemButton
+                  selected={location.pathname === item.path}
+                  onClick={() => navigate(item.path)}
+                >
+                  <ListItemIcon>{item.icon}</ListItemIcon>
+                  <ListItemText primary={item.text} />
+                </ListItemButton>
+              </ListItem>
+            ))}
+          </List>
+          <Divider />
+          <UserCard />
+        </Box>
+      </Box>
     </Drawer>
   );
 }
