@@ -3,99 +3,56 @@ import { Box, Typography, Paper, Stack, Button } from '@mui/material';
 import CodeSnippet from '../components/CodeSnippet';
 import ResourceSelector from '../components/ResourceSelector';
 import DownloadIcon from '@mui/icons-material/Download';
+import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import JSZip from 'jszip';
+import axios from 'axios';
 
-const resourceConfigs = {
-  amis: `
-data "aws_ami" "ami_web1" {
-  most_recent = true
-  owners      = ["self"] 
-
-  tags = {
-    OS = "Ubuntu"
-    Purpose = "WebServer1"
-  }
+interface ResourceConfigs {
+  [key: string]: string;
 }
 
-data "aws_ami" "ami_web2" {
-  most_recent = true
-  owners      = ["self"] 
-
-  tags = {
-    OS = "AmazonLinux"
-    Purpose = "WebServer2"
-  }
-}`,
-  instances: `
-resource "aws_instance" "web_server" {
-  ami           = data.aws_ami.ami_web1.id
-  instance_type = "t2.micro"
-
-  tags = {
-    Name = "WebServer"
-    Environment = "Production"
-  }
+interface ApiResponse {
+  data: {
+    amis: string;
+    instances: string;
+    subnets: string;
+    vpcs: string;
+  };
 }
-
-resource "aws_instance" "app_server" {
-  ami           = data.aws_ami.ami_web2.id
-  instance_type = "t2.small"
-
-  tags = {
-    Name = "AppServer"
-    Environment = "Production"
-  }
-}`,
-  vpcs: `
-resource "aws_vpc" "main" {
-  cidr_block           = "10.0.0.0/16"
-  enable_dns_hostnames = true
-  enable_dns_support   = true
-
-  tags = {
-    Name = "MainVPC"
-    Environment = "Production"
-  }
-}
-
-resource "aws_vpc" "staging" {
-  cidr_block           = "172.16.0.0/16"
-  enable_dns_hostnames = true
-  enable_dns_support   = true
-
-  tags = {
-    Name = "StagingVPC"
-    Environment = "Staging"
-  }
-}`,
-  subnets: `
-resource "aws_subnet" "public" {
-  vpc_id                  = aws_vpc.main.id
-  cidr_block              = "10.0.1.0/24"
-  availability_zone       = "us-west-2a"
-  map_public_ip_on_launch = true
-
-  tags = {
-    Name = "PublicSubnet"
-    Environment = "Production"
-  }
-}
-
-resource "aws_subnet" "private" {
-  vpc_id                  = aws_vpc.main.id
-  cidr_block              = "10.0.2.0/24"
-  availability_zone       = "us-west-2b"
-  map_public_ip_on_launch = false
-
-  tags = {
-    Name = "PrivateSubnet"
-    Environment = "Production"
-  }
-}`
-};
 
 function IAC() {
   const [selectedResource, setSelectedResource] = useState('amis');
+  const [resourceConfigs, setResourceConfigs] = useState<ResourceConfigs>({});
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const generateConfigs = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await axios.get<ApiResponse>('http://localhost/api/iac/generate_tf', {
+        params: {
+          user_id: '123',
+          account_id: '456'
+        },
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Content-Type': 'application/json',
+        },
+        withCredentials: false
+      });
+      setResourceConfigs(response.data.data);
+    } catch (error) {
+      console.error('Error fetching resource configs:', error);
+      if (axios.isAxiosError(error) && error.response?.data?.message) {
+        setError(error.response.data.message);
+      } else {
+        setError('Something went wrong while generating the configurations. Please try again later.');
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleResourceChange = (resource: string) => {
     setSelectedResource(resource);
@@ -104,16 +61,12 @@ function IAC() {
   const handleDownloadAll = async () => {
     const zip = new JSZip();
     
-    // Add each resource configuration to the zip
     Object.entries(resourceConfigs).forEach(([key, value]) => {
       zip.file(`${key}.tf`, value.trim());
     });
 
     try {
-      // Generate the zip file
       const content = await zip.generateAsync({ type: 'blob' });
-      
-      // Create a download link and trigger the download
       const url = window.URL.createObjectURL(content);
       const link = document.createElement('a');
       link.href = url;
@@ -126,6 +79,8 @@ function IAC() {
       console.error('Error creating zip file:', error);
     }
   };
+
+  const hasData = Object.keys(resourceConfigs).length > 0;
 
   return (
     <Box sx={{ padding: 3 }}>
@@ -152,28 +107,61 @@ function IAC() {
                 TF Configuration
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                You can copy the entire configuration using the copy button in the top-right corner.
+                {hasData 
+                  ? 'You can copy the entire configuration using the copy button in the top-right corner.'
+                  : 'Click the Generate button to create your Terraform configurations.'}
               </Typography>
             </Box>
             <Stack spacing={1} alignItems="flex-end" sx={{ flexShrink: 0 }}>
-              <ResourceSelector onResourceChange={handleResourceChange} />
-              <Button
-                variant="outlined"
-                startIcon={<DownloadIcon />}
-                onClick={handleDownloadAll}
-                size="small"
-                sx={{ width: '215px' }}
-              >
-                Download All as ZIP
-              </Button>
+              {hasData ? (
+                <>
+                  <ResourceSelector onResourceChange={handleResourceChange} />
+                  <Button
+                    variant="outlined"
+                    startIcon={<DownloadIcon />}
+                    onClick={handleDownloadAll}
+                    size="small"
+                    sx={{ width: '215px' }}
+                  >
+                    Download All as ZIP
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  variant="contained"
+                  startIcon={<PlayArrowIcon />}
+                  onClick={generateConfigs}
+                  size="small"
+                  sx={{ width: '215px' }}
+                  disabled={isLoading}
+                >
+                  {isLoading ? 'Generating...' : 'Generate Configs'}
+                </Button>
+              )}
             </Stack>
           </Box>
           
           <Box sx={{ mt: 1 }}>
-            <CodeSnippet 
-              code={resourceConfigs[selectedResource as keyof typeof resourceConfigs]}
-              filename={`${selectedResource}.tf`}
-            />
+            {isLoading ? (
+              <Typography>Generating your configurations...</Typography>
+            ) : hasData ? (
+              <CodeSnippet 
+                code={resourceConfigs[selectedResource] || ''}
+                filename={`${selectedResource}.tf`}
+              />
+            ) : (
+              <Box sx={{ 
+                p: 4, 
+                textAlign: 'center',
+                border: '1px dashed',
+                borderColor: 'divider',
+                borderRadius: 1
+              }}>
+                <Typography color={error ? 'error' : 'text.secondary'}>
+                  {error || 'No configurations generated yet. Click the Generate button above to create your Terraform configurations.'}
+                </Typography>
+              </Box>
+            )}
           </Box>
         </Stack>
       </Paper>
