@@ -90,11 +90,8 @@ export default function SideMenu() {
           bottom: 0,
           left: 0,
           right: 0,
-          backgroundColor: 'background.paper',
-          borderTop: '1px solid',
-          borderColor: 'divider'
+          backgroundColor: 'background.paper'
         }}>
-          <Divider />
           <List dense>
             {bottomMenuItems.map((item) => (
               <ListItem key={item.text} disablePadding>

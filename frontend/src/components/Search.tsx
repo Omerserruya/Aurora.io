@@ -76,7 +76,7 @@ export default function Search() {
   return (
     <>
       {/* Search Input in Header */}
-      <FormControl sx={{ width: { xs: '100%', md: '25ch' } }} variant="outlined">
+      <FormControl sx={{ width: '500px' }} variant="outlined">
         <OutlinedInput
           size="small"
           id="search"

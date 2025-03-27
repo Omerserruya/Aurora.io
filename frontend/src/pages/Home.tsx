@@ -12,7 +12,7 @@ const Home = () => {
       {/* Welcome Section */}
       <Box sx={{ mb: 4 }}>
         <Typography variant="h4" gutterBottom>
-          Welcome back bla bla, {user?.username || 'User'}!
+          Welcome back, {user?.username || 'User'}!
         </Typography>
         <Typography variant="subtitle1" color="text.secondary" gutterBottom>
           Stay updated with the latest in tech

@@ -45,12 +45,14 @@ interface CodeSnippetProps {
   code: string;
   language?: string;
   showLineNumbers?: boolean;
+  filename?: string;
 }
 
 export default function CodeSnippet({ 
   code, 
   language = 'hcl',
-  showLineNumbers = true 
+  showLineNumbers = true,
+  filename = 'Aurora.tf'
 }: CodeSnippetProps) {
   const [copied, setCopied] = useState(false);
 
@@ -70,7 +72,7 @@ export default function CodeSnippet({
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = 'Aurora.tf';
+      link.download = filename;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
