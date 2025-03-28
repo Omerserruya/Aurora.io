@@ -11,17 +11,17 @@ services:
       - NODE_ENV=development
       - REACT_APP_API_URL=http://localhost
 
-  tf-service:
-    build:
-      context: ./terraformService
-      dockerfile: Dockerfile
-    environment:
-      - PORT=7810
-      - HOST=0.0.0.0
-    ports:
-      - "${TF_SERVICE_PORT:-7810}:7810"  # For direct access to Terraform service
-    networks:
-      - default
+  # tf-service:
+  #   build:
+  #     context: ./terraformService
+  #     dockerfile: Dockerfile
+  #   environment:
+  #     - PORT=7810
+  #     - HOST=0.0.0.0
+  #   ports:
+  #     - "${TF_SERVICE_PORT:-7810}:7810"  # For direct access to Terraform service
+  #   networks:
+  #     - default
 
   users-service:
     build:
