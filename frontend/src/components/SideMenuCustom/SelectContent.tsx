@@ -4,24 +4,25 @@ import MuiListItemAvatar from '@mui/material/ListItemAvatar';
 import MenuItem from '@mui/material/MenuItem';
 import ListItemText from '@mui/material/ListItemText';
 import ListItemIcon from '@mui/material/ListItemIcon';
-import EventAvailableIcon from '@mui/icons-material/EventAvailable';
-import EventBusyIcon from '@mui/icons-material/EventBusy';
+import CloudIcon from '@mui/icons-material/Cloud';
 import ListSubheader from '@mui/material/ListSubheader';
-import Select, { selectClasses } from '@mui/material/Select';
+import Select, { SelectChangeEvent, selectClasses } from '@mui/material/Select';
 import Divider from '@mui/material/Divider';
 import { styled } from '@mui/material/styles';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
-import DevicesRoundedIcon from '@mui/icons-material/DevicesRounded';
-import SmartphoneRoundedIcon from '@mui/icons-material/SmartphoneRounded';
-import ConstructionRoundedIcon from '@mui/icons-material/ConstructionRounded';
 import Box from '@mui/material/Box';
+import CircularProgress from '@mui/material/CircularProgress';
+import { AddAccountDialog } from '../AccountConnection';
+import { AWSConnection } from '../../types/awsConnection';
+import api from '../../utils/api';
+import { useAccount } from '../../contexts/AccountContext';
 
 const Avatar = styled(MuiAvatar)(({ theme }) => ({
   width: 28,
   height: 28,
-  backgroundColor: (theme).palette.background.paper,
-  color: (theme).palette.text.secondary,
-  border: `1px solid ${(theme).palette.divider}`,
+  backgroundColor: theme.palette.background.paper,
+  color: theme.palette.text.secondary,
+  border: `1px solid ${theme.palette.divider}`,
 }));
 
 const ListItemAvatar = styled(MuiListItemAvatar)({
@@ -29,82 +30,196 @@ const ListItemAvatar = styled(MuiListItemAvatar)({
   marginRight: 12,
 });
 
-
-const ListEvents = [
-  {
-    eventName:"Omer",
-    date:"27/04/2024",
-    open:true
-  },
-  {
-    eventName:"Ron",
-    date:"27/04/2024",
-    open:true
-  },
-  {
-    eventName:"matan",
-    date:"27/04/2024",
-    open:false
-  }
-]
-
 export default function SelectContent() {
-  const [company, setCompany] = React.useState('');
+  const { account, setAccount } = useAccount();
+  const [selectedAccount, setSelectedAccount] = React.useState<string>(account?._id || '');
+  const [isAddDialogOpen, setIsAddDialogOpen] = React.useState(false);
+  const [listAccounts, setListAccounts] = React.useState<any[]>([]);
+  const [isLoading, setIsLoading] = React.useState(false);
 
-  const handleChange = (event: { target: { value: React.SetStateAction<string>; }; }) => {
-    setCompany(event.target.value);
+  // Fetch AWS connections on component mount
+  React.useEffect(() => {
+    fetchAwsConnections();
+  }, []);
+
+  // Update selected account when account context changes
+  React.useEffect(() => {
+    if (account?._id) {
+      setSelectedAccount(account._id);
+    }
+  }, [account]);
+
+  const fetchAwsConnections = async () => {
+    setIsLoading(true);
+    try {
+      const response = await api.get('/db/aws-connections');
+      console.log('AWS Connections API response:', response);
+      
+      // Check the structure of the response data and handle accordingly
+      const data = response.data;
+      
+      // If it's an array, map directly
+      if (Array.isArray(data)) {
+        const formattedConnections = data.map((conn: any) => ({
+          id: conn._id,
+          name: conn.name,
+          provider: conn.provider,
+          region: conn.credentials.region,
+          isValid: conn.isValidated
+        }));
+        setListAccounts(formattedConnections);
+      } 
+      // If response.data has a property that contains the array
+      else if (data && typeof data === 'object') {
+        // Common API patterns: data.results, data.items, data.connections, etc.
+        const connections = data.connections || data.results || data.items || data.data || [];
+        
+        if (Array.isArray(connections)) {
+          const formattedConnections = connections.map((conn: any) => ({
+            id: conn._id,
+            name: conn.name,
+            provider: conn.provider,
+            region: conn.credentials.region,
+            isValid: conn.isValidated
+          }));
+          setListAccounts(formattedConnections);
+        } else {
+          console.error('Response data format is not recognized:', data);
+          setListAccounts([]);
+        }
+      } else {
+        console.error('Unexpected response format:', data);
+        setListAccounts([]);
+      }
+    } catch (error) {
+      console.error('Error fetching AWS connections:', error);
+      // Start with empty list on error
+      setListAccounts([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleChange = (event: SelectChangeEvent<string>) => {
+    const value = event.target.value;
+    if (value === 'new') {
+      setIsAddDialogOpen(true);
+    } else {
+      setSelectedAccount(value);
+      
+      // Find the selected account object and update the AccountContext
+      const selectedAccountObj = listAccounts.find(acc => acc.id === value);
+      if (selectedAccountObj) {
+        setAccount({
+          _id: selectedAccountObj.id,
+          name: selectedAccountObj.name
+        });
+      }
+    }
+  };
+
+  const handleAddAccount = async (connection: AWSConnection) => {
+    try {
+      const response = await api.post('/db/aws-connections', connection);
+      console.log('Create connection API response:', response);
+      
+      // Refresh the full list of connections
+      await fetchAwsConnections();
+      
+      // Set the newly created account as the selected account
+      if (response.data && response.data._id) {
+        setSelectedAccount(response.data._id);
+        setAccount({
+          _id: response.data._id,
+          name: response.data.name
+        });
+      }
+      
+      setIsAddDialogOpen(false);
+    } catch (error) {
+      console.error('Error creating connection:', error);
+      // Here you would typically show an error notification
+    }
   };
 
   return (
-    <Box 
-      display="flex" 
-      justifyContent="center" 
-      width="100%" 
-      px={2}
-    >
-      <Select
-        labelId="company-select"
-        id="company-simple-select"
-        value={company}
-        onChange={handleChange}
-        displayEmpty
-        inputProps={{ 'aria-label': 'Select company' }}
-        sx={{
-          maxHeight: 56,
-          width: 215,
-          margin: '0 auto',
-          '&.MuiList-root': {
-            p: '8px',
-          },
-          [`& .${selectClasses.select}`]: {
-            display: 'flex',
-            alignItems: 'center',
-            gap: '2px',
-            pl: 1,
-          },
-        }}
+    <>
+      <Box 
+        display="flex" 
+        justifyContent="center" 
+        width="100%" 
+        px={2}
       >
-        <ListSubheader sx={{ pt: 0 }}>Events</ListSubheader>
-        {ListEvents.map((item,index) => (
-          <MenuItem key={index} value={(index === 0) ? "":index}>
-          <ListItemAvatar>
-            <Avatar alt={item.eventName}>
-            {(item.open) ? <EventAvailableIcon color="primary" sx={{ fontSize: '1rem' }} /> : <EventBusyIcon color="disabled" sx={{ fontSize: '1rem' }} />  }
-            </Avatar>
-          </ListItemAvatar>
-          <ListItemText primary={item.eventName} secondary={item.date} />
-        </MenuItem>
-        ))}
-        
+        <Select
+          labelId="account-select"
+          id="account-simple-select"
+          value={selectedAccount}
+          onChange={handleChange}
+          displayEmpty
+          renderValue={(selected) => {
+            if (!selected) {
+              return <Box sx={{ color: 'text.secondary' }}>Select Account</Box>;
+            }
+            const account = listAccounts.find(acc => acc.id === selected);
+            return account ? account.name : 'Select Account';
+          }}
+          sx={{
+            maxHeight: 56,
+            width: 215,
+            margin: '0 auto',
+            '& .MuiList-root': {
+              p: '8px',
+            },
+            [`& .${selectClasses.select}`]: {
+              display: 'flex',
+              alignItems: 'center',
+              gap: '2px',
+              pl: 1,
+            },
+          }}
+        >
+          <ListSubheader sx={{ pt: 0 }}>Accounts</ListSubheader>
+          {isLoading ? (
+            <MenuItem disabled>
+              <Box display="flex" alignItems="center" justifyContent="center" width="100%" py={1}>
+                <CircularProgress size={24} />
+              </Box>
+            </MenuItem>
+          ) : listAccounts.length > 0 ? (
+            listAccounts.map((item) => (
+              <MenuItem key={item.id} value={item.id}>
+                <ListItemAvatar>
+                  <Avatar alt={item.name}>
+                    <CloudIcon color={item.isValid ? "primary" : "disabled"} sx={{ fontSize: '1rem' }} />
+                  </Avatar>
+                </ListItemAvatar>
+                <ListItemText 
+                  primary={item.name} 
+                  secondary={`${item.provider.toUpperCase()} - ${item.region}`} 
+                />
+              </MenuItem>
+            ))
+          ) : (
+            <MenuItem disabled>
+              <ListItemText primary="No accounts found" />
+            </MenuItem>
+          )}
 
-        <Divider sx={{ mx: -1 }} />
-        <MenuItem value={40}>
-          <ListItemIcon>
-            <AddRoundedIcon />
-          </ListItemIcon>
-          <ListItemText primary="Add Event" secondary="Creat New" />
-        </MenuItem>
-      </Select>
-    </Box>
+          <Divider sx={{ mx: -1 }} />
+          <MenuItem value="new">
+            <ListItemIcon>
+              <AddRoundedIcon />
+            </ListItemIcon>
+            <ListItemText primary="Add Account" secondary="Create New" />
+          </MenuItem>
+        </Select>
+      </Box>
+
+      <AddAccountDialog
+        open={isAddDialogOpen}
+        onClose={() => setIsAddDialogOpen(false)}
+        onSubmit={handleAddAccount}
+      />
+    </>
   );
 }

@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Typography, Box, Grid, Button, CircularProgress } from '@mui/material';
 import { useUser } from '../contexts/UserContext';
+import { useAccount } from '../contexts/AccountContext';
 import AddIcon from '@mui/icons-material/Add';
 
 
 const Home = () => {
   const { user } = useUser();
+  const { account } = useAccount();
 
   return (
     <Box>
@@ -16,6 +18,9 @@ const Home = () => {
         </Typography>
         <Typography variant="subtitle1" color="text.secondary" gutterBottom>
           Stay updated with the latest in tech
+        </Typography>
+        <Typography variant="subtitle1" color="text.secondary" gutterBottom>
+          Current account: {account?.name || 'No account selected'}
         </Typography>
       </Box>
 
