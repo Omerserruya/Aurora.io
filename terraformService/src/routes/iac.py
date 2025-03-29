@@ -1,11 +1,13 @@
 from flask import Flask, Blueprint, request, jsonify
 from src.utils.data import get_remote_data
 from src.utils.exporter import generate_tf_resources
+# from app import require_auth
 
 # Create the IaC blueprint
 iac_bp = Blueprint('iac', __name__, url_prefix='/iac')
 
 @iac_bp.route('/generate_tf', methods=['GET'])
+# @require_auth
 def iac_gen_tf():
     user_id = request.args.get('user_id')
     account_id = request.args.get('account_id')

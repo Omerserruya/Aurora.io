@@ -20,6 +20,7 @@ services:
     environment:
       - PORT=7810
       - HOST=0.0.0.0
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
     ports:
       - "${TF_SERVICE_PORT:-7810}:7810"  # For direct access to Terraform service
     networks:
