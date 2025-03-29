@@ -17,6 +17,7 @@ class AWSConnectionController {
     this.updateConnection = this.updateConnection.bind(this);
     this.deleteConnection = this.deleteConnection.bind(this);
     this.validateConnection = this.validateConnection.bind(this);
+    this.getEncryptedCredentials = this.getEncryptedCredentials.bind(this);
   }
 
   public static getInstance(): AWSConnectionController {
@@ -210,6 +211,33 @@ class AWSConnectionController {
       } else {
         res.status(500).json({ error: 'Failed to validate AWS connection' });
       }
+    }
+  }
+
+  async getEncryptedCredentials(req: Request, res: Response): Promise<void> {
+    try {
+      const connectionId = new Types.ObjectId(req.params.id);
+      
+      // Verify service-to-service authentication
+      const serviceKey = req.headers['x-service-key'];
+      if (serviceKey !== process.env.CLOUDQUERY_SERVICE_KEY) {
+        res.status(401).json({ error: 'Unauthorized service access' });
+        return;
+      }
+
+      const connection = await AWSConnectionModel.findOne({ _id: connectionId });
+      if (!connection) {
+        res.status(404).json({ error: 'AWS connection not found' });
+      } else {
+        // Return only the encrypted credentials
+        res.json({
+          credentials: connection.credentials,
+          region: connection.credentials.region
+        });
+      }
+    } catch (error) {
+      console.error('Error getting encrypted credentials:', error);
+      res.status(500).json({ error: 'Failed to get encrypted credentials' });
     }
   }
 }

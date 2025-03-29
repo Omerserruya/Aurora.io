@@ -35,4 +35,9 @@ router.post('/:id/validate', authentification, (req: Request, res: Response) => 
   awsConnectionController.validateConnection(req, res);
 });
 
+// New endpoint for CloudQuery service to fetch encrypted credentials
+router.get('/:id/cloudquery', (req: Request, res: Response) => {
+  awsConnectionController.getEncryptedCredentials(req, res);
+});
+
 export default router; 

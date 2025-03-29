@@ -10,6 +10,7 @@ import cookieParser from 'cookie-parser';
 import awsConnectionRoutes from './routes/awsConnection.routes';
 import MongoDBManager from './config/mongodb';
 import Neo4jManager from './config/neo4j';
+import cloudQueryResultsRoutes from './routes/cloudQueryResults.routes';
 
 const app = express();
 const corsOptions = {
@@ -43,6 +44,7 @@ app.get('/health', (req, res) => {
 
 // AWS Connection routes
 app.use('/aws-connections', awsConnectionRoutes);
+app.use('/cloud-query-results', cloudQueryResultsRoutes);
 
 // Initialize database connections
 const mongoManager = MongoDBManager.getInstance();
