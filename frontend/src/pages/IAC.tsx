@@ -65,6 +65,8 @@ function IAC() {
       zip.file(`${key}.tf`, value.trim());
     });
 
+    zip.file('README.txt', 'This ZIP contains Terraform configuration files for various AWS resources.');
+
     try {
       const content = await zip.generateAsync({ type: 'blob' });
       const url = window.URL.createObjectURL(content);
