@@ -6,6 +6,7 @@ import DownloadIcon from '@mui/icons-material/Download';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import JSZip from 'jszip';
 import axios from 'axios';
+import {providerTfContent, tfvarsContent, variablesTfContent} from '../consts/iacFiles'
 
 interface ResourceConfigs {
   [key: string]: string;
@@ -62,10 +63,23 @@ function IAC() {
     const zip = new JSZip();
     
     Object.entries(resourceConfigs).forEach(([key, value]) => {
-      zip.file(`${key}.tf`, value.trim());
+      zip.file(`${key}/${key}.tf`, value.trim());
     });
 
     zip.file('README.txt', 'This ZIP contains Terraform configuration files for various AWS resources.');
+
+    const mainTfContent = Object.keys(resourceConfigs)
+      .map(key => `module "${key}" {
+  source = "./${key}"
+}`)
+      .join('\n\n');
+    zip.file('main.tf', mainTfContent);
+
+    zip.file('provider.tf', providerTfContent);
+
+    zip.file('variables.tf', variablesTfContent);
+
+    zip.file('terraform.tfvars', tfvarsContent);
 
     try {
       const content = await zip.generateAsync({ type: 'blob' });
