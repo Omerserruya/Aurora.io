@@ -1,12 +1,11 @@
 import * as React from 'react';
-import { styled } from '@mui/material/styles';
+import { styled, useTheme } from '@mui/material/styles';
 import MuiDrawer, { drawerClasses } from '@mui/material/Drawer';
 import Box from '@mui/material/Box';
 import MenuContent from './MenuContent';
 import UserCard from './UserCard';
 import Divider from '@mui/material/Divider';
 import SelectContent from './SelectContent';
-import auroraLogo from '../../assets/aurora.png';
 import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
 import ListItemButton from '@mui/material/ListItemButton';
@@ -31,18 +30,22 @@ const Drawer = styled(MuiDrawer)({
 const LogoContainer = styled(Box)({
   display: 'flex',
   justifyContent: 'center',
-  alignItems: 'center',
-  padding: '10px 0',
+  alignItems: 'center'
 });
 
 export default function SideMenu() {
   const navigate = useNavigate();
   const location = useLocation();
+  const theme = useTheme();
 
   const bottomMenuItems = [
     { text: 'Settings', icon: <SettingsRoundedIcon />, path: '/setting' },
     { text: 'About', icon: <InfoRoundedIcon />, path: '/about' },
   ];
+
+  const logoPath = theme.palette.mode === 'dark' 
+    ? '/aurora-dark.png'
+    : '/aurora-light.png';
 
   return (
     <Drawer
@@ -65,10 +68,10 @@ export default function SideMenu() {
       }}>
         <LogoContainer>
           <img 
-            src={auroraLogo} 
+            src={logoPath}
             alt="Aurora Logo" 
             style={{ 
-              width: '220px', 
+              width: '320px', 
               height: 'auto',
               display: 'block'
             }} 
@@ -76,10 +79,8 @@ export default function SideMenu() {
         </LogoContainer>
         
         <Box sx={{ 
-          mt: '10px', 
           flexGrow: 1,
           overflowY: 'auto',
-          pb: '120px' // Increased padding to account for bottom menu items
         }}>
           <SelectContent />
           <MenuContent />
