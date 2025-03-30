@@ -40,7 +40,7 @@ function IAC() {
           'Access-Control-Allow-Origin': '*',
           'Content-Type': 'application/json',
         },
-        withCredentials: false
+        withCredentials: true
       });
       setResourceConfigs(response.data.data);
     } catch (error) {
@@ -63,17 +63,17 @@ function IAC() {
     const zip = new JSZip();
     
     Object.entries(resourceConfigs).forEach(([key, value]) => {
-      zip.file(`${key}/${key}.tf`, value.trim());
+      zip.file(`${key}.tf`, value.trim());
     });
 
     zip.file('README.txt', 'This ZIP contains Terraform configuration files for various AWS resources.');
 
-    const mainTfContent = Object.keys(resourceConfigs)
-      .map(key => `module "${key}" {
-  source = "./${key}"
-}`)
-      .join('\n\n');
-    zip.file('main.tf', mainTfContent);
+//     const mainTfContent = Object.keys(resourceConfigs)
+//       .map(key => `module "${key}" {
+//   source = "./${key}"
+// }`)
+      // .join('\n\n');
+    // zip.file('main.tf', mainTfContent);
 
     zip.file('provider.tf', providerTfContent);
 
