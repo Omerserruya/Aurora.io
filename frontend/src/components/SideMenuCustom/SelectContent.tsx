@@ -16,6 +16,7 @@ import { AddAccountDialog } from '../AccountConnection';
 import { AWSConnection } from '../../types/awsConnection';
 import api from '../../utils/api';
 import { useAccount } from '../../contexts/AccountContext';
+import { fetchAwsConnections as fetchAwsConnectionsApi, createAwsConnection } from '../../api/awsConnectionApi';
 
 const Avatar = styled(MuiAvatar)(({ theme }) => ({
   width: 28,
@@ -52,13 +53,10 @@ export default function SelectContent() {
   const fetchAwsConnections = async () => {
     setIsLoading(true);
     try {
-      const response = await api.get('/db/aws-connections');
-      console.log('AWS Connections API response:', response);
+      // Use the fetchAwsConnections API function
+      const data = await fetchAwsConnectionsApi();
       
-      // Check the structure of the response data and handle accordingly
-      const data = response.data;
-      
-      // If it's an array, map directly
+      // Process the data based on its structure
       if (Array.isArray(data)) {
         const formattedConnections = data.map((conn: any) => ({
           id: conn._id,
@@ -68,10 +66,8 @@ export default function SelectContent() {
           isValid: conn.isValidated
         }));
         setListAccounts(formattedConnections);
-      } 
-      // If response.data has a property that contains the array
-      else if (data && typeof data === 'object') {
-        // Common API patterns: data.results, data.items, data.connections, etc.
+      } else if (data && typeof data === 'object') {
+        // Check if data has a property that contains the array
         const connections = data.connections || data.results || data.items || data.data || [];
         
         if (Array.isArray(connections)) {
@@ -120,18 +116,17 @@ export default function SelectContent() {
 
   const handleAddAccount = async (connection: AWSConnection) => {
     try {
-      const response = await api.post('/db/aws-connections', connection);
-      console.log('Create connection API response:', response);
+      const data = await createAwsConnection(connection);
       
       // Refresh the full list of connections
       await fetchAwsConnections();
       
       // Set the newly created account as the selected account
-      if (response.data && response.data._id) {
-        setSelectedAccount(response.data._id);
+      if (data && data._id) {
+        setSelectedAccount(data._id);
         setAccount({
-          _id: response.data._id,
-          name: response.data.name
+          _id: data._id,
+          name: data.name
         });
       }
       

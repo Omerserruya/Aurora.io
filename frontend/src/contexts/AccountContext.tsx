@@ -43,6 +43,12 @@ export const AccountProvider: React.FC<{ children: React.ReactNode }> = ({ child
           throw new Error('Failed to fetch account details');
         }
 
+        // Check if the response is JSON before parsing
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+          throw new Error('Invalid response format - expected JSON');
+        }
+
         const accountData = await response.json();
         setAccount(accountData);
         return accountData;

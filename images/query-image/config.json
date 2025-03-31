@@ -1,0 +1,7 @@
+{
+    "ec2": ["InstanceId", "InstanceType", "VpcId", "SubnetId", "ImageId", "Image"],
+    "vpc": ["VpcId", "CidrBlock"],
+    "subnet": ["SubnetId", "VpcId", "CidrBlock"],
+    "security_group": ["GroupId", "GroupName", "VpcId", "Description"],
+    "s3": ["Name", "CreationDate"]
+}

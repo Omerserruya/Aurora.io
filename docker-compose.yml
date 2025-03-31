@@ -11,6 +11,7 @@ services:
       - NODE_ENV=development
       - REACT_APP_API_URL=http://localhost
 
+
   tf-service:
     build:
       context: ./terraformService
@@ -33,7 +34,6 @@ services:
       - ./userMgmntService/package.json:/app/package.json
       - ./userMgmntService/tsconfig.json:/app/tsconfig.json
       - ./shared:/app/shared
-      - ./userMgmntService/.env.dev:/app/.env.dev
       - ./userMgmntService/uploads:/app/uploads
     environment:
       - PORT=4001
@@ -78,7 +78,7 @@ services:
       users-service:
         condition: service_healthy
     healthcheck:
-      test: wget -O /dev/null -q http://localhost:4002/auth || exit 1
+      test: wget -O /dev/null -q http://localhost:4002/ || exit 1
       interval: 10s
       timeout: 5s
       retries: 5
@@ -123,7 +123,7 @@ services:
     networks:
       - default
     healthcheck:
-      test: wget -O /dev/null -q http://localhost:7474 || exit 1
+      test: ["CMD-SHELL", "neo4j status | grep -q 'Neo4j is running' || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -177,6 +177,36 @@ services:
       start_period: 30s
     networks:
       - default
+      - query-network
+
+  cloud-query-service:
+    build:
+      context: ./cloudQueryService
+      dockerfile: Dockerfile
+    volumes:
+      - ./cloudQueryService/src:/app/src
+      - ./cloudQueryService/package.json:/app/package.json
+      - ./cloudQueryService/tsconfig.json:/app/tsconfig.json
+      - ./cloudQueryService/.env.development:/app/.env
+      - /var/run/docker.sock:/var/run/docker.sock  # Mount Docker socket
+    environment:
+      - PORT=4004
+      - NODE_ENV=development
+    ports:
+      - "4004:4004"
+    depends_on:
+      db-service:
+        condition: service_healthy
+    healthcheck:
+      test: wget -O /dev/null -q http://localhost:4004/status || exit 1
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - default
+      - query-network
+    privileged: true  # Give container privileged access for Docker operations
 
 volumes:
   frontend-build:   # Named volume for frontend build output
@@ -189,3 +219,6 @@ volumes:
 networks:
   default:
     driver: bridge
+  query-network:
+    driver: bridge
+    name: query-network  # Explicitly name the network
