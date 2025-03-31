@@ -4,7 +4,7 @@ def generate_instances(instances_data):
     for instance in instances_data:
         instance_content += f"""
 resource "aws_instance" "{instance['name']}" {{
-  ami           = {instance['ami_id']}
+  ami           = "{instance['ami_id']}"
   instance_type = "{instance['instance_type']}"
   subnet_id     = aws_subnet.{instance['subnet_name']}.id
 

@@ -12,7 +12,7 @@
             "vpc_name": "MainVpc"
         },
         {
-            "name": "web2subnet",
+            "name": "web2Subnet",
             "cidr_block": "10.0.2.0/24",
             "vpc_name": "MainVpc"
         }
