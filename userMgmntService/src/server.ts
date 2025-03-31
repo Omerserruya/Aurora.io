@@ -12,38 +12,11 @@ import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import path from 'path';
 
-
-const options = {
-  definition: {
-    openapi: "3.0.0",
-    info: {
-      title: "Web Dev 2025 REST API",
-      version: "1.0.0",
-      description: "REST server including authentication using JWT",
-    },
-    servers: [{ url: `${process.env.ENV_URL}/users`}],
-    components: {
-      securitySchemes: {
-        cookieAuth: {
-          type: "apiKey",
-          in: "cookie",
-          name: "accessToken",
-          description: "Authentication uses HTTP cookies. No need to manually enter anything here - just login through the /auth/login endpoint."
-        }
-      },
-    }
-  },
-  apis: ["./src/routes/*.ts"],
-};
-const specs = swaggerJsDoc(options);
-
-
 const app = express();
 const corsOptions = {
   origin: process.env.ENV_URL,
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE"],
-
 };
 
 app.use(cors(corsOptions));
@@ -62,11 +35,41 @@ const db = mongoose.connection
 
 // Routes Use
 app.use('/',usersRoute)
-app.use("/api-docs", swaggerUI.serve, swaggerUI.setup(specs));
 
 // Serve static files from uploads directory
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
-app.use("/api-docs", swaggerUI.serve, swaggerUI.setup(specs));
+
+// Only enable swagger in production to avoid memory issues
+if (process.env.NODE_ENV !== 'development') {
+  try {
+    const options = {
+      definition: {
+        openapi: "3.0.0",
+        info: {
+          title: "Web Dev 2025 REST API",
+          version: "1.0.0",
+          description: "REST server including authentication using JWT",
+        },
+        servers: [{ url: `${process.env.ENV_URL}/users`}],
+        components: {
+          securitySchemes: {
+            cookieAuth: {
+              type: "apiKey",
+              in: "cookie",
+              name: "accessToken",
+              description: "Authentication uses HTTP cookies. No need to manually enter anything here - just login through the /auth/login endpoint."
+            }
+          },
+        }
+      },
+      apis: ["./src/routes/*.ts"],
+    };
+    const specs = swaggerJsDoc(options);
+    app.use("/api-docs", swaggerUI.serve, swaggerUI.setup(specs));
+  } catch (error) {
+    console.warn("Failed to initialize Swagger documentation:", error);
+  }
+}
 
 const mongoOptions = {
   // user: process.env.MONGODB_USER,          // MongoDB username

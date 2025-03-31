@@ -6,8 +6,8 @@
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
     "@fontsource/roboto": "^5.1.0",
-    "@mui/icons-material": "^5.16.14",
-    "@mui/material": "^5.16.14",
+    "@mui/icons-material": "^5.17.1",
+    "@mui/material": "^5.17.1",
     "@mui/x-charts": "^6.19.8",
     "@mui/x-data-grid": "^7.27.2",
     "@mui/x-date-pickers": "^7.27.1",
@@ -58,6 +58,8 @@
     ]
   },
   "devDependencies": {
-    "@types/marked": "^5.0.2"
+    "@types/marked": "^5.0.2",
+    "@types/react": "^19.0.12",
+    "@types/react-dom": "^19.0.4"
   }
 }
