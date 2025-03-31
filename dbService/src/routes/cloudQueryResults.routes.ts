@@ -1,23 +1,10 @@
-import { Router, Request, Response } from 'express';
+import { Router } from 'express';
+import { processCloudQueryResults, getInfrastructureData } from '../controllers/cloudQueryResults.controller';
 
 const router = Router();
 
-router.post('/', (req: Request, res: Response) => {
-    try {
-        const { userId, connectionId, data } = req.body;
-        
-        // Print the received data
-        console.log('Received CloudQuery results:');
-        console.log('User ID:', userId);
-        console.log('Connection ID:', connectionId);
-        console.log('Data:', JSON.stringify(data, null, 2));
-        
-        // For now, just return success
-        res.status(200).json({ message: 'Results received successfully' });
-    } catch (error) {
-        console.error('Error processing CloudQuery results:', error);
-        res.status(500).json({ error: 'Failed to process results' });
-    }
-});
+router.post('/cloud-query-results', processCloudQueryResults);
+router.get('/cloud-query-results/:userId/:connectionId', getInfrastructureData);
+router.get('/tf-query-results/:userId/:connectionId', getInfrastructureData);
 
 export default router; 

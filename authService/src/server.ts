@@ -34,7 +34,6 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(passport.initialize());
 
 // Routes Use
-app.use('/auth', authRoute);
 app.use('/', authRoute);
 
 // Only enable swagger in production to avoid memory issues

@@ -17,7 +17,7 @@
     "jsonwebtoken": "^9.0.2",
     "mongodb": "^6.3.0",
     "mongoose": "^8.1.1",
-    "neo4j-driver": "^5.15.0"
+    "neo4j-driver": "^5.28.1"
   },
   "devDependencies": {
     "@types/cookie-parser": "^1.4.6",

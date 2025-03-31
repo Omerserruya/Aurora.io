@@ -68,7 +68,7 @@ export class CloudQueryController {
         AWS_SECRET_ACCESS_KEY: credentials.secretAccessKey,
         AWS_REGION: credentials.region,
         ENCRYPTION_KEY: process.env.ENCRYPTION_KEY || '', // Pass encryption key to container
-        DB_SERVICE_URL: this.dbServiceUrl, // Add DB service URL
+        DB_SERVICE_URL: `${this.dbServiceUrl}/neo`, // Add DB service URL
         CONNECTION_ID: connectionId // Add connection ID
       };
 

@@ -76,7 +76,7 @@ services:
       users-service:
         condition: service_healthy
     healthcheck:
-      test: wget -O /dev/null -q http://localhost:4002/auth || exit 1
+      test: wget -O /dev/null -q http://localhost:4002/ || exit 1
       interval: 10s
       timeout: 5s
       retries: 5
@@ -121,7 +121,7 @@ services:
     networks:
       - default
     healthcheck:
-      test: wget -O /dev/null -q http://localhost:7474 || exit 1
+      test: ["CMD-SHELL", "neo4j status | grep -q 'Neo4j is running' || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5

@@ -10,7 +10,8 @@ import cookieParser from 'cookie-parser';
 import awsConnectionRoutes from './routes/awsConnection.routes';
 import MongoDBManager from './config/mongodb';
 import Neo4jManager from './config/neo4j';
-import cloudQueryResultsRoutes from './routes/cloudQueryResults.routes';
+import neoRoutes from './routes/cloudQueryResults.routes';
+import { Neo4jService } from './services/neo4j.service';
 
 const app = express();
 const corsOptions = {
@@ -39,16 +40,19 @@ app.use((req, res, next) => {
 
 // Health check endpoint
 app.get('/health', (req, res) => {
-  res.json({ status: 'healthy' });
+  res.status(200).json({ status: 'healthy' });
 });
 
 // AWS Connection routes
 app.use('/aws-connections', awsConnectionRoutes);
-app.use('/cloud-query-results', cloudQueryResultsRoutes);
+app.use('/neo', neoRoutes);
 
 // Initialize database connections
 const mongoManager = MongoDBManager.getInstance();
 const neo4jManager = Neo4jManager.getInstance();
+
+// Initialize Neo4j
+Neo4jService.initialize();
 
 const initApp = () => {
   return new Promise<Express>((resolve, reject) => {
@@ -76,5 +80,6 @@ process.on('SIGTERM', async () => {
     mongoManager.disconnect(),
     neo4jManager.disconnect()
   ]);
+  await Neo4jService.close();
   process.exit(0);
 }); 
