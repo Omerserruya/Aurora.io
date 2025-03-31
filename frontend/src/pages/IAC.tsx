@@ -7,6 +7,10 @@ import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import JSZip from 'jszip';
 import axios from 'axios';
 import {providerTfContent, tfvarsContent, variablesTfContent} from '../consts/iacFiles'
+import { useUser } from '../contexts/UserContext';
+import { useAccount } from '../contexts/AccountContext'
+import {resourcesType} from '../components/ResourceSelector'
+
 
 interface ResourceConfigs {
   [key: string]: string;
@@ -22,10 +26,14 @@ interface ApiResponse {
 }
 
 function IAC() {
-  const [selectedResource, setSelectedResource] = useState('amis');
+  const [selectedResource, setSelectedResource] = useState('');
+  const [resourceKeys, setResourcesKeys] = useState<resourcesType[]>([])
   const [resourceConfigs, setResourceConfigs] = useState<ResourceConfigs>({});
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { user } = useUser();
+  const { account } = useAccount();
+
 
   const generateConfigs = async () => {
     setIsLoading(true);
@@ -33,8 +41,8 @@ function IAC() {
     try {
       const response = await axios.get<ApiResponse>('http://localhost/api/iac/generate_tf', {
         params: {
-          user_id: '123',
-          account_id: '456'
+          user_id: user?._id,
+          account_id: account?._id
         },
         headers: {
           'Access-Control-Allow-Origin': '*',
@@ -42,7 +50,17 @@ function IAC() {
         },
         withCredentials: true
       });
-      setResourceConfigs(response.data.data);
+      const res = response.data as ApiResponse
+      
+      const filteredData = {
+        data: Object.fromEntries(
+          Object.entries(res.data).filter(([_, value]) => value !== "")
+        )
+      };
+      const resourceKeys = Object.keys(filteredData.data) as resourcesType[];
+      setSelectedResource(resourceKeys[0])
+      setResourcesKeys(resourceKeys);
+      setResourceConfigs(filteredData.data);
     } catch (error) {
       console.error('Error fetching resource configs:', error);
       if (axios.isAxiosError(error) && error.response?.data?.message) {
@@ -121,7 +139,7 @@ function IAC() {
             <Stack spacing={1} alignItems="flex-end" sx={{ flexShrink: 0 }}>
               {hasData ? (
                 <>
-                  <ResourceSelector onResourceChange={handleResourceChange} />
+                  <ResourceSelector onResourceChange={handleResourceChange} resourcesView={resourceKeys} />
                   <Button
                     variant="outlined"
                     startIcon={<DownloadIcon />}

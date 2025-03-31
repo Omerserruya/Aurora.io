@@ -1,0 +1,42 @@
+{
+    "vpcs": [
+        {
+            "name": "vpc-0bff5c6eb7483876f",
+            "cidr_block": "172.31.0.0/16"
+        }
+    ],
+    "subnets": [
+        {
+            "name": "subnet-06cd7184f514dbd81",
+            "cidr_block": "172.31.32.0/20",
+            "vpc_name": "vpc-0bff5c6eb7483876f"
+        },
+        {
+            "name": "subnet-097f7d77b666d2167",
+            "cidr_block": "172.31.0.0/20",
+            "vpc_name": "vpc-0bff5c6eb7483876f"
+        },
+        {
+            "name": "subnet-04c71860ccba836db",
+            "cidr_block": "172.31.80.0/20",
+            "vpc_name": "vpc-0bff5c6eb7483876f"
+        },
+        {
+            "name": "subnet-045ee3453122aad35",
+            "cidr_block": "172.31.64.0/20",
+            "vpc_name": "vpc-0bff5c6eb7483876f"
+        },
+        {
+            "name": "subnet-0c7510e3469ed6283",
+            "cidr_block": "172.31.16.0/20",
+            "vpc_name": "vpc-0bff5c6eb7483876f"
+        },
+        {
+            "name": "subnet-012f1908fcc13575b",
+            "cidr_block": "172.31.48.0/20",
+            "vpc_name": "vpc-0bff5c6eb7483876f"
+        }
+    ],
+    "amis": [],
+    "instances": []
+}

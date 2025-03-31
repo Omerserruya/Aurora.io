@@ -1,15 +1,15 @@
 services:
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    volumes:
-      - ./frontend:/app        # For code visibility during build
-      - /app/node_modules      # Avoid overwriting node_modules
-      - frontend-build:/app/build  # Share built files with Nginx
-    environment:
-      - NODE_ENV=development
-      - REACT_APP_API_URL=http://localhost
+ # frontend:
+ #   build:
+ #     context: ./frontend
+ #     dockerfile: Dockerfile
+ #   volumes:
+ #     - ./frontend:/app        # For code visibility during build
+ #     - /app/node_modules      # Avoid overwriting node_modules
+ #     - frontend-build:/app/build  # Share built files with Nginx
+ #   environment:
+ #     - NODE_ENV=development
+ #     - REACT_APP_API_URL=http://localhost
 
 
   tf-service:
@@ -20,6 +20,7 @@ services:
       - PORT=7810
       - HOST=0.0.0.0
       - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      - DB_SERVICE_URL=${DB_SERVICE_URL}
     ports:
       - "${TF_SERVICE_PORT:-7810}:7810"  # For direct access to Terraform service
     networks:
@@ -139,8 +140,8 @@ services:
       - ./userMgmntService/uploads:/app/uploads:ro
       - ./frontend/build:/usr/share/nginx/html:ro  # Serve React build files
     depends_on:
-      frontend:
-        condition: service_started
+      #frontend:
+      #  condition: service_started
       users-service:
         condition: service_healthy
       auth-service:
