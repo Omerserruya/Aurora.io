@@ -1,6 +1,8 @@
 import Docker from 'dockerode';
 import { logger } from '../utils/logger';
 
+const platform = process.env.PLATFORM || 'linux/arm64';
+
 interface ContainerInfo {
   id: string;
   name: string;
@@ -18,16 +20,17 @@ export class DockerService {
 
   async pullImage(image: string): Promise<void> {
     return new Promise((resolve, reject) => {
-        logger.info(`Pulling image: ${image} from Docker Hub...`);
-
-        this.docker.pull(image, (err: Error | null, stream: NodeJS.ReadableStream) => {
+      
+        logger.info(`Pulling image: ${image}${platform ? ` for platform: ${platform}` : ''} from Docker Hub...`);
+       
+        this.docker.pull(image, { platform }, (err: Error | null, result: any) => {
             if (err) {
                 logger.error(`Failed to pull image ${image}:`, err);
                 return reject(err);
             }
 
             this.docker.modem.followProgress(
-                stream,
+                result,
                 () => {
                     logger.info(`Successfully pulled image: ${image}`);
                     resolve();

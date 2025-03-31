@@ -31,7 +31,7 @@ export class CloudQueryController {
         return;
       }
 
-      const containerId = await this.dockerService.runContainer(process.env.VALIDATE_IMAGE || "validate:latest",{
+      const containerId = await this.dockerService.runContainer(process.env.VALIDATE_IMAGE || "auroraiohub/validate-image:latest",{
         userID,
         ...awsCredentials
       });

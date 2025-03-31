@@ -6,6 +6,7 @@ import AccountsStep from './AccountsStep';
 import OverviewStep from './OverviewStep';
 import { AWSConnectionFormData, AWSConnection } from '../../types/awsConnection';
 import { useUser } from '../../contexts/UserContext';
+import { validateAwsCredentials } from '../../api/awsConnectionApi';
 
 const steps = [
   { label: 'About', description: 'Connection Details' },
@@ -44,6 +45,7 @@ export default function AWSConnectionForm({ onSubmit, onCancel }: AWSConnectionF
   const [activeStep, setActiveStep] = React.useState(0);
   const [formData, setFormData] = React.useState<AWSConnectionFormData>(initialFormData);
   const [isValidating, setIsValidating] = React.useState(false);
+  const [containerId, setContainerId] = React.useState<string | null>(null);
 
   const handleNext = () => {
     setActiveStep((prevStep) => prevStep + 1);
@@ -62,17 +64,42 @@ export default function AWSConnectionForm({ onSubmit, onCancel }: AWSConnectionF
 
   const handleValidate = async () => {
     setIsValidating(true);
+    setContainerId(null);
+    
     try {
-      // This is a temporary mock implementation that always succeeds
-      // Will be replaced with actual CloudQuery validation later
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      if (!user) {
+        throw new Error('No user found in context');
+      }
       
-      // Mock successful validation
-      handleStepChange(3, { isValid: true });
+      // Use the real AWS credentials validation from CloudQuery service
+      const validationResult = await validateAwsCredentials(
+        user._id,
+        {
+          accessKeyId: formData.step2.accessKeyId,
+          secretAccessKey: formData.step2.secretAccessKey,
+          region: formData.step1.region
+        }
+      );
       
-      // Proceed to next step automatically after validation
-      handleNext();
+      // Check if validation was successful
+      if (validationResult.valid === true) {
+        // Store the containerId for later reference
+        if (validationResult.containerId) {
+          setContainerId(validationResult.containerId);
+        }
+        // Set the validation result
+        handleStepChange(3, { isValid: true });
+        
+        // Proceed to next step automatically after validation
+        setTimeout(() => {
+          handleNext();
+        }, 1500);
+      } else {
+        // Handle invalid credentials - update the UI state only
+        handleStepChange(3, { isValid: false });
+      }
     } catch (error) {
+      // One simple catch for all errors - update the UI state only
       console.error('Validation error:', error);
       handleStepChange(3, { isValid: false });
     } finally {
@@ -81,29 +108,34 @@ export default function AWSConnectionForm({ onSubmit, onCancel }: AWSConnectionF
   };
 
   const handleSubmit = async () => {
-    if (!user) {
-      console.error('No user found in context');
-      return;
+    try {
+      if (!user || !formData.step4.isValid || !containerId) {
+        throw new Error('Validation required');
+      }
+
+      const connection: AWSConnection = {
+        userId: user._id,
+        name: formData.step1.name,
+        provider: 'aws',
+        description: formData.step1.description,
+        credentials: {
+          accessKeyId: formData.step2.accessKeyId,
+          secretAccessKey: formData.step2.secretAccessKey,
+          region: formData.step1.region,
+          sessionToken: undefined
+        },
+        accounts: formData.step3.accounts,
+        isValidated: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+
+      onSubmit(connection);
+    } catch (error) {
+      // Handle submission error by updating the validation state
+      console.error('Submission error:', error);
+      handleStepChange(3, { isValid: false });
     }
-
-    const connection: AWSConnection = {
-      userId: user._id,
-      name: formData.step1.name,
-      provider: 'aws',
-      description: formData.step1.description,
-      credentials: {
-        accessKeyId: formData.step2.accessKeyId,
-        secretAccessKey: formData.step2.secretAccessKey,
-        region: formData.step1.region,
-        sessionToken: undefined
-      },
-      accounts: formData.step3.accounts,
-      isValidated: true,
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
-
-    onSubmit(connection);
   };
 
   const getStepContent = (step: number) => {
