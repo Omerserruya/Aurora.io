@@ -24,15 +24,24 @@ export default function Header() {
         sx={{
           width: '100%',
           alignItems: 'center',
-          justifyContent: 'space-between',
+          position: 'relative',
         }}
         spacing={2}
       >
-        <NavbarBreadcrumbs />
-        <Stack direction="row" spacing={1.5}>
+        <Box sx={{ position: 'absolute', left: 0 }}>
+          <NavbarBreadcrumbs />
+        </Box>
+        <Box sx={{ 
+          width: '100%',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center'
+        }}>
           <Search />
+        </Box>
+        <Box sx={{ position: 'absolute', right: 0 }}>
           <ColorModeIconDropdown />
-        </Stack>
+        </Box>
       </Stack>
     </Box>
   );

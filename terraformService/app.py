@@ -1,13 +1,10 @@
-from flask import Flask, jsonify
+from flask import Flask
 from flask_cors import CORS
-from dotenv import load_dotenv
 import os
 from src.routes.iac import iac_bp
 
-# load_dotenv('.env.development')
-
 app = Flask(__name__)
-CORS(app)
+CORS(app, supports_credentials=True)
 
 # Register blueprints
 app.register_blueprint(iac_bp)

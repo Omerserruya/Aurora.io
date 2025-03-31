@@ -11,17 +11,19 @@ services:
       - NODE_ENV=development
       - REACT_APP_API_URL=http://localhost
 
-  # tf-service:
-  #   build:
-  #     context: ./terraformService
-  #     dockerfile: Dockerfile
-  #   environment:
-  #     - PORT=7810
-  #     - HOST=0.0.0.0
-  #   ports:
-  #     - "${TF_SERVICE_PORT:-7810}:7810"  # For direct access to Terraform service
-  #   networks:
-  #     - default
+
+  tf-service:
+    build:
+      context: ./terraformService
+      dockerfile: Dockerfile
+    environment:
+      - PORT=7810
+      - HOST=0.0.0.0
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+    ports:
+      - "${TF_SERVICE_PORT:-7810}:7810"  # For direct access to Terraform service
+    networks:
+      - default
 
   users-service:
     build:
@@ -135,7 +137,7 @@ services:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./nginx/conf.d:/etc/nginx/conf.d:ro
       - ./userMgmntService/uploads:/app/uploads:ro
-      - frontend-build:/usr/share/nginx/html:ro  # Serve React build files
+      - ./frontend/build:/usr/share/nginx/html:ro  # Serve React build files
     depends_on:
       frontend:
         condition: service_started
