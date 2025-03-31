@@ -65,21 +65,11 @@ function IAC() {
     Object.entries(resourceConfigs).forEach(([key, value]) => {
       zip.file(`${key}.tf`, value.trim());
     });
-
-    zip.file('README.txt', 'This ZIP contains Terraform configuration files for various AWS resources.');
-
-//     const mainTfContent = Object.keys(resourceConfigs)
-//       .map(key => `module "${key}" {
-//   source = "./${key}"
-// }`)
-      // .join('\n\n');
-    // zip.file('main.tf', mainTfContent);
-
+    
     zip.file('provider.tf', providerTfContent);
-
     zip.file('variables.tf', variablesTfContent);
-
     zip.file('terraform.tfvars', tfvarsContent);
+    zip.file('README.txt', 'This ZIP contains Terraform configuration files for various AWS resources.');
 
     try {
       const content = await zip.generateAsync({ type: 'blob' });
