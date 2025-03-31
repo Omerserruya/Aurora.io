@@ -37,6 +37,30 @@ interface CloudInfrastructure {
     }[];
 }
 
+interface TerraformInfrastructure {
+    vpcs: {
+        name: string;
+        cidr_block: string;
+    }[];
+    subnets: {
+        name: string;
+        cidr_block: string;
+        vpc_name: string;
+    }[];
+    amis: {
+        name: string;
+        ami_id: string;
+        tags: Record<string, string>;
+    }[];
+    instances: {
+        name: string;
+        ami_id: string;
+        instance_type: string;
+        subnet_name: string;
+        tags: Record<string, string>;
+    }[];
+}
+
 export const processCloudQueryResults = async (req: Request, res: Response) => {
     let session: Session | null = null;
     
@@ -165,6 +189,65 @@ export const processCloudQueryResults = async (req: Request, res: Response) => {
 };
 
 export const getInfrastructureData = async (req: Request, res: Response) => {
+    const { connectionId, userId } = req.params;
+
+    if (!userId || !connectionId) {
+        return res.status(400).json({ error: 'Missing required parameters' });
+    }
+
+    const session = Neo4jService.getSession();
+    try {
+        const result = await session.executeRead(tx =>
+            tx.run(
+                `MATCH (v:VPC {userId: $userId, connectionId: $connectionId})
+                 OPTIONAL MATCH (v)-[:CONTAINS]->(s:Subnet)
+                 OPTIONAL MATCH (s)-[:BELONGS_TO]->(i:Instance)
+                 OPTIONAL MATCH (v)-[:HAS]->(sg:SecurityGroup)
+                 OPTIONAL MATCH (b:Bucket {userId: $userId, connectionId: $connectionId})
+                 RETURN v, 
+                        collect(DISTINCT s) as subnets,
+                        collect(DISTINCT i) as instances,
+                        collect(DISTINCT sg) as securityGroups,
+                        collect(DISTINCT b) as buckets`,
+                { userId, connectionId }
+            )
+        );
+
+        const infrastructure: CloudInfrastructure = {
+            vpcs: result.records.map(record => ({
+                vpcId: record.get('v').properties.vpcId,
+                properties: record.get('v').properties,
+                subnets: record.get('subnets').map((subnet: any) => ({
+                    subnetId: subnet.properties.subnetId,
+                    properties: subnet.properties,
+                    instances: record.get('instances')
+                        .filter((instance: any) => instance.properties.subnetId === subnet.properties.subnetId)
+                        .map((instance: any) => ({
+                            instanceId: instance.properties.instanceId,
+                            properties: instance.properties
+                        }))
+                })),
+                securityGroups: record.get('securityGroups').map((sg: any) => ({
+                    groupId: sg.properties.groupId,
+                    properties: sg.properties
+                }))
+            })),
+            s3Buckets: result.records[0].get('buckets').map((bucket: any) => ({
+                name: bucket.properties.name,
+                properties: bucket.properties
+            }))
+        };
+
+        res.json(infrastructure);
+    } catch (error) {
+        console.error('Error fetching infrastructure data:', error);
+        res.status(500).json({ error: 'Failed to fetch infrastructure data' });
+    } finally {
+        await session.close();
+    }
+};
+
+export const getTerraformInfrastructureData = async (req: Request, res: Response) => {
     let session: Session | null = null;
     
     try {
@@ -178,21 +261,22 @@ export const getInfrastructureData = async (req: Request, res: Response) => {
         // Get a new session
         session = Neo4jService.getSession();
 
-        // Query to get all VPCs with their subnets, instances, and security groups
+        // Query to get all VPCs with their subnets, instances, and AMIs
         const result = await session.run(
             `MATCH (v:VPC {userId: $userId, connectionId: $connectionId})
              OPTIONAL MATCH (v)-[:CONTAINS]->(s:Subnet)
              OPTIONAL MATCH (s)-[:BELONGS_TO]->(i:Instance)
-             OPTIONAL MATCH (v)-[:HAS]->(sg:SecurityGroup)
-             OPTIONAL MATCH (b:Bucket {userId: $userId, connectionId: $connectionId})
+             OPTIONAL MATCH (i)-[:USES]->(a:AMI)
              RETURN v, collect(DISTINCT s) as subnets, collect(DISTINCT i) as instances, 
-                    collect(DISTINCT sg) as securityGroups, collect(DISTINCT b) as buckets`,
+                    collect(DISTINCT a) as amis`,
             { userId, connectionId }
         );
 
-        const infrastructure: CloudInfrastructure = {
+        const infrastructure: TerraformInfrastructure = {
             vpcs: [],
-            s3Buckets: []
+            subnets: [],
+            amis: [],
+            instances: []
         };
 
         // Process the results
@@ -200,38 +284,48 @@ export const getInfrastructureData = async (req: Request, res: Response) => {
             const vpc = record.get('v');
             const subnets = record.get('subnets');
             const instances = record.get('instances');
-            const securityGroups = record.get('securityGroups');
-            const buckets = record.get('buckets');
+            const amis = record.get('amis');
 
-            // Process VPC and its related resources
+            // Process VPC
             if (vpc) {
-                const vpcData = {
-                    vpcId: vpc.properties.vpcId,
-                    properties: vpc.properties,
-                    subnets: subnets.map((subnet: any) => ({
-                        subnetId: subnet.properties.subnetId,
-                        properties: subnet.properties,
-                        instances: instances
-                            .filter((instance: any) => instance.properties.subnetId === subnet.properties.subnetId)
-                            .map((instance: any) => ({
-                                instanceId: instance.properties.instanceId,
-                                properties: instance.properties
-                            }))
-                    })),
-                    securityGroups: securityGroups.map((sg: any) => ({
-                        groupId: sg.properties.groupId,
-                        properties: sg.properties
-                    }))
-                };
-                infrastructure.vpcs.push(vpcData);
+                infrastructure.vpcs.push({
+                    name: vpc.properties.Name || vpc.properties.vpcId,
+                    cidr_block: vpc.properties.CidrBlock
+                });
             }
 
-            // Process S3 buckets
-            buckets.forEach((bucket: any) => {
-                if (bucket) {
-                    infrastructure.s3Buckets.push({
-                        name: bucket.properties.name,
-                        properties: bucket.properties
+            // Process Subnets
+            subnets.forEach((subnet: any) => {
+                if (subnet) {
+                    infrastructure.subnets.push({
+                        name: subnet.properties.Name || subnet.properties.subnetId,
+                        cidr_block: subnet.properties.CidrBlock,
+                        vpc_name: vpc.properties.Name || vpc.properties.vpcId
+                    });
+                }
+            });
+
+            // Process AMIs
+            amis.forEach((ami: any) => {
+                if (ami) {
+                    infrastructure.amis.push({
+                        name: ami.properties.Name || ami.properties.imageId,
+                        ami_id: ami.properties.imageId,
+                        tags: ami.properties.Tags || {}
+                    });
+                }
+            });
+
+            // Process Instances
+            instances.forEach((instance: any) => {
+                if (instance) {
+                    const subnet = subnets.find((s: any) => s.properties.subnetId === instance.properties.subnetId);
+                    infrastructure.instances.push({
+                        name: instance.properties.Name || instance.properties.instanceId,
+                        ami_id: instance.properties.imageId,
+                        instance_type: instance.properties.instanceType,
+                        subnet_name: subnet ? (subnet.properties.Name || subnet.properties.subnetId) : '',
+                        tags: instance.properties.Tags || {}
                     });
                 }
             });
@@ -239,7 +333,7 @@ export const getInfrastructureData = async (req: Request, res: Response) => {
 
         res.status(200).json(infrastructure);
     } catch (error) {
-        console.error('Error fetching infrastructure data:', error);
+        console.error('Error fetching Terraform infrastructure data:', error);
         res.status(500).json({ error: 'Failed to fetch infrastructure data' });
     } finally {
         if (session) {
