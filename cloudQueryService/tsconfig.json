@@ -13,8 +13,9 @@
     "resolveJsonModule": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]
-    }
+      "@/*": ["src/*"],
+      "@shared/*": ["./src/shared/*"]
+    },
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]

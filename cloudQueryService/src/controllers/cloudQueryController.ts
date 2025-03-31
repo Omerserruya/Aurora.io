@@ -24,8 +24,8 @@ export class CloudQueryController {
 
   async validate(req: Request, res: Response): Promise<void> {
     try {
-      const { userID, awsCredentials } = req.body;
-
+      const { awsCredentials } = req.body;
+      const userID = req.params.userId;
       if (!userID || !awsCredentials) {
         res.status(400).json({ error: 'Missing required parameters' });
         return;
@@ -45,8 +45,8 @@ export class CloudQueryController {
 
   async query(req: Request, res: Response): Promise<void> {
     try {
-      const { userID, connectionId } = req.body;
-
+      const {connectionId } = req.body;
+      const userID = req.params.userId;
       if (!userID || !connectionId) {
         res.status(400).json({ error: 'Missing required parameters' });
         return;
