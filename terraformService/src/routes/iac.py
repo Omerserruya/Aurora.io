@@ -36,14 +36,18 @@ iac_bp = Blueprint('iac', __name__, url_prefix='/iac')
 def iac_gen_tf():
     user_id = request.args.get('user_id')
     account_id = request.args.get('account_id')
-    data = get_remote_data(user_id, account_id)
+    try:
+        data = get_remote_data(user_id, account_id)
 
-    if data:
-        return jsonify(generate_tf_resources(data))
-    return jsonify({
-        "status": "error",
-        "message": "No data found"
-    })
+        if data:
+            return jsonify(generate_tf_resources(data))
+        return jsonify({
+            "status": "error",
+            "message": "No data found"
+        })
+    except RuntimeError as e:
+        return jsonify({"error": "Error Connection to db", "message": str(e)}), 500
+
 
 @iac_bp.route('/status', methods=['GET'])
 def iac_status():

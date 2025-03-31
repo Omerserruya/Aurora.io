@@ -26,41 +26,37 @@ const ListItemAvatar = styled(MuiListItemAvatar)({
   marginRight: 12,
 });
 
-const resources = [
-  {
+const resources = {
+  "amis":{
     name: "AMIs",
     icon: <StorageIcon />,
-    value: "amis"
   },
-  {
+  "instances":{
     name: "Instances",
     icon: <CloudIcon />,
-    value: "instances"
   },
-  {
+  "vpcs":{
     name: "VPCs",
     icon: <AccountTreeIcon />,
-    value: "vpcs"
   },
-  {
+  "subnets":{
     name: "Subnets",
     icon: <LanIcon />,
-    value: "subnets"
   }
-];
-
+};
+export type resourcesType = "amis" | "instances" | "vpcs" | "subnets";
 interface ResourceSelectorProps {
   onResourceChange: (resource: string) => void;
+  resourcesView: resourcesType[]
 }
 
-export default function ResourceSelector({ onResourceChange }: ResourceSelectorProps) {
-  const [selectedResource, setSelectedResource] = React.useState('amis');
+export default function ResourceSelector({ onResourceChange, resourcesView }: ResourceSelectorProps) {
+  const [selectedResource, setSelectedResource] = React.useState(resourcesView[0]);
 
   const handleChange = (event: SelectChangeEvent<string>) => {
-    setSelectedResource(event.target.value);
+    setSelectedResource(event.target.value as resourcesType);
     onResourceChange(event.target.value);
   };
-
   return (
     <Select
       labelId="resource-select"
@@ -84,14 +80,14 @@ export default function ResourceSelector({ onResourceChange }: ResourceSelectorP
       }}
     >
       <ListSubheader sx={{ pt: 0 }}>AWS Resources</ListSubheader>
-      {resources.map((resource) => (
-        <MenuItem key={resource.value} value={resource.value}>
+      {resourcesView.map((val: resourcesType) => (
+        <MenuItem key={val} value={val}>
           <ListItemAvatar>
             <Avatar>
-              {resource.icon}
+              {resources[val].icon}
             </Avatar>
           </ListItemAvatar>
-          <ListItemText primary={resource.name} />
+          <ListItemText primary={resources[val].name} />
         </MenuItem>
       ))}
     </Select>
