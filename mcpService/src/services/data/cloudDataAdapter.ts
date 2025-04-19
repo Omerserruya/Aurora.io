@@ -25,11 +25,14 @@ class CloudDataAdapter implements IDataAdapter {
     );
   }
   
-  public async getContextData(userId: string, query: string): Promise<ContextData> {
+  public async getContextData(userId: string, query: string, connectionId: string): Promise<ContextData> {
     try {
-      logger.info(`Retrieving cloud data for user: ${userId}`);
+      logger.info(`Retrieving cloud data for user: ${userId}, connection: ${connectionId}`);
       
-      const response = await axios.get(`${this.dbServiceUrl}/api/cloud-data/${userId}`);
+      // Build the API URL with the connectionId
+      let apiUrl = `${this.dbServiceUrl}/api/cloud-data/${userId}?connectionId=${connectionId}`;
+      
+      const response = await axios.get(apiUrl);
       
       if (response.status === 200 && response.data) {
         logger.info('Successfully retrieved cloud data');

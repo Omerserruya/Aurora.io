@@ -17,8 +17,8 @@ class ContextService {
     logger.info(`Registered data adapter: ${adapter.name}`);
   }
   
-  public async getContext(userId: string, query: string): Promise<ContextData> {
-    logger.info(`Getting context for user ${userId} with query: ${query.substring(0, 50)}...`);
+  public async getContext(userId: string, query: string, connectionId: string): Promise<ContextData> {
+    logger.info(`Getting context for user ${userId}, connection ${connectionId} with query: ${query.substring(0, 50)}...`);
     
     // Find adapters that can handle this query
     const relevantAdapters = this.adapters.filter(adapter => 
@@ -40,7 +40,7 @@ class ContextService {
     
     // Get data from all relevant adapters
     const contextPromises = relevantAdapters.map(adapter => 
-      adapter.getContextData(userId, query)
+      adapter.getContextData(userId, query, connectionId)
     );
     
     try {

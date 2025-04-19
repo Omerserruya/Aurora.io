@@ -12,13 +12,20 @@ class MCPService {
   /**
    * Process a user query through the MCP service
    */
-  public async processQuery(prompt: string, userId: string, options = {}): Promise<string> {
+  public async processQuery(prompt: string, userId: string, connectionId: string, options = {}): Promise<string> {
     try {
-      const response = await axios.post(`${this.mcpServiceUrl}/api/mcp/query`, {
+      console.log(`Processing query via MCP service: "${prompt.substring(0, 50)}..."`);
+      console.log(`User ID: ${userId}, Connection ID: ${connectionId}`);
+      
+      // MCP still expects userId and connectionId in the payload, not URL params
+      const payload = {
         prompt,
         userId,
+        connectionId,
         options
-      });
+      };
+      
+      const response = await axios.post(`${this.mcpServiceUrl}/api/mcp/query`, payload);
       
       if (response.status === 200) {
         console.log('Successfully received response from MCP service');

@@ -9,6 +9,11 @@ if [ ! -f ".env.development" ]; then
   exit 1
 fi
 
+# Set correct environment variables for local development
+export CHATBOT_SERVICE_URL=http://localhost:4005
+export DB_SERVICE_URL=http://localhost:4003
+export MCP_SERVICE_URL=http://localhost:4006
+
 # Check if MCP service is running
 if ! curl -s http://localhost:4006/api/mcp/health > /dev/null; then
   echo "⚠️  MCP service is not running! Starting it..."
@@ -56,20 +61,40 @@ else
   echo "✅ DB service is already running."
 fi
 
-# Set environment variables if needed
-export CHATBOT_SERVICE_URL=http://localhost:4005
-export DB_SERVICE_URL=http://localhost:4003
-
 # Compile TypeScript
 echo "🔧 Compiling TypeScript..."
 npm run build
 
-# Clear the terminal
+echo "✅ Starting Chatbot service locally..."
+# Start the chatbot service in background
+npm run dev &
+CHATBOT_PID=$!
+
+# Wait for the Chatbot service to start
+echo "⏳ Waiting for Chatbot service to be ready..."
+for i in {1..10}; do
+  if curl -s http://localhost:4005/api/chatbot/health > /dev/null; then
+    echo "✅ Chatbot service is now running!"
+    break
+  fi
+  sleep 1
+  echo -n "."
+  if [ $i -eq 10 ]; then
+    echo "⚠️  Chatbot service not responding yet, but continuing..."
+  fi
+done
+
+sleep 2
 clear
 
 # Run the demo test
 echo "🧪 Running Demo with MCP Architecture..."
 echo "This demo uses the Model Control Plane (MCP) service to abstract AI model interactions."
+
+# Run the test directly from the current directory
 node dist/test.js
+
+# Kill the chatbot service process
+kill $CHATBOT_PID 2>/dev/null
 
 echo "✅ Demo completed! Check the output above for results." 

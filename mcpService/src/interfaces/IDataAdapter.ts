@@ -10,6 +10,6 @@ export interface ContextData {
 
 export interface IDataAdapter {
   name: string;
-  getContextData(userId: string, query: string): Promise<ContextData>;
+  getContextData(userId: string, query: string, connectionId: string): Promise<ContextData>;
   supportsQuery(query: string): boolean;
 } 

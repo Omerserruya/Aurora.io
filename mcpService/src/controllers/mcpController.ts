@@ -14,15 +14,23 @@ export const mcpController = {
     try {
       logger.info(`[${requestId}] Processing request`);
       
-      const { prompt, userId, options = {} } = req.body;
+      const { prompt, userId, connectionId, options = {} } = req.body;
       
       if (!prompt || !userId) {
         res.status(400).json({ error: 'Missing required parameters' });
         return;
       }
       
+      if (!connectionId) {
+        logger.error(`[${requestId}] Missing connectionId parameter`);
+        res.status(400).json({ error: 'Missing connectionId parameter' });
+        return;
+      }
+      
+      logger.info(`Request from user ${userId}, connection ${connectionId}`);
+      
       // Get appropriate context from all relevant data sources
-      const context = await contextService.getContext(userId, prompt);
+      const context = await contextService.getContext(userId, prompt, connectionId);
       
       if (context.error) {
         logger.warn(`[${requestId}] Context error: ${context.error}`);

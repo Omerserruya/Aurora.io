@@ -65,14 +65,17 @@ GET /api/chatbot/health
 ### Process Query
 
 ```
-POST /api/chatbot/query
+POST /api/chatbot/query/:userId/:connectionId
 Content-Type: application/json
 
 {
-  "userId": "user123",
   "prompt": "What EC2 instances do I have in my environment?"
 }
 ```
+
+Where:
+- `:userId` - The ID of the user whose cloud data should be used
+- `:connectionId` - The ID of the specific cloud connection to query
 
 ## Running the Demo
 
@@ -127,7 +130,7 @@ To test the service, you can use curl or any API client:
 curl http://localhost:4005/api/chatbot/health
 
 # Query
-curl -X POST http://localhost:4005/api/chatbot/query \
+curl -X POST http://localhost:4005/api/chatbot/query/user123/conn-abc123 \
   -H "Content-Type: application/json" \
-  -d '{"userId": "user123", "prompt": "What AWS resources do I have?"}'
+  -d '{"prompt": "What AWS resources do I have?"}'
 ``` 

@@ -9,8 +9,11 @@ export const chatbotController = {
     try {
       console.log('Processing new chat request');
       
-      // Extract data from request
-      const { prompt, userId } = req.body;
+      // Extract userId and connectionId from URL parameters
+      const { userId, connectionId } = req.params;
+      
+      // Extract prompt from request body
+      const { prompt } = req.body;
       
       if (!prompt) {
         console.log('Missing prompt in request');
@@ -19,22 +22,29 @@ export const chatbotController = {
       }
       
       if (!userId) {
-        console.log('Missing userId in request');
+        console.log('Missing userId in URL parameters');
         res.status(400).json({ error: 'Missing userId parameter' });
         return;
       }
       
+      if (!connectionId) {
+        console.log('Missing connectionId in URL parameters');
+        res.status(400).json({ error: 'Missing connectionId parameter' });
+        return;
+      }
+      
       console.log(`Received query from user ${userId}: "${prompt}"`);
+      console.log(`Using connection ID: ${connectionId}`);
       
       try {
         // Process the query using MCP service
-        const response = await mcpService.processQuery(prompt, userId);
+        const response = await mcpService.processQuery(prompt, userId, connectionId);
         
-        // Check if response indicates an error
-        if (response.isError) {
-          console.log('MCP service returned an error:', response.message);
+        // Check if response is an error message
+        if (response.startsWith('Error:') || response.startsWith('No cloud data found')) {
+          console.log('MCP service returned an error:', response);
           res.status(200).json({ 
-            response: response.message,
+            response,
             type: 'error'
           });
           return;

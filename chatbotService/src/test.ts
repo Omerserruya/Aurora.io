@@ -8,6 +8,7 @@ dotenv.config({ path: path.resolve(__dirname, '../../.env.development') });
 // Get service URLs
 const dbServiceUrl = process.env.DB_SERVICE_URL || 'http://localhost:4003';
 const userId = 'aws-test-demo-user';
+const connectionId = 'default-connection'; // Default connectionId for testing
 
 /**
  * Insert sample AWS data for the demo user
@@ -37,16 +38,19 @@ async function setupTestData() {
 /**
  * Run a chatbot query and display the result
  */
-async function runChatbotQuery(prompt: string) {
+async function runChatbotQuery(prompt: string, testConnectionId: string = connectionId) {
   try {
     console.log(`\n----- DEMO QUERY -----`);
     console.log(`User query: "${prompt}"`);
+    console.log(`Using connection ID: ${testConnectionId}`);
     
     const chatbotUrl = process.env.CHATBOT_SERVICE_URL || 'http://localhost:4005';
-    const response = await axios.post(`${chatbotUrl}/api/chatbot/query`, {
-      userId,
-      prompt
-    });
+    
+    // Use userId and connectionId as URL parameters
+    const response = await axios.post(
+      `${chatbotUrl}/api/chatbot/query/${userId}/${testConnectionId}`, 
+      { prompt }
+    );
     
     if (response.status === 200) {
       console.log(`\n----- AI RESPONSE -----`);
