@@ -4,56 +4,39 @@ import { environment } from './config/environment';
 import mcpRoutes from './routes/mcpRoutes';
 import logger from './utils/logger';
 
-class Server {
-  private app: Express;
+const createServer = (): Express => {
+  const app = express();
   
-  constructor() {
-    this.app = express();
-    this.setupMiddleware();
-    this.setupRoutes();
-  }
+  // CORS setup
+  const corsOptions = {
+    origin: '*', // In production, this should be restricted
+    methods: ['GET', 'POST', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+  };
   
-  private setupMiddleware(): void {
-    // CORS setup
-    const corsOptions = {
-      origin: '*', // In production, this should be restricted
-      methods: ['GET', 'POST', 'OPTIONS'],
-      allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
-    };
-    
-    this.app.use(cors(corsOptions));
-    this.app.use(express.json());
-    
-    // Logging middleware
-    this.app.use((req, res, next) => {
-      logger.info(`${req.method} ${req.url}`);
-      next();
-    });
-  }
+  app.use(cors(corsOptions));
+  app.use(express.json());
   
-  private setupRoutes(): void {
-    // API routes
-    this.app.use('/api/mcp', mcpRoutes);
-    
-    // Root health check
-    this.app.get('/', (req, res) => {
-      res.status(200).json({ message: 'MCP Service is running' });
-    });
-    
-    // 404 handler
-    this.app.use((req, res) => {
-      res.status(404).json({ error: 'Not found' });
-    });
-  }
+  // Logging middleware
+  app.use((req, res, next) => {
+    logger.info(`${req.method} ${req.url}`);
+    next();
+  });
   
-  public start(): void {
-    const port = environment.port;
-    
-    this.app.listen(port, () => {
-      logger.info(`MCP Service is running on port ${port}`);
-      logger.info(`Environment: ${environment.nodeEnv}`);
-    });
-  }
-}
+  // API routes
+  app.use('/api/mcp', mcpRoutes);
+  
+  // Root health check
+  app.get('/', (req, res) => {
+    res.status(200).json({ message: 'MCP Service is running' });
+  });
+  
+  // 404 handler
+  app.use((req, res) => {
+    res.status(404).json({ error: 'Not found' });
+  });
+  
+  return app;
+};
 
-export default Server; 
+export default createServer; 

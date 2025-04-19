@@ -1,27 +1,7 @@
-import express from 'express';
-import cors from 'cors';
+import createServer from './server';
 import { environment } from './config/environment';
-import chatbotRoutes from './routes/chatbotRoutes';
 
-const app = express();
-app.use(cors());
-app.use(express.json());
-
-app.use((req, res, next) => {
-  console.log(`${req.method} ${req.path}`);
-  next();
-});
-
-// Routes
-app.use('/api/chatbot', chatbotRoutes);
-
-// Root endpoint
-app.get('/', (req, res) => {
-  res.status(200).json({
-    service: 'Cloud Architecture Chatbot Service',
-    status: 'running'
-  });
-});
+const app = createServer();
 
 // Start server
 const PORT = environment.port;
