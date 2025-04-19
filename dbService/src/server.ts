@@ -8,6 +8,7 @@ import express, { Express } from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import awsConnectionRoutes from './routes/awsConnection.routes';
+import cloudArchitectureRoutes from './routes/cloudArchitecture.routes';
 import MongoDBManager from './config/mongodb';
 import Neo4jManager from './config/neo4j';
 import neoRoutes from './routes/cloudQueryResults.routes';
@@ -46,6 +47,7 @@ app.get('/health', (req, res) => {
 // AWS Connection routes
 app.use('/aws-connections', awsConnectionRoutes);
 app.use('/neo', neoRoutes);
+app.use('/api', cloudArchitectureRoutes);
 
 // Initialize database connections
 const mongoManager = MongoDBManager.getInstance();
