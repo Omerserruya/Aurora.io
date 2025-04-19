@@ -41,10 +41,10 @@ export const chatbotController = {
         const response = await mcpService.processQuery(prompt, userId, connectionId);
         
         // Check if response is an error message
-        if (response.startsWith('Error:') || response.startsWith('No cloud data found')) {
-          console.log('MCP service returned an error:', response);
+        if (response.status === 'error') {
+          console.log('MCP service returned an error:', response.message);
           res.status(200).json({ 
-            response,
+            response: response.message,
             type: 'error'
           });
           return;
