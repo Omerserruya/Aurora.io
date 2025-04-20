@@ -29,14 +29,14 @@ class CloudDataAdapter implements IDataAdapter {
     try {
       logger.info(`Retrieving cloud data for user: ${userId}, connection: ${connectionId}`);
       
-      // Build the API URL with the connectionId
-      let apiUrl = `${this.dbServiceUrl}/api/cloud-data/${userId}?connectionId=${connectionId}`;
+      // Use the direct query endpoint that finds all resources with matching userId and connectionId
+      let apiUrl = `${this.dbServiceUrl}/neo/cloud-query-results/${userId}/${connectionId}`;
       
       const response = await axios.get(apiUrl);
       
       if (response.status === 200 && response.data) {
         logger.info('Successfully retrieved cloud data');
-        const formattedData = this.formatCloudData(response.data);
+        const formattedData = this.formatAllResourcesData(response.data);
         
         return {
           text: formattedData,
@@ -76,6 +76,169 @@ class CloudDataAdapter implements IDataAdapter {
     }
   }
   
+  /**
+   * Format the cloud resource data from the new endpoint that returns all nodes
+   */
+  private formatAllResourcesData(data: any): string {
+    try {
+      let contextText = 'AWS Cloud Resources for your environment:\n\n';
+      
+      // Count resources by type
+      const nodeTypes = new Map<string, number>();
+      const vpcs: any[] = [];
+      const subnets: any[] = [];
+      const instances: any[] = [];
+      const securityGroups: any[] = [];
+      const buckets: any[] = [];
+      
+      // Process VPCs
+      if (data.vpcs && Array.isArray(data.vpcs)) {
+        data.vpcs.forEach((vpc: any) => {
+          vpcs.push(vpc);
+          nodeTypes.set('VPC', (nodeTypes.get('VPC') || 0) + 1);
+          
+          // Process subnets
+          if (vpc.subnets && Array.isArray(vpc.subnets)) {
+            vpc.subnets.forEach((subnet: any) => {
+              subnets.push(subnet);
+              nodeTypes.set('Subnet', (nodeTypes.get('Subnet') || 0) + 1);
+              
+              // Process instances
+              if (subnet.instances && Array.isArray(subnet.instances)) {
+                subnet.instances.forEach((instance: any) => {
+                  instances.push(instance);
+                  nodeTypes.set('Instance', (nodeTypes.get('Instance') || 0) + 1);
+                });
+              }
+            });
+          }
+          
+          // Process security groups
+          if (vpc.securityGroups && Array.isArray(vpc.securityGroups)) {
+            vpc.securityGroups.forEach((sg: any) => {
+              securityGroups.push(sg);
+              nodeTypes.set('SecurityGroup', (nodeTypes.get('SecurityGroup') || 0) + 1);
+            });
+          }
+        });
+      }
+      
+      // Process S3 buckets
+      if (data.s3Buckets && Array.isArray(data.s3Buckets)) {
+        data.s3Buckets.forEach((bucket: any) => {
+          buckets.push(bucket);
+          nodeTypes.set('S3Bucket', (nodeTypes.get('S3Bucket') || 0) + 1);
+        });
+      }
+      
+      // Add resource summary
+      contextText += 'Resource Summary:\n';
+      nodeTypes.forEach((count, type) => {
+        contextText += `- ${type}: ${count}\n`;
+      });
+      
+      // Add VPC details
+      if (vpcs.length > 0) {
+        contextText += '\nVPC Information:\n';
+        vpcs.forEach((vpc) => {
+          contextText += `- VPC ID: ${vpc.vpcId || 'Unknown'}\n`;
+          
+          if (vpc.properties) {
+            if (vpc.properties.CidrBlock) contextText += `  CIDR: ${vpc.properties.CidrBlock}\n`;
+            if (vpc.properties.IsDefault) contextText += `  Default VPC: ${vpc.properties.IsDefault}\n`;
+            if (vpc.properties.State) contextText += `  State: ${vpc.properties.State}\n`;
+          }
+        });
+      }
+      
+      // Add subnet details
+      if (subnets.length > 0) {
+        contextText += '\nSubnet Information:\n';
+        subnets.forEach((subnet) => {
+          contextText += `- Subnet ID: ${subnet.subnetId || 'Unknown'}\n`;
+          
+          if (subnet.properties) {
+            if (subnet.properties.CidrBlock) contextText += `  CIDR: ${subnet.properties.CidrBlock}\n`;
+            if (subnet.properties.AvailabilityZone) contextText += `  AZ: ${subnet.properties.AvailabilityZone}\n`;
+            if (subnet.properties.MapPublicIpOnLaunch) contextText += `  Public IP on Launch: ${subnet.properties.MapPublicIpOnLaunch}\n`;
+          }
+        });
+      }
+      
+      // Add instance details
+      if (instances.length > 0) {
+        contextText += '\nEC2 Instance Information:\n';
+        instances.forEach((instance) => {
+          contextText += `- Instance ID: ${instance.instanceId || 'Unknown'}\n`;
+          
+          if (instance.properties) {
+            if (instance.properties.InstanceType) contextText += `  Type: ${instance.properties.InstanceType}\n`;
+            if (instance.properties.State && instance.properties.State.Name) 
+              contextText += `  State: ${instance.properties.State.Name}\n`;
+            if (instance.properties.PrivateIpAddress) 
+              contextText += `  Private IP: ${instance.properties.PrivateIpAddress}\n`;
+            if (instance.properties.PublicIpAddress) 
+              contextText += `  Public IP: ${instance.properties.PublicIpAddress}\n`;
+            
+            // Add instance tags if available
+            if (instance.properties.Tags && Array.isArray(instance.properties.Tags)) {
+              contextText += '  Tags: ';
+              instance.properties.Tags.forEach((tag: any, index: number) => {
+                if (tag.Key && tag.Value) {
+                  contextText += `${tag.Key}=${tag.Value}`;
+                  if (index < instance.properties.Tags.length - 1) {
+                    contextText += ', ';
+                  }
+                }
+              });
+              contextText += '\n';
+            }
+          }
+        });
+      }
+      
+      // Add security group details
+      if (securityGroups.length > 0) {
+        contextText += '\nSecurity Group Information:\n';
+        securityGroups.forEach((sg) => {
+          contextText += `- Security Group: ${sg.groupId || 'Unknown'}\n`;
+          
+          if (sg.properties) {
+            if (sg.properties.GroupName) contextText += `  Name: ${sg.properties.GroupName}\n`;
+            if (sg.properties.Description) contextText += `  Description: ${sg.properties.Description}\n`;
+          }
+        });
+      }
+      
+      // Add S3 bucket details
+      if (buckets.length > 0) {
+        contextText += '\nS3 Bucket Information:\n';
+        buckets.forEach((bucket) => {
+          contextText += `- Bucket: ${bucket.name || 'Unknown'}\n`;
+          
+          if (bucket.properties) {
+            if (bucket.properties.CreationDate) 
+              contextText += `  Created: ${bucket.properties.CreationDate}\n`;
+          }
+        });
+      }
+      
+      // If no specific resource details were found
+      if (vpcs.length === 0 && subnets.length === 0 && instances.length === 0 && 
+          securityGroups.length === 0 && buckets.length === 0) {
+        contextText += '\nNo detailed resource information available for this AWS environment.';
+      }
+      
+      return contextText;
+    } catch (error: any) {
+      logger.error('Error formatting cloud resource data:', error);
+      return `Error processing cloud resource data: ${error.message || 'Unknown error'}`;
+    }
+  }
+  
+  /**
+   * Original format method for the old API endpoint structure
+   */
   private formatCloudData(data: any): string {
     try {
       let contextText = '';
@@ -90,6 +253,7 @@ class CloudDataAdapter implements IDataAdapter {
         contextText += `\nResources:\n`;
         data.resources.forEach((resource: any) => {
           contextText += `- ${resource.type || 'Unknown'}: ${resource.name || 'Unnamed'}\n`;
+          contextText += `  Node Type: ${resource.nodeType || 'Unknown'}\n`;
           
           // Add specific details based on resource type
           if (resource.type === 'EC2') {
@@ -110,6 +274,8 @@ class CloudDataAdapter implements IDataAdapter {
       
       if (data.network) {
         contextText += `\nNetwork Configuration:\n`;
+        contextText += `  Node Type: ${data.network.nodeType || 'Unknown'}\n`;
+        
         if (data.network.vpcCidr) {
           contextText += `- VPC CIDR: ${data.network.vpcCidr}\n`;
         }
@@ -129,6 +295,8 @@ class CloudDataAdapter implements IDataAdapter {
       
       if (data.security) {
         contextText += `\nSecurity:\n`;
+        contextText += `  Node Type: ${data.security.nodeType || 'Unknown'}\n`;
+        
         if (data.security.settings && Array.isArray(data.security.settings)) {
           data.security.settings.forEach((setting: any) => {
             contextText += `- ${setting}\n`;

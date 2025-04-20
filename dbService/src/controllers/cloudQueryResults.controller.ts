@@ -340,4 +340,143 @@ export const getTerraformInfrastructureData = async (req: Request, res: Response
             await session.close();
         }
     }
+};
+
+export const getInfrastructureDataWithUserId = async (req: Request, res: Response) => {
+    const { userId, connectionId } = req.params;
+
+    if (!userId || !connectionId) {
+        return res.status(400).json({ error: 'Missing required parameters' });
+    }
+
+    console.log(`Fetching infrastructure data for userId: ${userId}, connectionId: ${connectionId}`);
+    
+    const session = Neo4jService.getSession();
+    try {
+        // Use simplified query that just finds any nodes with matching userId and connectionId
+        const result = await session.run(
+            `MATCH (n)
+             WHERE n.userId = $userId AND n.connectionId = $connectionId
+             RETURN collect(n) as resources`,
+            { userId, connectionId }
+        );
+
+        if (result.records.length === 0 || result.records[0].get('resources').length === 0) {
+            console.log(`No resources found for userId: ${userId}, connectionId: ${connectionId}`);
+            return res.status(404).json({ error: 'No resources found for this user and connection' });
+        }
+
+        const resourceNodes = result.records[0].get('resources');
+        console.log(`Found ${resourceNodes.length} resources`);
+        
+        // Debug log of all resource types
+        const nodeTypes = new Set();
+        resourceNodes.forEach((node: any) => {
+            if (node.labels && node.labels.length > 0) {
+                nodeTypes.add(node.labels[0]);
+            }
+        });
+        console.log(`Resource types found: ${Array.from(nodeTypes).join(', ')}`);
+        
+        // Find VPC nodes
+        const vpcNodes = resourceNodes.filter((node: any) => 
+            node.labels && node.labels.includes('VPC')
+        );
+        console.log(`Found ${vpcNodes.length} VPC nodes`);
+        
+        // Log VPC node properties
+        vpcNodes.forEach((vpc: any, index: number) => {
+            console.log(`VPC ${index + 1} properties:`, vpc.properties);
+        });
+        
+        // Find subnet nodes
+        const subnetNodes = resourceNodes.filter((node: any) => 
+            node.labels && node.labels.includes('Subnet')
+        );
+        console.log(`Found ${subnetNodes.length} subnet nodes`);
+        
+        // Log subnet node properties
+        subnetNodes.forEach((subnet: any, index: number) => {
+            console.log(`Subnet ${index + 1} properties:`, subnet.properties);
+        });
+        
+        // Find instance nodes
+        const instanceNodes = resourceNodes.filter((node: any) => 
+            node.labels && node.labels.includes('Instance')
+        );
+        console.log(`Found ${instanceNodes.length} instance nodes`);
+        
+        // Find security group nodes
+        const sgNodes = resourceNodes.filter((node: any) => 
+            node.labels && node.labels.includes('SecurityGroup')
+        );
+        console.log(`Found ${sgNodes.length} security group nodes`);
+        
+        // Find bucket nodes
+        const bucketNodes = resourceNodes.filter((node: any) => 
+            node.labels && node.labels.includes('Bucket')
+        );
+        console.log(`Found ${bucketNodes.length} bucket nodes`);
+
+        // Construct infrastructure object with fallbacks for missing properties
+        const infrastructure: CloudInfrastructure = {
+            vpcs: vpcNodes.map((vpc: any) => {
+                const vpcId = vpc.properties.vpcId || vpc.properties.VpcId || `vpc-${Math.random().toString(36).substring(2, 8)}`;
+                return {
+                    vpcId,
+                    properties: vpc.properties,
+                    subnets: subnetNodes
+                        .filter((subnet: any) => {
+                            const subnetVpcId = subnet.properties.vpcId || subnet.properties.VpcId;
+                            // If subnet doesn't have vpcId, include it in the first VPC or skip if we're filtering
+                            return subnetVpcId ? subnetVpcId === vpcId : vpcNodes.indexOf(vpc) === 0;
+                        })
+                        .map((subnet: any) => {
+                            const subnetId = subnet.properties.subnetId || subnet.properties.SubnetId || `subnet-${Math.random().toString(36).substring(2, 8)}`;
+                            return {
+                                subnetId,
+                                properties: subnet.properties,
+                                instances: instanceNodes
+                                    .filter((instance: any) => {
+                                        const instanceSubnetId = instance.properties.subnetId || instance.properties.SubnetId;
+                                        // If instance doesn't have subnetId, include it in the first subnet or skip
+                                        return instanceSubnetId ? instanceSubnetId === subnetId : subnetNodes.indexOf(subnet) === 0;
+                                    })
+                                    .map((instance: any) => ({
+                                        instanceId: instance.properties.instanceId || instance.properties.InstanceId || `i-${Math.random().toString(36).substring(2, 8)}`,
+                                        properties: instance.properties
+                                    }))
+                            };
+                        }),
+                    securityGroups: sgNodes
+                        .filter((sg: any) => {
+                            const sgVpcId = sg.properties.vpcId || sg.properties.VpcId;
+                            // If sg doesn't have vpcId, include it in the first VPC or skip
+                            return sgVpcId ? sgVpcId === vpcId : vpcNodes.indexOf(vpc) === 0;
+                        })
+                        .map((sg: any) => ({
+                            groupId: sg.properties.groupId || sg.properties.GroupId || `sg-${Math.random().toString(36).substring(2, 8)}`,
+                            properties: sg.properties
+                        }))
+                };
+            }),
+            s3Buckets: bucketNodes.map((bucket: any) => ({
+                name: bucket.properties.name || bucket.properties.Name || `bucket-${Math.random().toString(36).substring(2, 8)}`,
+                properties: bucket.properties
+            }))
+        };
+
+        // Log the final structure
+        console.log(`Returning infrastructure with ${infrastructure.vpcs.length} VPCs and ${infrastructure.s3Buckets.length} buckets`);
+        
+        res.json(infrastructure);
+    } catch (error: any) {
+        console.error('Error fetching infrastructure data:', error.message);
+        if (error.stack) {
+            console.error(error.stack);
+        }
+        res.status(500).json({ error: 'Failed to fetch infrastructure data' });
+    } finally {
+        await session.close();
+    }
 }; 

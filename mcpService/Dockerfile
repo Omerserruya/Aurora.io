@@ -18,4 +18,4 @@ RUN npm run build
 EXPOSE 4006
 
 # Start the service
-CMD ["node", "dist/index.js"] 
+CMD ["node", "dist/app.js"] 
