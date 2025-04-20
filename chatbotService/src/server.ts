@@ -1,14 +1,23 @@
 import express, { Express } from 'express';
 import cors from 'cors';
+import cookieParser from 'cookie-parser';
 import { environment } from './config/environment';
 import chatbotRoutes from './routes/chatbotRoutes';
 
 const createServer = (): Express => {
   const app = express();
   
+  // CORS configuration
+  const corsOptions = {
+    origin: process.env.FRONTEND_URL || '*',
+    credentials: true,
+    methods: ["GET", "POST", "OPTIONS", "PUT", "DELETE"],
+  };
+  
   // Middleware
-  app.use(cors());
+  app.use(cors(corsOptions));
   app.use(express.json());
+  app.use(cookieParser());
   
   // Logging middleware
   app.use((req, res, next) => {
@@ -17,7 +26,7 @@ const createServer = (): Express => {
   });
   
   // Routes
-  app.use('/api/chatbot', chatbotRoutes);
+  app.use('/', chatbotRoutes);
   
   // Root endpoint
   app.get('/', (req, res) => {
