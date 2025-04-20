@@ -40,7 +40,7 @@ export const mcpController = {
         });
         return;
       }
-      
+      logger.log('Context:', context);
       // Generate response using Gemini
       const response = await modelService.generateResponse(
         prompt, 

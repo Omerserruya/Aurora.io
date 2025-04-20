@@ -1,6 +1,12 @@
 import axios from 'axios';
 import { environment } from '../config/environment';
 
+// Define response type interface
+interface MCPResponse {
+  response: string;
+  type?: string;
+}
+
 class MCPService {
   private mcpServiceUrl: string;
   
@@ -12,7 +18,7 @@ class MCPService {
   /**
    * Process a user query through the MCP service
    */
-  public async processQuery(prompt: string, userId: string, connectionId: string, options = {}): Promise<string> {
+  public async processQuery(prompt: string, userId: string, connectionId: string, options = {}): Promise<MCPResponse> {
     try {
       console.log(`Processing query via MCP service: "${prompt.substring(0, 50)}..."`);
       console.log(`User ID: ${userId}, Connection ID: ${connectionId}`);
@@ -32,10 +38,17 @@ class MCPService {
         
         if (response.data.type === 'error') {
           console.log('MCP service returned an error:', response.data.response);
-          return response.data.response;
+          // Return the full error object
+          return {
+            response: response.data.response,
+            type: 'error'
+          };
         }
         
-        return response.data.response;
+        // Return response in a standardized format
+        return {
+          response: response.data.response
+        };
       } else {
         throw new Error(`MCP service returned status ${response.status}`);
       }
@@ -46,7 +59,11 @@ class MCPService {
         console.error('MCP service error details:', error.response.data);
       }
       
-      throw new Error(`Failed to process query via MCP: ${error.message}`);
+      // Return error in standardized format
+      return {
+        response: `Failed to process query via MCP: ${error.message}`,
+        type: 'error'
+      };
     }
   }
 

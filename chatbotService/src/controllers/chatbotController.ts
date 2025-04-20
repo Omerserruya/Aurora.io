@@ -38,20 +38,23 @@ export const chatbotController = {
       
       try {
         // Process the query using MCP service
-        const response = await mcpService.processQuery(prompt, userId, connectionId);
+        const mcpResponse = await mcpService.processQuery(prompt, userId, connectionId);
         
-        // Check if response is an error message
-        if (response.status === 'error') {
-          console.log('MCP service returned an error:', response.message);
+        // Log the response for debugging
+        console.log('MCP Response:', mcpResponse);
+        
+        // Check if it's an error response
+        if (mcpResponse.type === 'error') {
+          console.log('MCP service returned an error:', mcpResponse.response);
           res.status(200).json({ 
-            response: response.message,
+            response: mcpResponse.response,
             type: 'error'
           });
           return;
         }
         
         console.log('Query processed successfully');
-        res.status(200).json({ response });
+        res.status(200).json({ response: mcpResponse.response });
       } catch (error: any) {
         console.error('Error processing request:', error);
         // Return a user-friendly error message
