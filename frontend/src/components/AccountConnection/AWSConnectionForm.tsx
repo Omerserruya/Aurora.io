@@ -36,7 +36,7 @@ const initialFormData: AWSConnectionFormData = {
 };
 
 interface AWSConnectionFormProps {
-  onSubmit: (connection: AWSConnection) => void;
+  onSubmit: (connection: AWSConnection) => Promise<AWSConnection>;
   onCancel: () => void;
 }
 
@@ -72,14 +72,11 @@ export default function AWSConnectionForm({ onSubmit, onCancel }: AWSConnectionF
       }
       
       // Use the real AWS credentials validation from CloudQuery service
-      const validationResult = await validateAwsCredentials(
-        user._id,
-        {
-          accessKeyId: formData.step2.accessKeyId,
-          secretAccessKey: formData.step2.secretAccessKey,
-          region: formData.step1.region
-        }
-      );
+      const validationResult = await validateAwsCredentials({
+        accessKeyId: formData.step2.accessKeyId,
+        secretAccessKey: formData.step2.secretAccessKey,
+        region: formData.step1.region
+      });
       
       // Check if validation was successful
       if (validationResult.valid === true) {
@@ -130,7 +127,21 @@ export default function AWSConnectionForm({ onSubmit, onCancel }: AWSConnectionF
         updatedAt: new Date()
       };
 
-      onSubmit(connection);
+      // Submit the connection data
+      const newConnection = await onSubmit(connection);
+      
+      // If connection was created successfully, trigger a cloud query
+      if (newConnection && newConnection._id) {
+        try {
+          // Execute cloud query for the new connection
+          const { executeCloudQuery } = await import('../../api/awsConnectionApi');
+          await executeCloudQuery(newConnection._id);
+          console.log('Initial cloud query started for new connection');
+        } catch (syncError) {
+          console.error('Failed to start initial cloud query:', syncError);
+          // Don't throw this error as the connection was still created successfully
+        }
+      }
     } catch (error) {
       // Handle submission error by updating the validation state
       console.error('Submission error:', error);

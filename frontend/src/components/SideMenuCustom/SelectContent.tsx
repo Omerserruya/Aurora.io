@@ -131,9 +131,13 @@ export default function SelectContent() {
       }
       
       setIsAddDialogOpen(false);
+      
+      // Return the created connection to satisfy the Promise<AWSConnection> return type
+      return data;
     } catch (error) {
       console.error('Error creating connection:', error);
       // Here you would typically show an error notification
+      throw error; // Re-throw to allow handling in the form
     }
   };
 

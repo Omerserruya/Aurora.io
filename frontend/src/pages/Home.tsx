@@ -1,13 +1,15 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState } from 'react';
 import { Typography, Box, Grid, Button, CircularProgress } from '@mui/material';
 import { useUser } from '../contexts/UserContext';
 import { useAccount } from '../contexts/AccountContext';
 import AddIcon from '@mui/icons-material/Add';
-
+import { AddAccountDialog } from '../components/AccountConnection';
+import CloudIcon from '@mui/icons-material/Cloud';
 
 const Home = () => {
   const { user } = useUser();
   const { account } = useAccount();
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
 
   return (
     <Box>
@@ -17,14 +19,14 @@ const Home = () => {
           Welcome back, {user?.username || 'User'}!
         </Typography>
         <Typography variant="subtitle1" color="text.secondary" gutterBottom>
-          Stay updated with the latest in tech
+          Manage your AWS accounts and resources
         </Typography>
         <Typography variant="subtitle1" color="text.secondary" gutterBottom>
           Current account: {account?.name || 'No account selected'}
         </Typography>
       </Box>
 
-      {/* Tech Talk Section */}
+      {/* AWS Accounts Section */}
       <Box 
         sx={{ 
           mb: 4, 
@@ -38,10 +40,10 @@ const Home = () => {
         }}
       >
         <Typography variant="h5" gutterBottom>
-          Tech Talk
+          AWS Accounts
         </Typography>
         <Typography variant="body1" paragraph>
-          Join the conversation about the latest technologies, share your insights, and learn from others.
+          Connect and manage your AWS accounts to start monitoring your cloud resources.
         </Typography>
         <Button 
           variant="contained" 
@@ -53,15 +55,28 @@ const Home = () => {
             }
           }}
           startIcon={<AddIcon />}
-          onClick={() => alert('Coming soon!')}
+          onClick={() => setIsAddDialogOpen(true)}
         >
-          Create Post
+          Add AWS Account
         </Button>
       </Box>
 
-    
-
-
+      <AddAccountDialog
+        open={isAddDialogOpen}
+        onClose={() => setIsAddDialogOpen(false)}
+        onSubmit={async (connection) => {
+          setIsAddDialogOpen(false);
+          // Create the connection and return it
+          try {
+            const { createAwsConnection } = await import('../api/awsConnectionApi');
+            return await createAwsConnection(connection);
+          } catch (error) {
+            console.error('Error creating connection:', error);
+            // Re-throw to allow handling in the form
+            throw error;
+          }
+        }}
+      />
     </Box>
   );
 };

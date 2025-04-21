@@ -7,7 +7,7 @@ import { AWSConnection } from '../../types/awsConnection';
 interface AddAccountDialogProps {
   open: boolean;
   onClose: () => void;
-  onSubmit: (connection: AWSConnection) => void;
+  onSubmit: (connection: AWSConnection) => Promise<AWSConnection>;
 }
 
 export default function AddAccountDialog({ open, onClose, onSubmit }: AddAccountDialogProps) {

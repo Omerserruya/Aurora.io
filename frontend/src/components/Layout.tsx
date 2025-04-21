@@ -4,6 +4,7 @@ import { Outlet, Navigate } from 'react-router-dom';
 import SideMenu from './SideMenuCustom/SideMenu';
 import Header from './Header';
 import { useUser } from '../contexts/UserContext';
+import AIChatButton from './AIChatButton';
 
 function Layout() {
   const { user, loading } = useUser();
@@ -53,6 +54,9 @@ function Layout() {
           <Outlet />
         </Box>
       </Box>
+
+      {/* AI Chat Button */}
+      <AIChatButton />
     </Box>
   );
 }

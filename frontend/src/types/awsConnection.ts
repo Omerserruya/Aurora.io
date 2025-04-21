@@ -1,6 +1,7 @@
 import React from 'react';
 
 export interface AWSConnection {
+  _id?: string;
   userId: string;
   name: string;
   provider: 'aws';
