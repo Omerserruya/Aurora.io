@@ -148,6 +148,10 @@ services:
         condition: service_healthy
       db-service:
         condition: service_healthy
+      chatbot-service:
+        condition: service_healthy
+      mcp-service:
+        condition: service_healthy
     networks:
       - default
 
@@ -208,6 +212,67 @@ services:
       - default
       - query-network
     privileged: true  # Give container privileged access for Docker operations
+
+  chatbot-service:
+    build:
+      context: ./chatbotService
+      dockerfile: Dockerfile
+    volumes:
+      - ./chatbotService/src:/app/src
+      - ./chatbotService/package.json:/app/package.json
+      - ./chatbotService/tsconfig.json:/app/tsconfig.json
+      - ./shared:/app/shared
+      - ./.env:/app/.env
+    environment:
+      - PORT=4005
+      - NODE_ENV=development
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - DB_SERVICE_URL=http://db-service:4003
+      - MCP_SERVICE_URL=http://mcp-service:4006
+    ports:
+      - "4005:4005"
+    depends_on:
+      db-service:
+        condition: service_healthy
+      mcp-service:
+        condition: service_healthy
+    healthcheck:
+      test: wget -O /dev/null -q http://localhost:4005/health || exit 1
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - default
+
+  mcp-service:
+    build:
+      context: ./mcpService
+      dockerfile: Dockerfile
+    volumes:
+      - ./mcpService/src:/app/src
+      - ./mcpService/package.json:/app/package.json
+      - ./mcpService/tsconfig.json:/app/tsconfig.json
+      - ./shared:/app/shared
+      - ./.env:/app/.env
+    environment:
+      - PORT=4006
+      - NODE_ENV=development
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - DB_SERVICE_URL=http://db-service:4003
+    ports:
+      - "4006:4006"
+    depends_on:
+      db-service:
+        condition: service_healthy
+    healthcheck:
+      test: wget -O /dev/null -q http://localhost:4006/api/mcp/health || exit 1
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - default
 
 volumes:
   frontend-build:   # Named volume for frontend build output

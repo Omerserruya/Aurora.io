@@ -32,7 +32,7 @@ api.interceptors.response.use(
       originalRequest._retry = true;
       try {
         // Try to refresh the token - use correct endpoint
-        const refreshResponse = await axios.post('/api/auth/refresh', {}, { 
+        const refreshResponse = await axios.post('/auth/refresh', {}, { 
           withCredentials: true // Important for cookies
         });
         

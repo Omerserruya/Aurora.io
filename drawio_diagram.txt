@@ -1,0 +1,44 @@
+<?xml version="1.0" ?>
+<mxfile host="app.diagrams.net">
+  <diagram name="Flowchart">
+    <mxGraphModel>
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="user" value="User" style="shape=rectangle;whiteSpace=wrap;html=1;" vertex="1" edge="0" parent="1">
+          <mxGeometry x="20" y="100" width="160" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="chatbot" value="Chatbot Service" style="shape=rectangle;whiteSpace=wrap;html=1;" vertex="1" edge="0" parent="1">
+          <mxGeometry x="200" y="60" width="160" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="mcp" value="MCP Service" style="shape=rectangle;whiteSpace=wrap;html=1;" vertex="1" edge="0" parent="1">
+          <mxGeometry x="500" y="60" width="160" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="db" value="DB Service" style="shape=rectangle;whiteSpace=wrap;html=1;" vertex="1" edge="0" parent="1">
+          <mxGeometry x="800" y="60" width="160" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="gemini" value="Gemini API" style="shape=rectangle;whiteSpace=wrap;html=1;" vertex="1" edge="0" parent="1">
+          <mxGeometry x="1100" y="60" width="160" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="100" value="POST /api/chatbot/query/:userId/:connectionId\n{prompt: ...}" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" parent="1" source="user" target="chatbot">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="101" value="chatbotController.processQuery()" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" parent="1" source="chatbot" target="mcp">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="102" value="MCPResponse" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" parent="1" source="mcp" target="chatbot">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="103" value="GET /api/cloud-query-results/:userId/:connectionId" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" parent="1" source="mcp" target="db">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="104" value="MATCH (n) WHERE n.userId = $userId AND n.connectionId = $connectionId RETURN collect(n)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" parent="1" source="db" target="mcp">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="105" value="geminiProvider.generateResponse()" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" parent="1" source="mcp" target="gemini">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

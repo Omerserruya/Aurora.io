@@ -45,7 +45,7 @@ export class CloudQueryController {
 
   async query(req: Request, res: Response): Promise<void> {
     try {
-      const {connectionId } = req.body;
+      const connectionId = req.params.connectionId;
       const userID = req.params.userId;
       if (!userID || !connectionId) {
         res.status(400).json({ error: 'Missing required parameters' });

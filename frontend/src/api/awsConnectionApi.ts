@@ -48,7 +48,7 @@ export const createAwsConnection = async (connectionData: Partial<AWSConnection>
   }
 };
 
-export const validateAwsCredentials = async (userID: string, awsCredentials: {
+export const validateAwsCredentials = async (awsCredentials: {
   accessKeyId: string;
   secretAccessKey: string;
   region: string;
@@ -56,11 +56,10 @@ export const validateAwsCredentials = async (userID: string, awsCredentials: {
 }): Promise<{ valid: boolean; message: string; containerId?: string }> => {
   try {
     // Log validation attempt for debugging
-    console.log('Validating AWS credentials for userID:', userID, 'region:', awsCredentials.region);
+    console.log('Validating AWS credentials for region:', awsCredentials.region);
     
     // Format the credentials as required by the API
     const payload = {
-      userID,
       awsCredentials: {
         AWS_ACCESS_KEY_ID: awsCredentials.accessKeyId,
         AWS_SECRET_ACCESS_KEY: awsCredentials.secretAccessKey,
@@ -103,6 +102,46 @@ export const validateAwsCredentials = async (userID: string, awsCredentials: {
     return { 
       valid: false, 
       message: 'Invalid credentials'
+    };
+  }
+};
+
+export const executeCloudQuery = async (connectionId: string): Promise<{ success: boolean; message: string; containerId?: string }> => {
+  try {
+    // Call the cloud query API
+    const response = await fetch(`${CLOUDQUERY_SERVICE_URL}/query/${connectionId}`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      }
+    });
+    
+    // If response is successful
+    if (response.ok) {
+      const data = await response.json();
+      
+      // If the query was started successfully
+      if (data && data.containerId) {
+        return { 
+          success: true, 
+          message: 'Cloud query started successfully',
+          containerId: data.containerId
+        };
+      }
+    }
+    
+    // Handle error response
+    const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+    return { 
+      success: false, 
+      message: errorData.error || 'Failed to start cloud query'
+    };
+  } catch (error) {
+    console.error('Error executing cloud query:', error);
+    return { 
+      success: false, 
+      message: 'Failed to connect to cloud query service'
     };
   }
 };

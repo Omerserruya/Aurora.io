@@ -5,7 +5,7 @@ class Neo4jService {
     private static sessions: Map<string, Session> = new Map();
 
     static initialize() {
-        const uri = process.env.NEO4J_URI || 'bolt://neo4j:7687';
+        const uri = process.env.NEO4J_URL || 'bolt://neo4j:7687';
         const user = process.env.NEO4J_USER || 'neo4j';
         const password = process.env.NEO4J_PASSWORD || 'aurora123';
 
