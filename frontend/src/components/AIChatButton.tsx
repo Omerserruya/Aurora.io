@@ -1,24 +1,23 @@
-import React, { useState, useEffect } from 'react';
-import { Box, IconButton, Paper, TextField, Typography, useTheme, Fade, Slide, Tooltip, Button as MuiButton } from '@mui/material';
+import React, { useState, useEffect, useRef } from 'react';
+import { Box, IconButton, Paper, TextField, Typography, useTheme, Fade, Slide, Tooltip, Button as MuiButton, CircularProgress, Snackbar, Alert } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import SmartToyIcon from '@mui/icons-material/SmartToy';
 import SendIcon from '@mui/icons-material/Send';
 import CloseIcon from '@mui/icons-material/Close';
 import ErrorIcon from '@mui/icons-material/Error';
 import SupportAgentIcon from '@mui/icons-material/SupportAgent';
-import ArchitectureIcon from '@mui/icons-material/Architecture';
+import PsychologyIcon from '@mui/icons-material/Psychology';
 import { mcpService } from '../api/mcpService';
 import { useUser } from '../contexts/UserContext';
 import { useAccount } from '../contexts/AccountContext';
-import { LoadingOutlined } from '@ant-design/icons';
-import { message } from 'antd';
+import socketService from '../services/socketService';
 
 const FloatingButton = styled(MuiButton)(({ theme }) => ({
   position: 'fixed',
   bottom: '30px',
   right: '30px',
   height: '60px',
-  padding: '0 24px',
+  padding: '0 24px 0 20px',
   color: '#ffffff',
   fontWeight: 'bold',
   borderRadius: '30px',
@@ -32,7 +31,9 @@ const FloatingButton = styled(MuiButton)(({ theme }) => ({
     background: 'linear-gradient(45deg, #6a11cb 30%, #2575fc 90%)',
   },
   '& .MuiButton-startIcon': {
-    marginRight: '10px',
+    marginRight: '14px',
+    marginLeft: '0',
+    transform: 'scale(1.5)',
   },
 }));
 
@@ -43,8 +44,8 @@ const ChatContainer = styled(Paper)(({ theme }) => ({
   width: 'calc(100vw * 4/9)',
   maxWidth: '800px',
   minWidth: '450px',
-  height: '85vh',
-  maxHeight: '1000px',
+  height: '75vh',
+  maxHeight: '850px',
   display: 'flex',
   flexDirection: 'column',
   boxShadow: '0 10px 40px rgba(0, 0, 0, 0.2)',
@@ -52,6 +53,14 @@ const ChatContainer = styled(Paper)(({ theme }) => ({
   borderRadius: '18px',
   overflow: 'hidden',
   background: '#ffffff',
+  [theme.breakpoints.up('xl')]: {
+    height: '80vh',
+    maxHeight: '1000px',
+  },
+  [theme.breakpoints.down('md')]: {
+    height: '70vh',
+    maxHeight: '700px',
+  },
 }));
 
 const ChatHeader = styled(Box)(({ theme }) => ({
@@ -100,7 +109,98 @@ const AIChatButton: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState('');
+  const [socketConnected, setSocketConnected] = useState(false);
+  const [roomJoined, setRoomJoined] = useState(false);
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'error' as 'error' | 'warning' | 'info' | 'success' });
   const theme = useTheme();
+  const messagesEndRef = useRef<null | HTMLDivElement>(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const showError = (errorMessage: string) => {
+    setSnackbar({
+      open: true,
+      message: errorMessage,
+      severity: 'error'
+    });
+  };
+
+  const handleCloseSnackbar = () => {
+    setSnackbar({ ...snackbar, open: false });
+  };
+
+  // Scroll to bottom when messages change
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  useEffect(() => {
+    if (isOpen && user && account) {
+      const socket = socketService.connect();
+      
+      if (socket) {
+        socket.on('connect', () => {
+          console.log('Socket connected');
+          setSocketConnected(true);
+          
+          // Join room when socket is connected and chat is open
+          if (user && account) {
+            const joined = socketService.joinRoom(user._id, account._id);
+            if (joined) {
+              console.log('Joining chat room');
+            }
+          }
+        });
+
+        // Listen for room join confirmation
+        const handleRoomJoined = () => {
+          console.log('Successfully joined chat room');
+          setRoomJoined(true);
+        };
+        
+        socket.on('room_joined', handleRoomJoined);
+        
+        const unsubscribeReceiveMessage = socketService.onReceiveMessage((data) => {
+          console.log('Received message via socket:', data);
+          const aiMessage: Message = {
+            text: data.response,
+            isUser: false,
+            timestamp: new Date()
+          };
+          
+          setMessages(prev => [...prev, aiMessage]);
+          setIsLoading(false);
+        });
+        
+        const unsubscribeError = socketService.onError((error) => {
+          console.error('Socket error:', error);
+          showError(error.message || 'Failed to send message');
+          setIsLoading(false);
+        });
+        
+        // Try to join room if we're already connected
+        if (socketConnected && user && account) {
+          const joined = socketService.joinRoom(user._id, account._id);
+          if (joined) {
+            console.log('Joining chat room on mount');
+          }
+        }
+        
+        return () => {
+          socket.off('room_joined', handleRoomJoined);
+          unsubscribeReceiveMessage();
+          unsubscribeError();
+          if (!isOpen) {
+            socketService.disconnect();
+            setSocketConnected(false);
+            setRoomJoined(false);
+          }
+        };
+      }
+    }
+  }, [isOpen, user, account, socketConnected]);
 
   useEffect(() => {
     const checkServiceHealth = async () => {
@@ -121,13 +221,38 @@ const AIChatButton: React.FC = () => {
     };
 
     setMessages(prev => [...prev, userMessage]);
+    const messageText = inputMessage;
     setInputMessage('');
 
+    if (socketConnected) {
+      try {
+        console.log('Sending message via Socket.IO');
+        socketService.sendMessage({
+          prompt: messageText,
+          userId: user._id,
+          connectionId: account._id,
+          options: {
+            temperature: 0.7,
+            maxTokens: 150
+          }
+        });
+        // Socket response will be handled by the socket event listeners
+      } catch (error) {
+        console.error('Socket error:', error);
+        sendMessageHttp(messageText);
+      }
+    } else {
+      console.log('Fallback to HTTP for message');
+      sendMessageHttp(messageText);
+    }
+  };
+
+  const sendMessageHttp = async (messageText: string) => {
     try {
       const response = await mcpService.sendQuery(
-        inputMessage,
-        user._id,
-        account._id,
+        messageText,
+        user!._id,
+        account!._id,
         {
           temperature: 0.7,
           maxTokens: 150
@@ -142,7 +267,7 @@ const AIChatButton: React.FC = () => {
 
       setMessages(prev => [...prev, aiMessage]);
     } catch (error) {
-      message.error(error instanceof Error ? error.message : 'Failed to send message');
+      showError(error instanceof Error ? error.message : 'Failed to send message');
     } finally {
       setIsLoading(false);
     }
@@ -157,7 +282,7 @@ const AIChatButton: React.FC = () => {
       return 'Please sign in to use the Cloud Architecture Assistant';
     }
     if (!account) {
-      return 'Please select an account to use the Cloud Architecture Assistant';
+      return 'Action Required: Please select an account to activate the Cloud Assistant';
     }
     if (!isServiceAvailable) {
       return 'Cloud Architecture Assistant is currently unavailable';
@@ -167,30 +292,63 @@ const AIChatButton: React.FC = () => {
 
   return (
     <>
-      <Tooltip title={getTooltipTitle()}>
-        <FloatingButton
-          variant="contained"
-          startIcon={<ArchitectureIcon sx={{ fontSize: 28 }} />}
-          onClick={() => setIsOpen(!isOpen)}
-          disabled={!isServiceAvailable || !user || !account}
+      <Box
+        sx={{
+          position: 'fixed',
+          bottom: '30px',
+          right: '30px',
+          zIndex: 1000,
+        }}
+      >
+        <Tooltip 
+          title={getTooltipTitle()} 
+          arrow
+          placement="top"
+          componentsProps={{
+            tooltip: {
+              sx: {
+                bgcolor: !account ? '#f44336' : 'rgba(97, 97, 97, 0.92)',
+                color: 'white',
+                '& .MuiTooltip-arrow': {
+                  color: !account ? '#f44336' : 'rgba(97, 97, 97, 0.92)',
+                },
+                fontWeight: !account ? 'bold' : 'normal',
+                fontSize: !account ? '0.9rem' : '0.75rem',
+                padding: !account ? '10px 16px' : '8px 12px',
+              }
+            }
+          }}
         >
-          {isLoading ? 
-            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-              <LoadingOutlined style={{ marginRight: 8 }} />
-              Processing...
-            </Box> : 
-            "Cloud Assistant"
-          }
-        </FloatingButton>
-      </Tooltip>
+          <div> {/* This div ensures the tooltip works even with disabled button */}
+            <FloatingButton
+              variant="contained"
+              startIcon={<PsychologyIcon />}
+              onClick={() => setIsOpen(!isOpen)}
+              disabled={!isServiceAvailable || !user || !account}
+              sx={{
+                position: 'static', // Override the fixed position from styled component
+                opacity: !account ? 0.8 : 1,
+              }}
+            >
+              {isLoading ? 
+                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                  <CircularProgress size={20} sx={{ mr: 1, color: 'white' }} />
+                  Processing...
+                </Box> : 
+                "Cloud Assistant"
+              }
+            </FloatingButton>
+          </div>
+        </Tooltip>
+      </Box>
 
       <Slide direction="up" in={isOpen} mountOnEnter unmountOnExit timeout={1000}>
         <ChatContainer>
           <ChatHeader>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
               {!isServiceAvailable ? 
-                <ErrorIcon sx={{ fontSize: 28 }} /> : 
-                <SupportAgentIcon sx={{ fontSize: 28 }} />
+                <ErrorIcon sx={{ fontSize: 36 }} /> : 
+                <PsychologyIcon sx={{ fontSize: 36 }} />
               }
               <Typography variant="h6" sx={{ fontWeight: 600 }}>
                 Cloud Architecture Assistant
@@ -283,6 +441,7 @@ const AIChatButton: React.FC = () => {
                 </Box>
               </Fade>
             )}
+            <div ref={messagesEndRef} />
           </ChatMessages>
 
           <ChatInput>
@@ -322,6 +481,22 @@ const AIChatButton: React.FC = () => {
           </ChatInput>
         </ChatContainer>
       </Slide>
+
+      <Snackbar 
+        open={snackbar.open} 
+        autoHideDuration={6000} 
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert 
+          onClose={handleCloseSnackbar} 
+          severity={snackbar.severity}
+          variant="filled"
+          sx={{ width: '100%' }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </>
   );
 };

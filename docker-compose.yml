@@ -229,6 +229,7 @@ services:
       - GEMINI_API_KEY=${GEMINI_API_KEY}
       - DB_SERVICE_URL=http://db-service:4003
       - MCP_SERVICE_URL=http://mcp-service:4006
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost}
     ports:
       - "4005:4005"
     depends_on:
