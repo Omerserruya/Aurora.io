@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Typography, Box, Grid, Button, CircularProgress } from '@mui/material';
-import { useUser } from '../contexts/UserContext';
-import { useAccount } from '../contexts/AccountContext';
+import { useUser } from '../hooks/compatibilityHooks';
+import { useAccount } from '../hooks/compatibilityHooks';
 import AddIcon from '@mui/icons-material/Add';
 import { AddAccountDialog } from '../components/AccountConnection';
 import CloudIcon from '@mui/icons-material/Cloud';

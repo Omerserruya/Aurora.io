@@ -5,7 +5,7 @@ import CredentialsStep from './CredentialsStep';
 import AccountsStep from './AccountsStep';
 import OverviewStep from './OverviewStep';
 import { AWSConnectionFormData, AWSConnection } from '../../types/awsConnection';
-import { useUser } from '../../contexts/UserContext';
+import { useUser } from '../../hooks/compatibilityHooks';
 import { validateAwsCredentials } from '../../api/awsConnectionApi';
 
 const steps = [
@@ -68,7 +68,7 @@ export default function AWSConnectionForm({ onSubmit, onCancel }: AWSConnectionF
     
     try {
       if (!user) {
-        throw new Error('No user found in context');
+        throw new Error('No user found in Redux state');
       }
       
       // Use the real AWS credentials validation from CloudQuery service

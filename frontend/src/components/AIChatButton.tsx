@@ -8,8 +8,8 @@ import ErrorIcon from '@mui/icons-material/Error';
 import SupportAgentIcon from '@mui/icons-material/SupportAgent';
 import PsychologyIcon from '@mui/icons-material/Psychology';
 import { mcpService } from '../api/mcpService';
-import { useUser } from '../contexts/UserContext';
-import { useAccount } from '../contexts/AccountContext';
+import { useUser } from '../hooks/compatibilityHooks';
+import { useAccount } from '../hooks/compatibilityHooks';
 import socketService from '../services/socketService';
 
 const FloatingButton = styled(MuiButton)(({ theme }) => ({

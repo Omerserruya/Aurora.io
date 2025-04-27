@@ -3,9 +3,9 @@ import { Box, Typography, CircularProgress, Alert, IconButton, Tooltip } from '@
 import { Refresh as RefreshIcon, Sync as SyncIcon } from '@mui/icons-material';
 import AWSArchitectureVisualizer, { AWSArchitecture } from '../components/aws-architecture-visualizer';
 import axios from 'axios';
-import { useAccount } from '../contexts/AccountContext';
+import { useAccount } from '../hooks/compatibilityHooks';
 import { executeCloudQuery } from '../api/awsConnectionApi';
-import { useUser } from '../contexts/UserContext';
+import { useUser } from '../hooks/compatibilityHooks';
 
 function Visualization() {
   const [data, setData] = useState<AWSArchitecture | null>(null);

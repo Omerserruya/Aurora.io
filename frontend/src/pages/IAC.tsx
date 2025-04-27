@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Box, Typography, Paper, Stack, Button } from '@mui/material';
 import CodeSnippet from '../components/CodeSnippet';
 import ResourceSelector from '../components/ResourceSelector';
@@ -7,8 +7,8 @@ import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import JSZip from 'jszip';
 import axios from 'axios';
 import {providerTfContent, tfvarsContent, variablesTfContent} from '../consts/iacFiles'
-import { useUser } from '../contexts/UserContext';
-import { useAccount } from '../contexts/AccountContext'
+import { useUser } from '../hooks/compatibilityHooks';
+import { useAccount } from '../hooks/compatibilityHooks';
 import {resourcesType} from '../components/ResourceSelector'
 
 

@@ -14,8 +14,7 @@ import Box from '@mui/material/Box';
 import CircularProgress from '@mui/material/CircularProgress';
 import { AddAccountDialog } from '../AccountConnection';
 import { AWSConnection } from '../../types/awsConnection';
-import api from '../../utils/api';
-import { useAccount } from '../../contexts/AccountContext';
+import { useAccount } from '../../hooks/compatibilityHooks';
 import { fetchAwsConnections as fetchAwsConnectionsApi, createAwsConnection } from '../../api/awsConnectionApi';
 
 const Avatar = styled(MuiAvatar)(({ theme }) => ({
@@ -43,7 +42,7 @@ export default function SelectContent() {
     fetchAwsConnections();
   }, []);
 
-  // Update selected account when account context changes
+  // Update selected account when account global state using redux changes
   React.useEffect(() => {
     if (account?._id) {
       setSelectedAccount(account._id);
