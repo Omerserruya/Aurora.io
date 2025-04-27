@@ -287,19 +287,23 @@ const Register = () => {
         open={snackbar.open}
         autoHideDuration={3000}
         onClose={() => setSnackbar({ ...snackbar, open: false })}
-        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+        TransitionProps={{ 
+          timeout: 750 
+        }}
         sx={{ 
-          width: '100%',
-          maxWidth: '500px',
-          top: '50% !important',
-          transform: 'translateY(-50%) !important',
-          left: '0 !important',
-          right: '0 !important',
-          margin: '0 auto',
+          '& .MuiSnackbar-root': {
+            transition: 'all 750ms ease-in-out'
+          },
           '& .MuiAlert-root': {
             width: '100%',
             boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
-            fontSize: '1rem'
+            fontSize: '1rem',
+            animation: 'fadeInOut 750ms ease-in-out'
+          },
+          '@keyframes fadeInOut': {
+            '0%': { opacity: 0, transform: 'translateY(-20px)' },
+            '100%': { opacity: 1, transform: 'translateY(0)' }
           }
         }}
       >
