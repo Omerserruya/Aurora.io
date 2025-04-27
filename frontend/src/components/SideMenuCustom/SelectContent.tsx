@@ -166,6 +166,7 @@ export default function SelectContent() {
         setListAccounts([]);
       }
     } catch (error) {
+      console.error('Error fetching AWS connections:', error);
       setListAccounts([]);
     } finally {
       setIsLoading(false);
@@ -214,6 +215,7 @@ export default function SelectContent() {
       
       return data;
     } catch (error) {
+      console.error('Error adding account:', error);
       throw error;
     }
   };
