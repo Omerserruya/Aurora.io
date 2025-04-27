@@ -13,7 +13,6 @@ class SocketService {
   connect() {
     if (!this.socket) {
       try {
-        console.log('Connecting to Socket.IO server');
         this.connectionAttempts++;
         
         // Connect to the Socket.IO server
@@ -29,7 +28,6 @@ class SocketService {
         
         // Connection event handlers
         this.socket.on('connect', () => {
-          console.log('Socket connected successfully:', this.socket?.id);
           this.connectionAttempts = 0; // Reset reconnection counter on successful connection
         });
         
@@ -43,14 +41,12 @@ class SocketService {
         });
         
         this.socket.on('disconnect', (reason: string) => {
-          console.log('Socket disconnected, reason:', reason);
           // Reset room tracking on disconnect
           this.currentRoom = null;
         });
 
         // Room event handlers
         this.socket.on('room_joined', (data: { roomId: string, message: string }) => {
-          console.log(`Successfully joined room: ${data.roomId}`, data.message);
           this.currentRoom = data.roomId;
         });
         
@@ -70,14 +66,12 @@ class SocketService {
   disconnect() {
     if (this.socket) {
       try {
-        console.log('Disconnecting socket');
         this.socket.disconnect();
       } catch (error) {
         console.error('Error during socket disconnect:', error);
       } finally {
         this.socket = null;
         this.currentRoom = null;
-        console.log('Socket disconnected and reset');
       }
     }
   }
@@ -112,11 +106,8 @@ class SocketService {
     
     // Only join if not already in this room
     if (this.currentRoom !== targetRoom) {
-      console.log(`Joining room for user ${userId}, connection ${connectionId}`);
       socket.emit('join_room', { userId, connectionId });
       return true;
-    } else {
-      console.log(`Already in room: ${this.currentRoom}`);
     }
     
     return false;
@@ -140,7 +131,6 @@ class SocketService {
     
     // Send the message
     try {
-      console.log(`Sending message to room for user ${message.userId}`);
       socket.emit('send_message', message);
       return true;
     } catch (error) {

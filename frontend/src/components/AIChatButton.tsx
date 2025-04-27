@@ -142,28 +142,24 @@ const AIChatButton: React.FC = () => {
       
       if (socket) {
         socket.on('connect', () => {
-          console.log('Socket connected');
           setSocketConnected(true);
           
           // Join room when socket is connected and chat is open
           if (user && account) {
             const joined = socketService.joinRoom(user._id, account._id);
             if (joined) {
-              console.log('Joining chat room');
             }
           }
         });
 
         // Listen for room join confirmation
         const handleRoomJoined = () => {
-          console.log('Successfully joined chat room');
           setRoomJoined(true);
         };
         
         socket.on('room_joined', handleRoomJoined);
         
         const unsubscribeReceiveMessage = socketService.onReceiveMessage((data) => {
-          console.log('Received message via socket:', data);
           const aiMessage: Message = {
             text: data.response,
             isUser: false,
@@ -182,10 +178,7 @@ const AIChatButton: React.FC = () => {
         
         // Try to join room if we're already connected
         if (socketConnected && user && account) {
-          const joined = socketService.joinRoom(user._id, account._id);
-          if (joined) {
-            console.log('Joining chat room on mount');
-          }
+          socketService.joinRoom(user._id, account._id);
         }
         
         return () => {
@@ -226,7 +219,6 @@ const AIChatButton: React.FC = () => {
 
     if (socketConnected) {
       try {
-        console.log('Sending message via Socket.IO');
         socketService.sendMessage({
           prompt: messageText,
           userId: user._id,
@@ -242,7 +234,6 @@ const AIChatButton: React.FC = () => {
         sendMessageHttp(messageText);
       }
     } else {
-      console.log('Fallback to HTTP for message');
       sendMessageHttp(messageText);
     }
   };

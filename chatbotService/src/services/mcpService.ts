@@ -12,7 +12,6 @@ class MCPService {
   
   constructor() {
     this.mcpServiceUrl = environment.mcpServiceUrl;
-    console.log(`MCPService initialized with MCP service URL: ${this.mcpServiceUrl}`);
   }
 
   /**
@@ -20,8 +19,6 @@ class MCPService {
    */
   public async processQuery(prompt: string, userId: string, connectionId: string, options = {}): Promise<MCPResponse> {
     // Log incoming request
-    console.log(`[MCPService] Processing query for user ${userId}, connection ${connectionId}`);
-    console.log(`[MCPService] Prompt: "${prompt.substring(0, 50)}${prompt.length > 50 ? '...' : ''}"`);
     
     try {
       // MCP still expects userId and connectionId in the payload, not URL params
@@ -32,7 +29,6 @@ class MCPService {
         options
       };
       
-      console.log(`[MCPService] Sending request to MCP service at ${this.mcpServiceUrl}/api/mcp/query`);
       const response = await axios.post(`${this.mcpServiceUrl}/api/mcp/query`, payload, {
         timeout: 60000, // 60 second timeout for AI responses
         headers: {
@@ -42,7 +38,6 @@ class MCPService {
       });
       
       if (response.status === 200) {
-        console.log('[MCPService] Successfully received response from MCP service');
         
         if (response.data.type === 'error') {
           console.warn('[MCPService] MCP service returned an error:', response.data.response);
@@ -54,7 +49,6 @@ class MCPService {
         }
         
         // Log success
-        console.log(`[MCPService] Successfully processed query for user ${userId}`);
         
         // Return response in a standardized format
         return {
@@ -90,12 +84,10 @@ class MCPService {
    */
   public async checkHealth(): Promise<boolean> {
     try {
-      console.log(`[MCPService] Checking health of MCP service at ${this.mcpServiceUrl}/api/mcp/health`);
       const response = await axios.get(`${this.mcpServiceUrl}/api/mcp/health`, {
         timeout: 5000 // 5 second timeout for health check
       });
       const isHealthy = response.status === 200 && response.data.status === 'healthy';
-      console.log(`[MCPService] Health check result: ${isHealthy ? 'Healthy' : 'Unhealthy'}`);
       return isHealthy;
     } catch (error) {
       console.error('[MCPService] Health check failed:', error);

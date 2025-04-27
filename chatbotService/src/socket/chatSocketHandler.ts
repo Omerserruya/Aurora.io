@@ -7,7 +7,6 @@ export default function setupSocketHandlers(io: Server) {
   const activeRooms = new Map<string, string[]>();
 
   io.on('connection', (socket: Socket) => {
-    console.log(`New client connected: ${socket.id}`);
     let currentRoom: string | null = null;
     
     // Handle joining a room
@@ -34,7 +33,6 @@ export default function setupSocketHandlers(io: Server) {
       }
       activeRooms.get(roomId)?.push(socket.id);
       
-      console.log(`Socket ${socket.id} joined room ${roomId}`);
       socket.emit('room_joined', { 
         roomId,
         message: `Joined conversation room for user ${userId}`
@@ -65,10 +63,8 @@ export default function setupSocketHandlers(io: Server) {
         }
         activeRooms.get(roomId)?.push(socket.id);
         
-        console.log(`Socket ${socket.id} automatically joined room ${roomId}`);
       }
       
-      console.log(`[Socket:${roomId}] Received message: "${prompt.substring(0, 50)}..."`);
       
       try {
         // Process the query through MCP service
@@ -80,7 +76,6 @@ export default function setupSocketHandlers(io: Server) {
           timestamp: new Date().toISOString()
         });
         
-        console.log(`[Socket:${roomId}] Response sent`);
       } catch (error: any) {
         console.error(`[Socket:${roomId}] Error processing message:`, error);
         io.to(roomId).emit('error', { 
@@ -91,7 +86,6 @@ export default function setupSocketHandlers(io: Server) {
     
     // Handle disconnection
     socket.on('disconnect', () => {
-      console.log(`Client disconnected: ${socket.id}`);
       
       if (currentRoom) {
         // Remove socket from active rooms tracking
@@ -105,7 +99,6 @@ export default function setupSocketHandlers(io: Server) {
           // If room is empty, remove it
           if (sockets.length === 0) {
             activeRooms.delete(currentRoom);
-            console.log(`Room ${currentRoom} is now empty and has been removed`);
           }
         }
       }
