@@ -36,19 +36,35 @@ export const refreshAccountDetails = createAsyncThunk(
       });
 
       if (!response.ok) {
-        throw new Error('Failed to fetch account details');
+        if (response.status !== 401 && response.status !== 403) {
+          localStorage.removeItem('account_id');
+        }
+        
+        return rejectWithValue(`API error: ${response.status} ${response.statusText}`);
       }
 
       // Check if the response is JSON before parsing
       const contentType = response.headers.get('content-type');
       if (!contentType || !contentType.includes('application/json')) {
-        throw new Error('Invalid response format - expected JSON');
+        return rejectWithValue('Invalid response format - expected JSON');
       }
 
       const accountData = await response.json();
+      // Ensure the account data is stored in localStorage
+      if (accountData && accountData._id) {
+        localStorage.setItem('account_id', accountData._id);
+      }
+      
       return accountData;
     } catch (error) {
-      localStorage.removeItem('account_id');
+      // Only remove the account_id in specific error cases
+      if ((error as Error).message.includes('Failed to fetch') || 
+          (error as Error).message.includes('NetworkError')) {
+        // Keep account_id in localStorage for network errors
+      } else {
+        localStorage.removeItem('account_id');
+      }
+      
       return rejectWithValue((error as Error).message);
     }
   }
@@ -84,7 +100,6 @@ const accountSlice = createSlice({
       .addCase(refreshAccountDetails.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
-        state.account = null;
       });
   }
 });
