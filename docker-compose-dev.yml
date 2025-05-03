@@ -1,4 +1,18 @@
 services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: development
+    ports:
+      - 3000:3000
+    volumes:
+      - ./frontend:/app        # For code visibility during build
+      - /app/node_modules      # Avoid overwriting node_modules
+    environment:
+      - NODE_ENV=development
+      - REACT_APP_API_URL=http://localhost
+ 
   tf-service:
     build:
       context: ./terraformService
@@ -8,8 +22,11 @@ services:
       - HOST=0.0.0.0
       - JWT_SECRET_KEY=${JWT_KEY}
       - DB_SERVICE_URL=${DB_SERVICE_URL}
+    volumes:
+      - ./terraformService:/app
     ports:
-      - "${TF_SERVICE_PORT:-7810}:7810"  # For direct access to Terraform service
+      - "${PORT_TF:-7810}:7810"  # For direct access to Terraform service
+    command: ["flask", "--app", "./app.py", "--debug", "run"]
     networks:
       - default
 
@@ -112,7 +129,7 @@ services:
   neo4j:
     image: neo4j:latest
     environment:
-      - NEO4J_AUTH=neo4j/aurora123
+      - NEO4J_AUTH=neo4j/aurora1234
       - NEO4J_apoc_export_file_enabled=true
       - NEO4J_apoc_import_file_enabled=true
       - NEO4J_apoc_import_file_use__neo4j__config=true
@@ -134,29 +151,6 @@ services:
       timeout: 5s
       retries: 5
       start_period: 30s
-
-  nginx:
-    image: nginx:alpine
-    ports:
-      - "80:80"  # HTTP port for local development
-    volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./nginx/conf.d:/etc/nginx/conf.d:ro
-      - ./userMgmntService/uploads:/app/uploads:ro
-      - ./frontend/build:/usr/share/nginx/html:ro  # Serve React build files
-    depends_on:
-      users-service:
-        condition: service_healthy
-      auth-service:
-        condition: service_healthy
-      db-service:
-        condition: service_healthy
-      chatbot-service:
-        condition: service_healthy
-      mcp-service:
-        condition: service_healthy
-    networks:
-      - default
 
   db-service:
     build:
@@ -198,7 +192,7 @@ services:
     build:
       context: ./cloudQueryService
       dockerfile: Dockerfile
-      target: production
+      target: development
     volumes:
       - ./cloudQueryService/src:/app/src
       - ./cloudQueryService/package.json:/app/package.json
@@ -219,9 +213,9 @@ services:
       - PLATFORM=${PLATFORM}
     ports:
       - "4004:4004"
-    depends_on:
-      db-service:
-        condition: service_healthy
+    # depends_on:
+    #   db-service:
+    #     condition: service_healthy
     healthcheck:
       test: wget -O /dev/null -q http://localhost:4004/status || exit 1
       interval: 10s
@@ -237,7 +231,7 @@ services:
     build:
       context: ./chatbotService
       dockerfile: Dockerfile
-      target: production
+      target: development
     volumes:
       - ./chatbotService/src:/app/src
       - ./chatbotService/package.json:/app/package.json
@@ -272,7 +266,7 @@ services:
     build:
       context: ./mcpService
       dockerfile: Dockerfile
-      target: production
+      target: development
     volumes:
       - ./mcpService/src:/app/src
       - ./mcpService/package.json:/app/package.json
