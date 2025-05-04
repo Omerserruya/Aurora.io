@@ -5,6 +5,7 @@ import hashlib
 import requests
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import unpad
+from datetime import datetime
 
 def decrypt(encrypted_text):
     # Get encryption key from environment variable
@@ -43,26 +44,37 @@ def get_aws_session():
     """Creates a session using AWS credentials from environment variables."""
     return boto3.Session(region_name=os.getenv("AWS_REGION", "us-east-1"))
 
+def convert_datetime(obj):
+    """Recursively convert datetime objects to ISO format strings."""
+    if isinstance(obj, dict):
+        return {k: convert_datetime(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [convert_datetime(item) for item in obj]
+    elif isinstance(obj, datetime):
+        return obj.isoformat()
+    return obj
+
 def send_results_to_db(results):
     """Sends the results to the database controller."""
     db_url = os.getenv("DB_SERVICE_URL")
     if not db_url:
         raise ValueError("DB_SERVICE_URL environment variable is not set")
 
-    # Get user ID and connection ID from environment
     user_id = os.getenv("userID")
     connection_id = os.getenv("CONNECTION_ID")
-    
+
     if not user_id:
         raise ValueError("userID environment variable is not set")
     if not connection_id:
         raise ValueError("CONNECTION_ID environment variable is not set")
 
-    # Prepare the payload
+    # Convert datetime objects
+    safe_results = convert_datetime(results)
+
     payload = {
         "userId": user_id,
         "connectionId": connection_id,
-        "data": results
+        "data": safe_results
     }
 
     try:
@@ -71,7 +83,8 @@ def send_results_to_db(results):
             json=payload,
             headers={"Content-Type": "application/json"}
         )
-        response.raise_for_status()  # Raise an exception for bad status codes
+        print(response.json())
+        response.raise_for_status()
         print(f"Successfully sent results to database. Status: {response.status_code}")
     except requests.exceptions.RequestException as e:
         print(f"Error sending results to database: {str(e)}")
@@ -81,13 +94,23 @@ def get_ec2_instances(session, config):
     """Retrieves EC2 instances based on the configured properties."""
     ec2_client = session.client("ec2")
     instances = ec2_client.describe_instances()["Reservations"]
-    return [
-        {
-            prop: instance.get(prop, None) if prop != "Image" else ec2_client.describe_images(ImageIds=[instance["ImageId"]])["Images"][0]
-            for prop in config.get("ec2", [])
-        }
-        for res in instances for instance in res["Instances"]
-    ]
+    results = []
+    for res in instances:
+        for instance in res["Instances"]:
+            instance_data = {}
+            for prop in config.get("ec2", []):
+                if prop == "Image":
+                    image_id = instance.get("ImageId")
+                    if image_id:
+                        image = ec2_client.describe_images(ImageIds=[image_id])["Images"][0]
+                        instance_data["ImageId"] = image.get("ImageId")
+                        instance_data["ImageName"] = image.get("Name")
+                        instance_data["ImageDescription"] = image.get("Description")
+                        instance_data["ImageCreationDate"] = image.get("CreationDate")
+                else:
+                    instance_data[prop] = instance.get(prop, None)
+            results.append(instance_data)
+    return results
 
 def get_vpcs(session, config):
     """Retrieves VPCs based on the configured properties."""
