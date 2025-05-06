@@ -388,7 +388,6 @@ def main():
     
     # Send results to database instead of printing
     send_results_to_db(results)
-    # print(results)
 
 if __name__ == "__main__":
     main()
