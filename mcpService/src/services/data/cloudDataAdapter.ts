@@ -89,6 +89,10 @@ class CloudDataAdapter implements IDataAdapter {
       const subnets: any[] = [];
       const instances: any[] = [];
       const securityGroups: any[] = [];
+      const routeTables: any[] = [];
+      const internetGateways: any[] = [];
+      const networkAcls: any[] = [];
+      const loadBalancers: any[] = [];
       const buckets: any[] = [];
       
       // Process VPCs
@@ -118,6 +122,38 @@ class CloudDataAdapter implements IDataAdapter {
             vpc.securityGroups.forEach((sg: any) => {
               securityGroups.push(sg);
               nodeTypes.set('SecurityGroup', (nodeTypes.get('SecurityGroup') || 0) + 1);
+            });
+          }
+          
+          // Process route tables
+          if (vpc.routeTables && Array.isArray(vpc.routeTables)) {
+            vpc.routeTables.forEach((rt: any) => {
+              routeTables.push(rt);
+              nodeTypes.set('RouteTable', (nodeTypes.get('RouteTable') || 0) + 1);
+            });
+          }
+          
+          // Process internet gateways
+          if (vpc.internetGateways && Array.isArray(vpc.internetGateways)) {
+            vpc.internetGateways.forEach((igw: any) => {
+              internetGateways.push(igw);
+              nodeTypes.set('InternetGateway', (nodeTypes.get('InternetGateway') || 0) + 1);
+            });
+          }
+          
+          // Process network ACLs
+          if (vpc.networkAcls && Array.isArray(vpc.networkAcls)) {
+            vpc.networkAcls.forEach((acl: any) => {
+              networkAcls.push(acl);
+              nodeTypes.set('NetworkAcl', (nodeTypes.get('NetworkAcl') || 0) + 1);
+            });
+          }
+          
+          // Process load balancers
+          if (vpc.loadBalancers && Array.isArray(vpc.loadBalancers)) {
+            vpc.loadBalancers.forEach((lb: any) => {
+              loadBalancers.push(lb);
+              nodeTypes.set('LoadBalancer', (nodeTypes.get('LoadBalancer') || 0) + 1);
             });
           }
         });
@@ -207,6 +243,143 @@ class CloudDataAdapter implements IDataAdapter {
             if (sg.properties.GroupName) contextText += `  Name: ${sg.properties.GroupName}\n`;
             if (sg.properties.Description) contextText += `  Description: ${sg.properties.Description}\n`;
           }
+          
+          // Add inbound rules
+          if (sg.inboundRules && sg.inboundRules.length > 0) {
+            contextText += '  Inbound Rules:\n';
+            sg.inboundRules.forEach((rule: any) => {
+              contextText += `    - Protocol: ${rule.ipProtocol}\n`;
+              if (rule.fromPort !== undefined) contextText += `      From Port: ${rule.fromPort}\n`;
+              if (rule.toPort !== undefined) contextText += `      To Port: ${rule.toPort}\n`;
+              
+              if (rule.userIdGroupPairs && rule.userIdGroupPairs.length > 0) {
+                contextText += '      Source Security Groups:\n';
+                rule.userIdGroupPairs.forEach((pair: any) => {
+                  contextText += `        - Group ID: ${pair.GroupId}\n`;
+                });
+              }
+              
+              if (rule.ipRanges && rule.ipRanges.length > 0) {
+                contextText += '      Source IP Ranges:\n';
+                rule.ipRanges.forEach((range: any) => {
+                  contextText += `        - ${range.CidrIp}\n`;
+                });
+              }
+              
+              if (rule.ipv6Ranges && rule.ipv6Ranges.length > 0) {
+                contextText += '      Source IPv6 Ranges:\n';
+                rule.ipv6Ranges.forEach((range: any) => {
+                  contextText += `        - ${range.CidrIpv6}\n`;
+                });
+              }
+            });
+          }
+          
+          // Add outbound rules
+          if (sg.outboundRules && sg.outboundRules.length > 0) {
+            contextText += '  Outbound Rules:\n';
+            sg.outboundRules.forEach((rule: any) => {
+              contextText += `    - Protocol: ${rule.ipProtocol}\n`;
+              if (rule.fromPort !== undefined) contextText += `      From Port: ${rule.fromPort}\n`;
+              if (rule.toPort !== undefined) contextText += `      To Port: ${rule.toPort}\n`;
+              
+              if (rule.userIdGroupPairs && rule.userIdGroupPairs.length > 0) {
+                contextText += '      Destination Security Groups:\n';
+                rule.userIdGroupPairs.forEach((pair: any) => {
+                  contextText += `        - Group ID: ${pair.GroupId}\n`;
+                });
+              }
+              
+              if (rule.ipRanges && rule.ipRanges.length > 0) {
+                contextText += '      Destination IP Ranges:\n';
+                rule.ipRanges.forEach((range: any) => {
+                  contextText += `        - ${range.CidrIp}\n`;
+                });
+              }
+              
+              if (rule.ipv6Ranges && rule.ipv6Ranges.length > 0) {
+                contextText += '      Destination IPv6 Ranges:\n';
+                rule.ipv6Ranges.forEach((range: any) => {
+                  contextText += `        - ${range.CidrIpv6}\n`;
+                });
+              }
+            });
+          }
+        });
+      }
+      
+      // Add route table details
+      if (routeTables.length > 0) {
+        contextText += '\nRoute Table Information:\n';
+        routeTables.forEach((rt) => {
+          contextText += `- Route Table ID: ${rt.routeTableId || 'Unknown'}\n`;
+          
+          if (rt.routes && rt.routes.length > 0) {
+            contextText += '  Routes:\n';
+            rt.routes.forEach((route: any) => {
+              contextText += `    - Destination: ${route.destinationCidrBlock}\n`;
+              contextText += `      Target: ${route.gatewayId}\n`;
+              contextText += `      State: ${route.state}\n`;
+            });
+          }
+          
+          if (rt.associations && rt.associations.length > 0) {
+            contextText += '  Subnet Associations:\n';
+            rt.associations.forEach((assoc: any) => {
+              contextText += `    - Subnet: ${assoc.subnetId}\n`;
+              contextText += `      Main: ${assoc.main}\n`;
+              contextText += `      State: ${assoc.state}\n`;
+            });
+          }
+        });
+      }
+      
+      // Add internet gateway details
+      if (internetGateways.length > 0) {
+        contextText += '\nInternet Gateway Information:\n';
+        internetGateways.forEach((igw) => {
+          contextText += `- Internet Gateway ID: ${igw.internetGatewayId || 'Unknown'}\n`;
+          
+          if (igw.attachments && igw.attachments.length > 0) {
+            contextText += '  VPC Attachments:\n';
+            igw.attachments.forEach((attachment: any) => {
+              contextText += `    - VPC: ${attachment.vpcId}\n`;
+              contextText += `      State: ${attachment.state}\n`;
+            });
+          }
+        });
+      }
+      
+      // Add network ACL details
+      if (networkAcls.length > 0) {
+        contextText += '\nNetwork ACL Information:\n';
+        networkAcls.forEach((acl) => {
+          contextText += `- Network ACL ID: ${acl.networkAclId || 'Unknown'}\n`;
+          
+          if (acl.entries && acl.entries.length > 0) {
+            contextText += '  Rules:\n';
+            acl.entries.forEach((entry: any) => {
+              contextText += `    - Rule #${entry.ruleNumber}\n`;
+              contextText += `      Type: ${entry.egress === 'true' ? 'Egress' : 'Ingress'}\n`;
+              contextText += `      Protocol: ${entry.protocol}\n`;
+              contextText += `      CIDR: ${entry.cidrBlock}\n`;
+              contextText += `      Action: ${entry.ruleAction}\n`;
+            });
+          }
+        });
+      }
+      
+      // Add load balancer details
+      if (loadBalancers.length > 0) {
+        contextText += '\nLoad Balancer Information:\n';
+        loadBalancers.forEach((lb) => {
+          contextText += `- Load Balancer: ${lb.loadBalancerArn || 'Unknown'}\n`;
+          
+          if (lb.properties) {
+            if (lb.properties.loadBalancerName) contextText += `  Name: ${lb.properties.loadBalancerName}\n`;
+            if (lb.properties.type) contextText += `  Type: ${lb.properties.type}\n`;
+            if (lb.properties.scheme) contextText += `  Scheme: ${lb.properties.scheme}\n`;
+          }
         });
       }
       
@@ -225,7 +398,8 @@ class CloudDataAdapter implements IDataAdapter {
       
       // If no specific resource details were found
       if (vpcs.length === 0 && subnets.length === 0 && instances.length === 0 && 
-          securityGroups.length === 0 && buckets.length === 0) {
+          securityGroups.length === 0 && routeTables.length === 0 && internetGateways.length === 0 &&
+          networkAcls.length === 0 && loadBalancers.length === 0 && buckets.length === 0) {
         contextText += '\nNo detailed resource information available for this AWS environment.';
       }
       
