@@ -76,8 +76,8 @@ The application follows a microservices architecture with the following componen
    ```
 
 2. For local development:
-   ```
-   docker-compose up
+   bash```
+   docker compose -f ./docker-compose-dev.yml up --build
    ```
 
    This will start all services in development mode with hot reloading.
@@ -112,8 +112,8 @@ For production deployment:
 2. Configure proper HTTPS in Nginx
 3. Build production Docker images:
    ```
-   docker-compose -f docker-compose.prod.yml build
-   docker-compose -f docker-compose.prod.yml up -d
+   docker-compose -f docker-compose.yml build
+   docker-compose -f docker-compose.yml up -d
    ```
 
 ## Contributing
