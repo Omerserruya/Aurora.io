@@ -783,9 +783,9 @@ export const getInfrastructureDataWithUserId = async (req: Request, res: Respons
             `MATCH (v:VPC {userId: $userId, connectionId: $connectionId})
              OPTIONAL MATCH (v)-[:CONTAINS]->(s:Subnet {userId: $userId, connectionId: $connectionId})
              OPTIONAL MATCH (s)<-[:BELONGS_TO]-(i:Instance {userId: $userId, connectionId: $connectionId})
-             OPTIONAL MATCH (v)-[:HAS_SECURITY_GROUP]->(sg:SecurityGroup {userId: $userId, connectionId: $connectionId})
-             OPTIONAL MATCH (sg)-[:HAS_INBOUND_RULE]->(inRule:SecurityGroupRule {userId: $userId, connectionId: $connectionId})
-             OPTIONAL MATCH (sg)-[:HAS_OUTBOUND_RULE]->(outRule:SecurityGroupRule {userId: $userId, connectionId: $connectionId})
+             OPTIONAL MATCH (v)-[:HAS]->(sg:SecurityGroup {userId: $userId, connectionId: $connectionId})
+             OPTIONAL MATCH (sg)-[:HAS_RULE {type: 'inbound'}]->(inRule:SecurityGroupRule {userId: $userId, connectionId: $connectionId})
+             OPTIONAL MATCH (sg)-[:HAS_RULE {type: 'outbound'}]->(outRule:SecurityGroupRule {userId: $userId, connectionId: $connectionId})
              OPTIONAL MATCH (v)-[:HAS]->(rt:RouteTable {userId: $userId, connectionId: $connectionId})
              OPTIONAL MATCH (rt)-[:HAS_ROUTE]->(route:Route {userId: $userId, connectionId: $connectionId})
              OPTIONAL MATCH (s)-[:ASSOCIATED_WITH]->(rt)
@@ -885,7 +885,7 @@ export const getInfrastructureDataWithUserId = async (req: Request, res: Respons
                 const sgData = securityGroups.get(securityGroup.properties.groupId);
                 
                 if (inRule) {
-                    sgData.inboundRules.push({
+                    const ruleData = {
                         ipProtocol: inRule.properties.ipProtocol,
                         fromPort: inRule.properties.fromPort,
                         toPort: inRule.properties.toPort,
@@ -893,11 +893,22 @@ export const getInfrastructureDataWithUserId = async (req: Request, res: Respons
                         ipRanges: inRule.properties.ipRanges || [],
                         ipv6Ranges: inRule.properties.ipv6Ranges || [],
                         prefixListIds: inRule.properties.prefixListIds || []
-                    });
+                    };
+                    
+                    // Check if this rule already exists
+                    const existingRule = sgData.inboundRules.find((r: { ipProtocol: string; fromPort?: number; toPort?: number }) => 
+                        r.ipProtocol === ruleData.ipProtocol &&
+                        r.fromPort === ruleData.fromPort &&
+                        r.toPort === ruleData.toPort
+                    );
+                    
+                    if (!existingRule) {
+                        sgData.inboundRules.push(ruleData);
+                    }
                 }
                 
                 if (outRule) {
-                    sgData.outboundRules.push({
+                    const ruleData = {
                         ipProtocol: outRule.properties.ipProtocol,
                         fromPort: outRule.properties.fromPort,
                         toPort: outRule.properties.toPort,
@@ -905,7 +916,18 @@ export const getInfrastructureDataWithUserId = async (req: Request, res: Respons
                         ipRanges: outRule.properties.ipRanges || [],
                         ipv6Ranges: outRule.properties.ipv6Ranges || [],
                         prefixListIds: outRule.properties.prefixListIds || []
-                    });
+                    };
+                    
+                    // Check if this rule already exists
+                    const existingRule = sgData.outboundRules.find((r: { ipProtocol: string; fromPort?: number; toPort?: number }) => 
+                        r.ipProtocol === ruleData.ipProtocol &&
+                        r.fromPort === ruleData.fromPort &&
+                        r.toPort === ruleData.toPort
+                    );
+                    
+                    if (!existingRule) {
+                        sgData.outboundRules.push(ruleData);
+                    }
                 }
             }
             
