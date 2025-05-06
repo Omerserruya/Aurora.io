@@ -10,7 +10,7 @@ import ListItemIcon, { listItemIconClasses } from '@mui/material/ListItemIcon';
 import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
 import MoreVertRoundedIcon from '@mui/icons-material/MoreVertRounded';
 import MenuButton from './MenuButton';
-import { useUser } from '../contexts/UserContext';
+import { useUser } from '../hooks/compatibilityHooks';
 
 const MenuItem = styled(MuiMenuItem)({
   margin: '2px 0',
@@ -38,7 +38,7 @@ export default function OptionsMenu() {
         },
       });
 
-      // Always clear local storage and user context regardless of server response
+      // Always clear local storage and user global state using redux regardless of server response
       localStorage.removeItem('user_id');
       setUser(null);
       

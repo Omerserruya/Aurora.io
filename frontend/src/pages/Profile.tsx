@@ -4,7 +4,7 @@ import {
   TextField, Button, IconButton, Dialog, DialogTitle, DialogContent, DialogActions
 } from '@mui/material';
 import { Edit as EditIcon, Delete as DeleteIcon, PhotoCamera } from '@mui/icons-material';
-import { useUser } from '../contexts/UserContext';
+import { useUser } from '../hooks/compatibilityHooks';
 import api from '../utils/api';
 import UserAvatar from '../components/UserAvatar';
 import Toast from '../components/Toast';

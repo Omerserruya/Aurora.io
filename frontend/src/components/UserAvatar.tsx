@@ -1,6 +1,6 @@
 import React from 'react';
 import { Avatar, Stack, Typography, Box } from '@mui/material';
-import { useUser } from '../contexts/UserContext';
+import { useUser } from '../hooks/compatibilityHooks';
 
 interface UserAvatarProps {
     username?: string;
@@ -19,7 +19,7 @@ export default function UserAvatar({
 }: UserAvatarProps) {
     const { user } = useUser();
     
-    // Use props if provided, otherwise use user from context
+    // Use props if provided, otherwise use user from global state using redux
     const username = userFromProps ? propUsername : user?.username;
     const avatarUrl = userFromProps ? propAvatarUrl : user?.avatarUrl;
 

@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { useUser } from '../contexts/UserContext';
+import { useUser } from '../hooks/compatibilityHooks';
 import { CircularProgress, Box, Typography } from '@mui/material';
 
 const OAuthCallback = () => {
@@ -46,7 +46,7 @@ const OAuthCallback = () => {
       console.log('Setting user from OAuth:', userObj);
       setUser(userObj);
       
-      // Use a slight delay to ensure the user is set in context before navigation
+      // Use a slight delay to ensure the user is set in global state using redux before navigation
       setTimeout(() => {
         navigate('/home');
       }, 500);

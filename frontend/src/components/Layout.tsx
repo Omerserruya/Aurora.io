@@ -3,7 +3,7 @@ import { Box, CircularProgress } from "@mui/material";
 import { Outlet, Navigate } from 'react-router-dom';
 import SideMenu from './SideMenuCustom/SideMenu';
 import Header from './Header';
-import { useUser } from '../contexts/UserContext';
+import { useUser } from '../hooks/compatibilityHooks';
 import AIChatButton from './AIChatButton';
 
 function Layout() {

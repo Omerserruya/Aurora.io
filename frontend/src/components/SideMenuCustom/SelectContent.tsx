@@ -14,8 +14,7 @@ import Box from '@mui/material/Box';
 import CircularProgress from '@mui/material/CircularProgress';
 import { AddAccountDialog } from '../AccountConnection';
 import { AWSConnection } from '../../types/awsConnection';
-import api from '../../utils/api';
-import { useAccount } from '../../contexts/AccountContext';
+import { useAccount } from '../../hooks/compatibilityHooks';
 import { fetchAwsConnections as fetchAwsConnectionsApi, createAwsConnection } from '../../api/awsConnectionApi';
 
 const Avatar = styled(MuiAvatar)(({ theme }) => ({
@@ -31,32 +30,88 @@ const ListItemAvatar = styled(MuiListItemAvatar)({
   marginRight: 12,
 });
 
+const saveAccountSelection = (accountId: string, accountName: string) => {
+  try {
+    sessionStorage.setItem('selected_account_id', accountId);
+    sessionStorage.setItem('selected_account_name', accountName);
+  } catch (error) {}
+};
+
+const getPersistedAccountId = () => {
+  const fromLocalStorage = localStorage.getItem('account_id');
+  const fromSessionStorage = sessionStorage.getItem('selected_account_id');
+  return fromLocalStorage || fromSessionStorage || '';
+};
+
+const getPersistedAccountName = () => {
+  return sessionStorage.getItem('selected_account_name') || 'Account';
+};
+
 export default function SelectContent() {
-  const { account, setAccount } = useAccount();
-  const [selectedAccount, setSelectedAccount] = React.useState<string>(account?._id || '');
+  const { account, setAccount, refreshAccountDetails } = useAccount();
+  
+  const persistedId = getPersistedAccountId();
+  const persistedName = getPersistedAccountName();
+  
+  const [selectedAccount, setSelectedAccount] = React.useState<string>(persistedId);
+  const [selectedAccountName, setSelectedAccountName] = React.useState<string>(persistedName);
   const [isAddDialogOpen, setIsAddDialogOpen] = React.useState(false);
   const [listAccounts, setListAccounts] = React.useState<any[]>([]);
   const [isLoading, setIsLoading] = React.useState(false);
-
-  // Fetch AWS connections on component mount
+  const [initialLoadComplete, setInitialLoadComplete] = React.useState(false);
+  
   React.useEffect(() => {
-    fetchAwsConnections();
+    const fetchData = async () => {
+      await fetchAwsConnections();
+      
+      if (account && account._id) {
+        setSelectedAccount(account._id);
+        setSelectedAccountName(account.name);
+        saveAccountSelection(account._id, account.name);
+      } else {
+        const persistedId = getPersistedAccountId();
+        
+        if (persistedId) {
+          try {
+            await refreshAccountDetails();
+          } catch (error) {
+            if (listAccounts.length > 0) {
+              const persistedAccount = listAccounts.find(acc => acc.id === persistedId);
+              if (persistedAccount) {
+                setSelectedAccount(persistedId);
+                setSelectedAccountName(persistedAccount.name);
+                setAccount({
+                  _id: persistedId,
+                  name: persistedAccount.name
+                });
+              }
+            }
+          }
+        }
+      }
+      
+      setInitialLoadComplete(true);
+    };
+    
+    fetchData();
   }, []);
 
-  // Update selected account when account context changes
   React.useEffect(() => {
-    if (account?._id) {
+    if (account && account._id) {
       setSelectedAccount(account._id);
+      setSelectedAccountName(account.name);
+      
+      if (account.name) {
+        saveAccountSelection(account._id, account.name);
+      }
     }
   }, [account]);
 
   const fetchAwsConnections = async () => {
     setIsLoading(true);
     try {
-      // Use the fetchAwsConnections API function
       const data = await fetchAwsConnectionsApi();
       
-      // Process the data based on its structure
       if (Array.isArray(data)) {
         const formattedConnections = data.map((conn: any) => ({
           id: conn._id,
@@ -66,8 +121,20 @@ export default function SelectContent() {
           isValid: conn.isValidated
         }));
         setListAccounts(formattedConnections);
+        
+        const persistedId = getPersistedAccountId();
+        if (persistedId && !account) {
+          const persistedAccount = formattedConnections.find(acc => acc.id === persistedId);
+          if (persistedAccount) {
+            setSelectedAccount(persistedId);
+            setSelectedAccountName(persistedAccount.name);
+            setAccount({
+              _id: persistedId,
+              name: persistedAccount.name
+            });
+          }
+        }
       } else if (data && typeof data === 'object') {
-        // Check if data has a property that contains the array
         const connections = data.connections || data.results || data.items || data.data || [];
         
         if (Array.isArray(connections)) {
@@ -79,17 +146,27 @@ export default function SelectContent() {
             isValid: conn.isValidated
           }));
           setListAccounts(formattedConnections);
+          
+          const persistedId = getPersistedAccountId();
+          if (persistedId && !account) {
+            const persistedAccount = formattedConnections.find(acc => acc.id === persistedId);
+            if (persistedAccount) {
+              setSelectedAccount(persistedId);
+              setSelectedAccountName(persistedAccount.name);
+              setAccount({
+                _id: persistedId,
+                name: persistedAccount.name
+              });
+            }
+          }
         } else {
-          console.error('Response data format is not recognized:', data);
           setListAccounts([]);
         }
       } else {
-        console.error('Unexpected response format:', data);
         setListAccounts([]);
       }
     } catch (error) {
       console.error('Error fetching AWS connections:', error);
-      // Start with empty list on error
       setListAccounts([]);
     } finally {
       setIsLoading(false);
@@ -103,13 +180,16 @@ export default function SelectContent() {
     } else {
       setSelectedAccount(value);
       
-      // Find the selected account object and update the AccountContext
       const selectedAccountObj = listAccounts.find(acc => acc.id === value);
       if (selectedAccountObj) {
+        setSelectedAccountName(selectedAccountObj.name);
+        
         setAccount({
           _id: selectedAccountObj.id,
           name: selectedAccountObj.name
         });
+        
+        saveAccountSelection(selectedAccountObj.id, selectedAccountObj.name);
       }
     }
   };
@@ -118,27 +198,39 @@ export default function SelectContent() {
     try {
       const data = await createAwsConnection(connection);
       
-      // Refresh the full list of connections
       await fetchAwsConnections();
       
-      // Set the newly created account as the selected account
       if (data && data._id) {
         setSelectedAccount(data._id);
+        setSelectedAccountName(data.name);
         setAccount({
           _id: data._id,
           name: data.name
         });
+        
+        saveAccountSelection(data._id, data.name);
       }
       
       setIsAddDialogOpen(false);
       
-      // Return the created connection to satisfy the Promise<AWSConnection> return type
       return data;
     } catch (error) {
-      console.error('Error creating connection:', error);
-      // Here you would typically show an error notification
-      throw error; // Re-throw to allow handling in the form
+      console.error('Error adding account:', error);
+      throw error;
     }
+  };
+
+  const renderValue = (selected: string) => {
+    if (!selected) {
+      return <Box sx={{ color: 'text.secondary' }}>Select Account</Box>;
+    }
+    
+    if (!initialLoadComplete) {
+      return selectedAccountName;
+    }
+    
+    const account = listAccounts.find(acc => acc.id === selected);
+    return account ? account.name : selectedAccountName;
   };
 
   return (
@@ -155,13 +247,7 @@ export default function SelectContent() {
           value={selectedAccount}
           onChange={handleChange}
           displayEmpty
-          renderValue={(selected) => {
-            if (!selected) {
-              return <Box sx={{ color: 'text.secondary' }}>Select Account</Box>;
-            }
-            const account = listAccounts.find(acc => acc.id === selected);
-            return account ? account.name : 'Select Account';
-          }}
+          renderValue={renderValue}
           sx={{
             maxHeight: 56,
             width: 215,

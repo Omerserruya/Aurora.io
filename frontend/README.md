@@ -9,8 +9,9 @@ This directory contains the frontend React application for Aurora.io. The fronte
 - React.js
 - React Router for navigation
 - Axios for API requests
-- Bootstrap or Material UI for styling (based on your implementation)
-- Context API for state management
+- Material UI for styling
+- Redux and Redux Toolkit for state management
+- Redux Persist for persistent state
 - Docker for containerization
 
 ## Features
@@ -28,9 +29,41 @@ This directory contains the frontend React application for Aurora.io. The fronte
 The frontend follows a modern React application architecture:
 - Component-based UI structure
 - React hooks for state management
-- Context API for global state
+- Redux for global state management
 - Axios for API communication
 - React Router for client-side routing
+
+### State Management
+
+The application uses Redux for global state management:
+- Redux Toolkit for simplified Redux setup and usage
+- Redux Persist for persisting state across browser sessions
+- Slices for managing different parts of the state (user, account, search)
+- Compatibility hooks for smooth transition from Context API to Redux
+
+#### Redux Store Structure
+
+```
+store/
+├── index.ts               # Root store configuration and persistor
+├── hooks.ts               # Typed hooks for accessing Redux state
+└── slices/                # Redux slices
+    ├── userSlice.ts       # User authentication and profile state
+    ├── accountSlice.ts    # Account management state
+    └── searchSlice.ts     # Search functionality state
+```
+
+#### Compatibility Layer
+
+The application includes a compatibility layer that allows components to use Redux through hooks that have the same interface as the previous Context API hooks:
+
+```
+hooks/
+├── compatibilityHooks.ts  # Exports hooks with Context API-compatible interfaces
+├── useReduxUser.ts        # Hook for user state
+├── useReduxAccount.ts     # Hook for account state
+└── useReduxSearch.ts      # Hook for search state
+```
 
 ### Communication with Backend Services
 
@@ -94,13 +127,16 @@ frontend/
 │   └── favicon.ico       # Favicon
 ├── src/                  # Source files
 │   ├── components/       # React components
-│   ├── contexts/         # Context providers
-│   ├── hooks/            # Custom React hooks
+│   ├── consts/           # Constants and configuration
+│   ├── hooks/            # Custom React hooks and compatibility hooks
 │   ├── pages/            # Page components
 │   ├── services/         # API services
+│   ├── store/            # Redux store configuration and slices
+│   ├── styles/           # Styled components and themes
+│   ├── types/            # TypeScript type definitions
 │   ├── utils/            # Utility functions
-│   ├── App.js            # Main App component
-│   └── index.js          # Entry point
+│   ├── App.tsx           # Main App component
+│   └── index.tsx         # Entry point
 ├── .env                  # Environment variables
 ├── Dockerfile            # Docker configuration
 └── package.json          # NPM dependencies and scripts
@@ -115,6 +151,7 @@ The frontend handles authentication by:
 - Checking authentication status on protected routes
 - Refreshing tokens automatically when needed
 - Redirecting to login when authentication fails
+- Storing user data in Redux with persistence
 
 ### API Integration
 

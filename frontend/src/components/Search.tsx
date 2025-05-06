@@ -14,10 +14,10 @@ import {
   useMediaQuery
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
-import { useSearch } from '../contexts/SearchContext';
+import { useSearch } from '../hooks/compatibilityHooks';
 
 export default function Search() {
-  // Get context values
+  // Get global state values
   const { 
     searchQuery, 
     setSearchQuery, 

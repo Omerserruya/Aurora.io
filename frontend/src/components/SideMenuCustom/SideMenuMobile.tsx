@@ -4,7 +4,7 @@ import Divider from '@mui/material/Divider';
 import Drawer, { drawerClasses } from '@mui/material/Drawer';
 import Stack from '@mui/material/Stack';
 import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
-import { useUser } from '../../contexts/UserContext';
+import { useUser } from '../../hooks/compatibilityHooks';
 import MenuContent from './MenuContent';
 import UserAvatar from '../UserAvatar';
 
@@ -25,7 +25,7 @@ const handleLogout = async () => {
     });
 
     if (response.ok) {
-      setUser(null); // Clear user context
+      setUser(null); // Clear user global state using redux
       // Optionally, redirect to login or home
       window.location.href = '/'; // Redirect to login page
     } else {
