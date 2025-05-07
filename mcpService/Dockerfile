@@ -1,4 +1,4 @@
-FROM node:18-alpine as base
+FROM node:18-alpine AS base
 
 WORKDIR /app
 
@@ -11,13 +11,13 @@ RUN npm install
 # Copy the rest of the application
 COPY . .
 
-FROM base as development
+FROM base AS development
 
 RUN npm install --save-dev ts-node nodemon 
 
 CMD ["npx", "nodemon", "src/app.ts"]
 
-FROM base as production
+FROM base AS production
 
 # Build TypeScript code
 RUN npm run build

@@ -8,10 +8,10 @@ RUN npm install
 
 COPY . .
 
-FROM base as development
+FROM base AS development
 CMD ["npm", "run", "start"]
 
-FROM base as production
+FROM base AS production
 RUN npm run build
 
 

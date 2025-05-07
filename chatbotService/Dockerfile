@@ -1,4 +1,4 @@
-FROM node:18-alpine as base
+FROM node:18-alpine AS base
 
 WORKDIR /app
 
@@ -8,13 +8,13 @@ RUN npm install
 
 COPY . .
 
-FROM base as development
+FROM base AS development
 
 RUN npm install --save-dev ts-node nodemon 
 
 CMD ["npx", "nodemon", "src/app.ts"]
 
-FROM base as production
+FROM base AS production
 
 RUN npm run build
 
