@@ -46,7 +46,7 @@ export const mcpService = {
 
   checkHealth: async (): Promise<boolean> => {
     try {
-      const response = await axios.get('/api/mcp/health', {
+      const response = await axios.get('/api/chatbot/health', {
         withCredentials: true,
         headers: {
           'Accept': 'application/json'

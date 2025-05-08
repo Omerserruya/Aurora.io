@@ -48,7 +48,7 @@ services:
       - ./terraformService:/app
     ports:
       - "${PORT_TF:-7810}:7810"  # For direct access to Terraform service
-    command: ["flask", "--app", "./app.py", "--debug", "run"]
+    #command: ["flask", "--app", "./app.py", "--debug", "run"]
     networks:
       - default
 
