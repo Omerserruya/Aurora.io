@@ -1,14 +1,43 @@
-import React, { useEffect, useState } from 'react';
-import { 
-  Box, Typography, Avatar, Stack, CircularProgress, Paper, Divider,
-  TextField, Button, IconButton, Dialog, DialogTitle, DialogContent, DialogActions
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import {
+  Box,
+  Typography,
+  TextField,
+  Button,
+  Grid,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  CircularProgress,
+  Alert,
+  FormHelperText,
+  SelectChangeEvent,
+  Divider,
+  IconButton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Avatar,
+  Card,
+  CardContent,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemSecondaryAction,
+  Chip,
+  Tooltip
 } from '@mui/material';
-import { Edit as EditIcon, Delete as DeleteIcon, PhotoCamera } from '@mui/icons-material';
+import { Edit as EditIcon, PhotoCamera, Delete as DeleteIcon, Cloud as CloudIcon, Add as AddIcon, Lock as LockIcon } from '@mui/icons-material';
 import { useUser } from '../hooks/compatibilityHooks';
-import api from '../utils/api';
 import UserAvatar from '../components/UserAvatar';
 import Toast from '../components/Toast';
-import { useNavigate } from 'react-router-dom';
+import api from '../utils/api';
+import { AddAccountDialog } from '../components/AccountConnection';
+import { AWSConnection } from '../types/awsConnection';
+import { fetchAwsConnections as fetchAwsConnectionsApi, createAwsConnection } from '../api/awsConnectionApi';
 
 interface User {
   _id: string;
@@ -17,51 +46,154 @@ interface User {
   role?: string;
   createdAt?: string;
   avatarUrl?: string;
+  authProvider?: 'google' | 'github' | 'local';
 }
 
-function Profile() {
-  const { user: contextUser, refreshUserDetails, clearUser } = useUser();
-  // Use type assertion to add avatarUrl property
+interface FormErrors {
+  username?: string;
+  email?: string;
+  currentPassword?: string;
+  newPassword?: string;
+  confirmPassword?: string;
+}
+
+interface AWSAccount {
+  id: string;
+  name: string;
+  provider: string;
+  region: string;
+  isValid: boolean;
+}
+
+export default function Profile() {
+  const { user: contextUser, refreshUserDetails } = useUser();
   const user = contextUser as User;
+  const navigate = useNavigate();
+  
   const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [errors, setErrors] = useState<FormErrors>({});
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+  
   // Edit profile state
   const [isEditing, setIsEditing] = useState(false);
   const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
+  
   // Photo upload dialog
   const [photoDialogOpen, setPhotoDialogOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
-  // Add state for delete confirmation dialog
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [toastOpen, setToastOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [toastSeverity, setToastSeverity] = useState<'error' | 'warning' | 'info' | 'success'>('error');
-  
-  const navigate = useNavigate();
+
+  const [awsAccounts, setAwsAccounts] = useState<AWSAccount[]>([]);
+  const [isLoadingAccounts, setIsLoadingAccounts] = useState(false);
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+
+  const [resetPasswordDialogOpen, setResetPasswordDialogOpen] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordErrors, setPasswordErrors] = useState<FormErrors>({});
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
 
   useEffect(() => {
     if (user?._id) {
       setUsername(user.username || '');
+      setEmail(user.email || '');
     }
   }, [user?._id]);
 
-  // Handle profile edit
-  const handleEditSave = async () => {
-    if (isEditing && username.trim()) {
-      try {
-        await api.put(`/users/${user?._id}`, { username });
-        // Refresh user data to update UI in real-time
-        await refreshUserDetails();
-        setIsEditing(false);
-      } catch (error) {
-        console.error('Error updating username:', error);
+  useEffect(() => {
+    fetchAwsAccounts();
+  }, []);
+
+  const fetchAwsAccounts = async () => {
+    setIsLoadingAccounts(true);
+    try {
+      const data = await fetchAwsConnectionsApi();
+      
+      if (Array.isArray(data)) {
+        const formattedConnections = data.map((conn: any) => ({
+          id: conn._id,
+          name: conn.name,
+          provider: conn.provider,
+          region: conn.credentials.region,
+          isValid: conn.isValidated
+        }));
+        setAwsAccounts(formattedConnections);
       }
-    } else {
-      setIsEditing(true);
+    } catch (error) {
+      console.error('Error fetching AWS accounts:', error);
+      setAwsAccounts([]);
+    } finally {
+      setIsLoadingAccounts(false);
     }
   };
 
-  // Handle avatar photo dialog
+  const handleAddAccount = async (connection: AWSConnection) => {
+    try {
+      const newConnection = await createAwsConnection(connection);
+      await fetchAwsAccounts();
+      setIsAddDialogOpen(false);
+      return newConnection;
+    } catch (error) {
+      console.error('Error adding account:', error);
+      throw error;
+    }
+  };
+
+  const validateForm = (): boolean => {
+    const newErrors: FormErrors = {};
+    
+    if (!username.trim()) {
+      newErrors.username = 'Username is required';
+    }
+    
+    if (!email.trim()) {
+      newErrors.email = 'Email is required';
+    } else if (!/\S+@\S+\.\S+/.test(email)) {
+      newErrors.email = 'Email is invalid';
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!user?._id) return;
+    
+    if (!validateForm()) {
+      return;
+    }
+    
+    try {
+      setSaving(true);
+      setSaveError(null);
+      setSaveSuccess(false);
+      
+      await api.put(`/users/${user._id}`, { username, email });
+      await refreshUserDetails();
+      setSaveSuccess(true);
+      setIsEditing(false);
+      
+      // Reset success message after 3 seconds
+      setTimeout(() => {
+        setSaveSuccess(false);
+      }, 3000);
+    } catch (error) {
+      console.error('Failed to update user:', error);
+      setSaveError('Failed to save changes. Please try again.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handlePhotoDialogOpen = () => {
     setPhotoDialogOpen(true);
   };
@@ -76,21 +208,16 @@ function Profile() {
     if (event.target.files && event.target.files[0]) {
       const file = event.target.files[0];
       
-      // Check file size - 5MB limit
       if (file.size > 5000000) {
-        // Show toast notification
         setToastMessage('Image too large! Maximum size is 5MB.');
         setToastSeverity('error');
         setToastOpen(true);
-        
-        // Reset the file input
         event.target.value = '';
         return;
       }
       
       setSelectedFile(file);
       
-      // Create preview
       const reader = new FileReader();
       reader.onload = (e) => {
         if (e.target?.result) {
@@ -102,174 +229,286 @@ function Profile() {
   };
 
   const handleUploadPhoto = async () => {
-    if (!selectedFile) return;
+    if (!selectedFile || !user?._id) return;
 
-    // Create form data for file upload
     const formData = new FormData();
     formData.append('avatar', selectedFile);
 
     try {
-      await api.post(`/users/${user?._id}/avatar`, formData, {
+      await api.post(`/users/${user._id}/avatar`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
-      // Refresh user data after avatar upload to update UI in real-time
       await refreshUserDetails();
       handlePhotoDialogClose();
     } catch (error: any) {
       console.error('Error uploading photo:', error);
       
-      // Check for 413 error (Request Entity Too Large)
       if (error.response && error.response.status === 413) {
         setToastMessage('Image file size is too large for upload. Maximum size allowed is 5MB.');
-        setToastSeverity('error');
-        setToastOpen(true);
       } else {
-        // Generic error message for other errors
         setToastMessage('Failed to upload image. Please try again.');
-        setToastSeverity('error');
-        setToastOpen(true);
       }
+      setToastSeverity('error');
+      setToastOpen(true);
     }
   };
 
-  // Handle delete account
-  const handleDeleteAccount = async () => {
-    try {
-      setLoading(true);
-      const response = await api.delete(`/users/${user._id}`);
-      
-      if (response.status === 200) {
-        // Log the user out after deleting account
-        await fetch('/auth/logout', {
-          method: 'POST',
-          credentials: 'include',
-        });
-        
-        // Clear user context and redirect to home
-        clearUser();
-        navigate('/login');
-      }
-    } catch (error) {
-      console.error('Error deleting account:', error);
-      // You could add error handling/notification here
-    } finally {
-      setLoading(false);
-      setDeleteDialogOpen(false);
-    }
-  };
-
-  // Toast close handler
   const handleToastClose = () => {
     setToastOpen(false);
   };
 
   if (!user) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
+      <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
         <CircularProgress />
       </Box>
     );
   }
 
   return (
-    <Box sx={{ padding: 0 }}>
-      <Typography variant="h4" gutterBottom>
+    <Box sx={{ width: '100%', mx: 'auto', px: 2 }}>
+      <Typography variant="h4" component="h1" gutterBottom>
         Profile Details
       </Typography>
+      
+      {/* Alerts Section */}
+      <Box sx={{ mb: 4 }}>
+        {saveSuccess && (
+          <Alert severity="success" sx={{ mb: 2 }}>
+            Profile updated successfully!
+          </Alert>
+        )}
+        
+        {saveError && (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {saveError}
+          </Alert>
+        )}
+      </Box>
+      
+      {/* Profile Information Section */}
+      <Box sx={{ mb: 6 }}>
+        <Typography variant="h5" component="h2" fontWeight="500" gutterBottom>
+          Profile Information
+        </Typography>
+        <Divider sx={{ mb: 3 }} />
+        
+        <form onSubmit={handleSubmit}>
+          <Grid container spacing={3}>
+            <Grid item xs={12} md={6}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                <Box position="relative">
+                  <UserAvatar
+                    username={user.username}
+                    avatarUrl={user.avatarUrl}
+                    size={80}
+                    showUsername={false}
+                    userFromProps={true}
+                  />
+                  <IconButton
+                    size="small"
+                    sx={{
+                      position: 'absolute',
+                      bottom: 0,
+                      right: 0,
+                      backgroundColor: 'background.paper'
+                    }}
+                    onClick={handlePhotoDialogOpen}
+                  >
+                    <PhotoCamera fontSize="small" />
+                  </IconButton>
+                </Box>
+              </Box>
+            </Grid>
 
-      <Paper elevation={3} sx={{ padding: 3, maxWidth: '600px', margin: '0', mb: 4 }}>
-        <Stack spacing={3}>
-          <Stack direction="row" spacing={2} alignItems="center">
-            <Box position="relative">
-              <UserAvatar
-                username={user.username}
-                avatarUrl={user.avatarUrl}
-                size={80}
-                showUsername={false}
-                userFromProps={true}
-              />
-              <IconButton
-                size="small" 
-                sx={{
-                  position: 'absolute',
-                  bottom: 0,
-                  right: 0,
-                  backgroundColor: 'white' 
-                }}
-                onClick={handlePhotoDialogOpen}
-              >
-                <PhotoCamera fontSize="small" />
-              </IconButton>
-            </Box>
-            
-            {isEditing ? (
+            <Grid item xs={12} md={6}>
               <TextField
-                variant="outlined"
+                fullWidth
+                label="Username"
+                name="username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                size="small"
-                label="Username"
-                fullWidth
-                sx={{ flexGrow: 1 }}
+                error={!!errors.username}
+                helperText={errors.username}
+                disabled={!isEditing}
+                required
               />
-            ) : (
-              <Typography variant="h5">{user.username}</Typography>
-            )}
+            </Grid>
             
-            <Button 
-              startIcon={isEditing ? null : <EditIcon />} 
-              onClick={handleEditSave}
-              variant={isEditing ? "contained" : "outlined"}
-            >
-              {isEditing ? "Save" : "Edit"}
-            </Button>
-          </Stack>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="Email"
+                name="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                error={!!errors.email}
+                helperText={errors.email}
+                disabled={!isEditing}
+                required
+              />
+            </Grid>
+            
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="Role"
+                value={user.role || 'User'}
+                disabled
+              />
+            </Grid>
 
-          <Box>
-            <Typography variant="subtitle1" color="text.secondary">
-              Email
-            </Typography>
-            <Typography variant="h6" gutterBottom>
-              {user.email}
-            </Typography>
-          </Box>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="Member Since"
+                value={new Date(user.createdAt || '').toLocaleDateString()}
+                disabled
+              />
+            </Grid>
 
-          <Box>
-            <Typography variant="subtitle1" color="text.secondary">
-              Role
-            </Typography>
-            <Typography variant="h6" gutterBottom>
-              {user.role || 'User'}
-            </Typography>
+            {user.authProvider === 'local' && (
+              <Grid item xs={12}>
+                <Button
+                  variant="outlined"
+                  startIcon={<LockIcon />}
+                  onClick={() => setResetPasswordDialogOpen(true)}
+                >
+                  Reset Password
+                </Button>
+              </Grid>
+            )}
+          </Grid>
+          
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, mt: 4 }}>
+            {isEditing ? (
+              <>
+                <Button 
+                  variant="outlined" 
+                  onClick={() => {
+                    setIsEditing(false);
+                    setUsername(user.username);
+                    setEmail(user.email);
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  type="submit" 
+                  variant="contained" 
+                  disabled={saving}
+                  startIcon={saving ? <CircularProgress size={20} /> : null}
+                >
+                  {saving ? 'Saving...' : 'Save Changes'}
+                </Button>
+              </>
+            ) : (
+              <Button 
+                variant="contained" 
+                startIcon={<EditIcon />}
+                onClick={() => setIsEditing(true)}
+              >
+                Edit Profile
+              </Button>
+            )}
           </Box>
+        </form>
+      </Box>
 
-          <Box>
-            <Typography variant="subtitle1" color="text.secondary">
-              Member Since
-            </Typography>
-            <Typography variant="h6">
-              {new Date(user.createdAt || '').toLocaleDateString()}
-            </Typography>
-          </Box>
-
-          {/* Add Delete Account button */}
-          <Box sx={{ mt: 3, display: 'flex', justifyContent: 'center' }}>
-            <Button
-              variant="outlined"
-              color="error"
-              startIcon={<DeleteIcon />}
-              onClick={() => setDeleteDialogOpen(true)}
-              sx={{
-                borderRadius: '20px',
-                textTransform: 'none',
-                fontSize: '14px',
-              }}
-            >
-              Delete Account
-            </Button>
-          </Box>
-        </Stack>
-      </Paper>
+      {/* AWS Accounts Section */}
+      <Box sx={{ mb: 6 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+          <Typography variant="h5" component="h2" fontWeight="500">
+            AWS Accounts
+          </Typography>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => setIsAddDialogOpen(true)}
+          >
+            Add AWS Account
+          </Button>
+        </Box>
+        <Divider sx={{ mb: 3 }} />
+        
+        <Grid container spacing={3}>
+          {isLoadingAccounts ? (
+            <Grid item xs={12}>
+              <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
+                <CircularProgress />
+              </Box>
+            </Grid>
+          ) : awsAccounts.length > 0 ? (
+            awsAccounts.map((account) => (
+              <Grid item xs={12} md={6} key={account.id}>
+                <Card variant="outlined">
+                  <CardContent>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2, flex: 1 }}>
+                        <Avatar sx={{ bgcolor: account.isValid ? 'success.main' : 'grey.500' }}>
+                          <CloudIcon />
+                        </Avatar>
+                        <Box sx={{ flex: 1 }}>
+                          <Typography variant="subtitle1" sx={{ fontWeight: 500 }}>
+                            {account.name}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                            {account.provider.toUpperCase()} - {account.region}
+                          </Typography>
+                          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                            <Chip
+                              label={account.isValid ? 'Valid' : 'Invalid'}
+                              color={account.isValid ? 'success' : 'default'}
+                              size="small"
+                            />
+                          </Box>
+                        </Box>
+                      </Box>
+                      <Box sx={{ display: 'flex', gap: 1 }}>
+                        <Tooltip title="Edit">
+                          <IconButton
+                            size="small"
+                            onClick={() => {/* Handle edit */}}
+                          >
+                            <EditIcon />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Delete">
+                          <IconButton
+                            size="small"
+                            color="error"
+                            onClick={() => {/* Handle delete */}}
+                          >
+                            <DeleteIcon />
+                          </IconButton>
+                        </Tooltip>
+                      </Box>
+                    </Box>
+                  </CardContent>
+                </Card>
+              </Grid>
+            ))
+          ) : (
+            <Grid item xs={12}>
+              <Box sx={{ 
+                textAlign: 'center', 
+                p: 3, 
+                border: '1px dashed',
+                borderColor: 'divider',
+                borderRadius: 1
+              }}>
+                <Typography variant="body1" color="text.secondary">
+                  No AWS accounts connected
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                  Add your first AWS account to start monitoring your cloud resources
+                </Typography>
+              </Box>
+            </Grid>
+          )}
+        </Grid>
+      </Box>
 
       {/* Photo Upload Dialog */}
       <Dialog open={photoDialogOpen} onClose={handlePhotoDialogClose}>
@@ -318,23 +557,146 @@ function Profile() {
         </DialogActions>
       </Dialog>
 
-      {/* Make sure the Delete Account Confirmation Dialog is added if not already present */}
-      <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
-        <DialogTitle>Delete Account</DialogTitle>
+      {/* Add AWS Account Dialog */}
+      <AddAccountDialog
+        open={isAddDialogOpen}
+        onClose={() => setIsAddDialogOpen(false)}
+        onSubmit={handleAddAccount}
+      />
+
+      {/* Reset Password Dialog */}
+      <Dialog 
+        open={resetPasswordDialogOpen} 
+        onClose={() => {
+          setResetPasswordDialogOpen(false);
+          setCurrentPassword('');
+          setNewPassword('');
+          setConfirmPassword('');
+          setPasswordErrors({});
+        }}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Reset Password</DialogTitle>
         <DialogContent>
-          <Typography>
-            Are you sure you want to delete your account? This action cannot be undone and all your data will be permanently removed.
-          </Typography>
+          <Box sx={{ mt: 2 }}>
+            <Grid container spacing={2}>
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  label="Current Password"
+                  type="password"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  error={!!passwordErrors.currentPassword}
+                  helperText={passwordErrors.currentPassword}
+                  required
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  label="New Password"
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  error={!!passwordErrors.newPassword}
+                  helperText={passwordErrors.newPassword}
+                  required
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  label="Confirm New Password"
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  error={!!passwordErrors.confirmPassword}
+                  helperText={passwordErrors.confirmPassword}
+                  required
+                />
+              </Grid>
+            </Grid>
+          </Box>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
           <Button 
-            onClick={handleDeleteAccount} 
-            variant="contained" 
-            color="error"
-            disabled={loading}
+            onClick={() => {
+              setResetPasswordDialogOpen(false);
+              setCurrentPassword('');
+              setNewPassword('');
+              setConfirmPassword('');
+              setPasswordErrors({});
+            }}
           >
-            {loading ? <CircularProgress size={24} /> : 'Delete Account'}
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            onClick={async () => {
+              const errors: FormErrors = {};
+              
+              if (!currentPassword) {
+                errors.currentPassword = 'Current password is required';
+              }
+              
+              if (!newPassword) {
+                errors.newPassword = 'New password is required';
+              } else if (newPassword.length < 8) {
+                errors.newPassword = 'Password must be at least 8 characters long';
+              }
+              
+              if (!confirmPassword) {
+                errors.confirmPassword = 'Please confirm your new password';
+              } else if (newPassword !== confirmPassword) {
+                errors.confirmPassword = 'Passwords do not match';
+              }
+              
+              setPasswordErrors(errors);
+              
+              if (Object.keys(errors).length === 0) {
+                setIsResettingPassword(true);
+                try {
+                  await api.post('/users/reset-password', {
+                    currentPassword,
+                    newPassword
+                  });
+                  
+                  setToastMessage('Password updated successfully');
+                  setToastSeverity('success');
+                  setToastOpen(true);
+                  
+                  setResetPasswordDialogOpen(false);
+                  setCurrentPassword('');
+                  setNewPassword('');
+                  setConfirmPassword('');
+                  setPasswordErrors({});
+                } catch (error: any) {
+                  if (error.response?.status === 401) {
+                    setPasswordErrors({
+                      currentPassword: 'Current password is incorrect'
+                    });
+                  } else {
+                    setToastMessage('Failed to update password. Please try again.');
+                    setToastSeverity('error');
+                    setToastOpen(true);
+                  }
+                } finally {
+                  setIsResettingPassword(false);
+                }
+              }
+            }}
+            disabled={isResettingPassword}
+          >
+            {isResettingPassword ? (
+              <>
+                <CircularProgress size={20} sx={{ mr: 1 }} />
+                Updating...
+              </>
+            ) : (
+              'Update Password'
+            )}
           </Button>
         </DialogActions>
       </Dialog>
@@ -348,6 +710,4 @@ function Profile() {
       />
     </Box>
   );
-}
-
-export default Profile; 
+} 
