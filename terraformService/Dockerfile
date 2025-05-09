@@ -8,7 +8,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     FLASK_APP=app.py \
     FLASK_ENV=development \
-    HOST=0.0.0.0
+    HOST=0.0.0.0 \
+    PORT=7810
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \

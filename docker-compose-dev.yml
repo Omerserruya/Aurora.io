@@ -1,4 +1,26 @@
 services:
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"  # HTTP port for local development
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d/default-dev.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./userMgmntService/uploads:/app/uploads:ro
+      - ./frontend/build:/usr/share/nginx/html:ro  # Serve React build files
+    depends_on:
+      users-service:
+        condition: service_healthy
+      auth-service:
+        condition: service_healthy
+      db-service:
+        condition: service_healthy
+      chatbot-service:
+        condition: service_healthy
+      mcp-service:
+        condition: service_healthy
+    networks:
+      - default
   frontend:
     build:
       context: ./frontend
@@ -26,7 +48,7 @@ services:
       - ./terraformService:/app
     ports:
       - "${PORT_TF:-7810}:7810"  # For direct access to Terraform service
-    command: ["flask", "--app", "./app.py", "--debug", "run"]
+    #command: ["flask", "--app", "./app.py", "--debug", "run"]
     networks:
       - default
 

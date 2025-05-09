@@ -1,13 +1,40 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Box, CircularProgress } from "@mui/material";
 import { Outlet, Navigate } from 'react-router-dom';
 import SideMenu from './SideMenuCustom/SideMenu';
 import Header from './Header';
 import { useUser } from '../hooks/compatibilityHooks';
 import AIChatButton from './AIChatButton';
+import { useAccount } from '../hooks/compatibilityHooks';
 
 function Layout() {
   const { user, loading } = useUser();
+  const { account } = useAccount();
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [chatWidth, setChatWidth] = useState(350);
+  const [isDragging, setIsDragging] = useState(false);
+
+  const handleDragStart = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+    const startX = e.clientX;
+    const startWidth = chatWidth;
+
+    const handleDrag = (e: MouseEvent) => {
+      const deltaX = startX - e.clientX;
+      const newWidth = Math.min(Math.max(startWidth + deltaX, 250), 700);
+      setChatWidth(newWidth);
+    };
+
+    const handleDragEnd = () => {
+      setIsDragging(false);
+      document.removeEventListener('mousemove', handleDrag);
+      document.removeEventListener('mouseup', handleDragEnd);
+    };
+
+    document.addEventListener('mousemove', handleDrag);
+    document.addEventListener('mouseup', handleDragEnd);
+  };
 
   // Show loading state while checking user authentication
   if (loading) {
@@ -40,23 +67,74 @@ function Layout() {
         {/* Header */}
         <Header />
         
-        {/* Page Content */}
+        {/* Content and Chat Container */}
         <Box sx={{ 
+          display: 'flex',
           flexGrow: 1,
-          maxWidth: '1100px',
-          width: '100%',
-          margin: '0',
-          mt: 2,
-          pl: 10,
-          pr: 3,
-          pb: 3
+          position: 'relative'
         }}>
-          <Outlet />
+          {/* Page Content */}
+          <Box sx={{ 
+            flexGrow: 1,
+            maxWidth: isChatOpen ? `calc(100% - ${chatWidth}px)` : '1100px',
+            width: '100%',
+            margin: '0',
+            mt: 2,
+            pl: 10,
+            pr: 3,
+            pb: 3,
+            transition: isDragging ? 'none' : 'max-width 0.3s ease-in-out'
+          }}>
+            <Outlet />
+          </Box>
+
+          {/* Chat Panel */}
+          <Box sx={{
+            width: isChatOpen ? `${chatWidth}px` : 0,
+            height: 'calc(100vh - 50px)', // Full height minus header
+            position: 'fixed',
+            right: 0,
+            top: 35, // Start below header
+            transition: isDragging ? 'none' : 'width 0.3s ease-in-out',
+            overflow: 'hidden',
+            borderLeft: isChatOpen ? '1px solid rgba(0, 0, 0, 0.12)' : 'none',
+            mt: 2
+          }}>
+            {/* Drag Handle */}
+            {isChatOpen && (
+              <Box
+                onMouseDown={handleDragStart}
+                sx={{
+                  mt: 2,
+                  position: 'absolute',
+                  left: 0,
+                  top: 0,
+                  bottom: 0,
+                  width: '8px',
+                  cursor: 'col-resize',
+                  backgroundColor: isDragging ? 'primary.main' : 'transparent',
+                  '&:hover': {
+                    backgroundColor: 'primary.main',
+                    opacity: 0.5,
+                  },
+                  '&:active': {
+                    backgroundColor: 'primary.dark',
+                  },
+                  zIndex: 1,
+                  userSelect: 'none',
+                  touchAction: 'none',
+                }}
+              />
+            )}
+            <AIChatButton isInline={true} isOpen={isChatOpen} onToggle={() => setIsChatOpen(!isChatOpen)} />
+          </Box>          
         </Box>
       </Box>
 
-      {/* AI Chat Button */}
-      <AIChatButton />
+      {/* Floating Chat Button - Only show when account is selected and chat is closed */}
+      {account && !isChatOpen && (
+        <AIChatButton isInline={false} isOpen={isChatOpen} onToggle={() => setIsChatOpen(!isChatOpen)} />
+      )}
     </Box>
   );
 }

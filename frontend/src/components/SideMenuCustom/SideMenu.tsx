@@ -22,7 +22,6 @@ const Drawer = styled(MuiDrawer)({
   flexShrink: 0,
   boxSizing: 'border-box',
   [`& .${drawerClasses.paper}`]: {
-    width: drawerWidth,
     boxSizing: 'border-box',
   },
 });
@@ -71,9 +70,11 @@ export default function SideMenu() {
             src={logoPath}
             alt="Aurora Logo" 
             style={{ 
-              width: '320px', 
+              margin: '20px 0',
+              width: '200px', 
               height: 'auto',
-              display: 'block'
+              display: 'block',
+              padding: '12px'
             }} 
           />
         </LogoContainer>

@@ -7,6 +7,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import ErrorIcon from '@mui/icons-material/Error';
 import SupportAgentIcon from '@mui/icons-material/SupportAgent';
 import PsychologyIcon from '@mui/icons-material/Psychology';
+import ReactMarkdown from 'react-markdown';
 import { mcpService } from '../api/mcpService';
 import { useUser } from '../hooks/compatibilityHooks';
 import { useAccount } from '../hooks/compatibilityHooks';
@@ -52,7 +53,7 @@ const ChatContainer = styled(Paper)(({ theme }) => ({
   zIndex: 1000,
   borderRadius: '18px',
   overflow: 'hidden',
-  background: '#ffffff',
+  background: theme.palette.background.paper,
   [theme.breakpoints.up('xl')]: {
     height: '80vh',
     maxHeight: '1000px',
@@ -63,8 +64,18 @@ const ChatContainer = styled(Paper)(({ theme }) => ({
   },
 }));
 
+const InlineChatContainer = styled(Paper)(({ theme }) => ({
+  width: '100%',
+  height: '100%',
+  display: 'flex',
+  flexDirection: 'column',
+  borderRadius: 0,
+  overflow: 'hidden',
+  background: theme.palette.background.paper,
+}));
+
 const ChatHeader = styled(Box)(({ theme }) => ({
-  padding: theme.spacing(2, 3),
+  padding: theme.spacing(1, 3),
   background: 'linear-gradient(45deg, #6a11cb 0%, #2575fc 100%)',
   color: 'white',
   display: 'flex',
@@ -77,7 +88,7 @@ const ChatMessages = styled(Box)(({ theme }) => ({
   flex: 1,
   overflowY: 'auto',
   padding: theme.spacing(3),
-  backgroundColor: '#f9f9f9',
+  backgroundColor: theme.palette.mode === 'dark' ? theme.palette.background.default : '#f9f9f9',
 }));
 
 const ChatInput = styled(Box)(({ theme }) => ({
@@ -86,7 +97,7 @@ const ChatInput = styled(Box)(({ theme }) => ({
   display: 'flex',
   alignItems: 'center',
   gap: theme.spacing(1.5),
-  backgroundColor: '#ffffff',
+  backgroundColor: theme.palette.background.paper,
 }));
 
 const ServiceStatusTooltip = styled(Box)(({ theme }) => ({
@@ -101,10 +112,15 @@ interface Message {
   error?: string;
 }
 
-const AIChatButton: React.FC = () => {
+interface AIChatButtonProps {
+  isInline?: boolean;
+  isOpen?: boolean;
+  onToggle?: () => void;
+}
+
+const AIChatButton: React.FC<AIChatButtonProps> = ({ isInline = false, isOpen: propIsOpen, onToggle }) => {
   const { user } = useUser();
   const { account } = useAccount();
-  const [isOpen, setIsOpen] = useState(false);
   const [isServiceAvailable, setIsServiceAvailable] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -114,6 +130,9 @@ const AIChatButton: React.FC = () => {
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'error' as 'error' | 'warning' | 'info' | 'success' });
   const theme = useTheme();
   const messagesEndRef = useRef<null | HTMLDivElement>(null);
+
+  // Use controlled state if provided through props
+  const chatIsOpen = isInline ? propIsOpen : false;
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -137,7 +156,7 @@ const AIChatButton: React.FC = () => {
   }, [messages]);
 
   useEffect(() => {
-    if (isOpen && user && account) {
+    if (chatIsOpen && user && account) {
       const socket = socketService.connect();
       
       if (socket) {
@@ -185,7 +204,7 @@ const AIChatButton: React.FC = () => {
           socket.off('room_joined', handleRoomJoined);
           unsubscribeReceiveMessage();
           unsubscribeError();
-          if (!isOpen) {
+          if (!chatIsOpen) {
             socketService.disconnect();
             setSocketConnected(false);
             setRoomJoined(false);
@@ -193,7 +212,7 @@ const AIChatButton: React.FC = () => {
         };
       }
     }
-  }, [isOpen, user, account, socketConnected]);
+  }, [chatIsOpen, user, account, socketConnected]);
 
   useEffect(() => {
     const checkServiceHealth = async () => {
@@ -281,6 +300,230 @@ const AIChatButton: React.FC = () => {
     return 'Ask a question about your cloud architecture';
   };
 
+  if (isInline) {
+    return (
+      <InlineChatContainer>
+        <ChatHeader>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+            {!isServiceAvailable ? 
+              <ErrorIcon sx={{ fontSize: 24 }} /> : 
+              <PsychologyIcon sx={{ fontSize: 24 }} />
+            }
+            <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+              Cloud Assistant
+              {!isServiceAvailable && (
+                <Typography variant="caption" color="error" sx={{ ml: 1, opacity: 0.9 }}>
+                  (Offline)
+                </Typography>
+              )}
+            </Typography>
+          </Box>
+          <IconButton size="small" onClick={onToggle} sx={{ color: 'white' }}>
+            <CloseIcon />
+          </IconButton>
+        </ChatHeader>
+
+        <ChatMessages>
+          {messages.map((message, index) => (
+            <Fade in={true} key={index} timeout={1000}>
+              <Box
+                sx={{
+                  display: 'flex',
+                  justifyContent: message.isUser ? 'flex-end' : 'flex-start',
+                  mb: 2,
+                }}
+              >
+                <Paper
+                  sx={{
+                    p: 1.5,
+                    maxWidth: '90%',
+                    backgroundColor: message.isUser
+                      ? theme.palette.primary.main
+                      : message.error
+                      ? theme.palette.error.light
+                      : theme.palette.mode === 'dark' 
+                        ? theme.palette.background.paper 
+                        : '#ffffff',
+                    color: message.isUser ? 'white' : theme.palette.text.primary,
+                    borderRadius: '12px',
+                    position: 'relative',
+                    boxShadow: message.isUser 
+                      ? '0 2px 8px rgba(0, 0, 0, 0.15)' 
+                      : '0 2px 8px rgba(0, 0, 0, 0.05)',
+                  }}
+                >
+                  <Typography variant="body2">
+                    {message.isUser ? (
+                      message.text
+                    ) : (
+                      <ReactMarkdown
+                        components={{
+                          p: ({ children }) => <Typography variant="body2" component="p" color="inherit">{children}</Typography>,
+                          h1: ({ children }) => <Typography variant="h1" component="h1" color="inherit">{children}</Typography>,
+                          h2: ({ children }) => <Typography variant="h2" component="h2" color="inherit">{children}</Typography>,
+                          h3: ({ children }) => <Typography variant="h3" component="h3" color="inherit">{children}</Typography>,
+                          h4: ({ children }) => <Typography variant="h4" component="h4" color="inherit">{children}</Typography>,
+                          h5: ({ children }) => <Typography variant="h5" component="h5" color="inherit">{children}</Typography>,
+                          h6: ({ children }) => <Typography variant="h6" component="h6" color="inherit">{children}</Typography>,
+                          code: ({ children }) => (
+                            <Box
+                              component="code"
+                              sx={{
+                                backgroundColor: theme.palette.mode === 'dark' 
+                                  ? 'rgba(255, 255, 255, 0.1)' 
+                                  : 'rgba(0, 0, 0, 0.05)',
+                                padding: '2px 4px',
+                                borderRadius: '4px',
+                                fontFamily: 'monospace',
+                                fontSize: '0.9em',
+                                color: theme.palette.mode === 'dark' ? '#fff' : 'inherit',
+                              }}
+                            >
+                              {children}
+                            </Box>
+                          ),
+                          pre: ({ children }) => (
+                            <Box
+                              component="pre"
+                              sx={{
+                                backgroundColor: theme.palette.mode === 'dark' 
+                                  ? 'rgba(255, 255, 255, 0.1)' 
+                                  : 'rgba(0, 0, 0, 0.05)',
+                                padding: '12px',
+                                borderRadius: '4px',
+                                overflowX: 'auto',
+                                margin: '8px 0',
+                                color: theme.palette.mode === 'dark' ? '#fff' : 'inherit',
+                              }}
+                            >
+                              {children}
+                            </Box>
+                          ),
+                          ul: ({ children }) => (
+                            <Box component="ul" sx={{ pl: 2, my: 1, color: 'inherit' }}>
+                              {children}
+                            </Box>
+                          ),
+                          ol: ({ children }) => (
+                            <Box component="ol" sx={{ pl: 2, my: 1, color: 'inherit' }}>
+                              {children}
+                            </Box>
+                          ),
+                          li: ({ children }) => (
+                            <Box component="li" sx={{ mb: 0.5, color: 'inherit' }}>
+                              {children}
+                            </Box>
+                          ),
+                          blockquote: ({ children }) => (
+                            <Box
+                              component="blockquote"
+                              sx={{
+                                borderLeft: '4px solid',
+                                borderColor: theme.palette.primary.main,
+                                pl: 2,
+                                py: 0.5,
+                                my: 1,
+                                fontStyle: 'italic',
+                                color: 'inherit',
+                              }}
+                            >
+                              {children}
+                            </Box>
+                          ),
+                        }}
+                      >
+                        {message.text}
+                      </ReactMarkdown>
+                    )}
+                  </Typography>
+                  {message.error && (
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        display: 'block',
+                        color: theme.palette.error.main,
+                        mt: 0.5,
+                      }}
+                    >
+                      Error: {message.error}
+                    </Typography>
+                  )}
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      position: 'absolute',
+                      bottom: -16,
+                      right: message.isUser ? 0 : 'auto',
+                      left: message.isUser ? 'auto' : 0,
+                      color: theme.palette.text.secondary,
+                      fontSize: '0.7rem',
+                    }}
+                  >
+                    {formatTime(message.timestamp)}
+                  </Typography>
+                </Paper>
+              </Box>
+            </Fade>
+          ))}
+          {isLoading && (
+            <Fade in={true} timeout={1000}>
+              <Box sx={{ display: 'flex', justifyContent: 'flex-start', mb: 2 }}>
+                <Paper
+                  sx={{
+                    p: 1.5,
+                    maxWidth: '90%',
+                    backgroundColor: '#ffffff',
+                    borderRadius: '12px',
+                    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)',
+                  }}
+                >
+                  <Typography variant="body2">...</Typography>
+                </Paper>
+              </Box>
+            </Fade>
+          )}
+          <div ref={messagesEndRef} />
+        </ChatMessages>
+
+        <ChatInput>
+          <TextField
+            fullWidth
+            size="small"
+            variant="outlined"
+            placeholder={!isServiceAvailable ? 'Service is offline' : 'Ask something...'}
+            value={inputMessage}
+            onChange={(e) => setInputMessage(e.target.value)}
+            onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+            disabled={isLoading || !isServiceAvailable}
+            sx={{
+              '& .MuiOutlinedInput-root': {
+                borderRadius: '8px',
+                '&.Mui-focused fieldset': {
+                  borderColor: '#6a11cb',
+                },
+              },
+            }}
+          />
+          <IconButton
+            color="primary"
+            onClick={() => handleSendMessage()}
+            disabled={!inputMessage.trim() || isLoading || !isServiceAvailable}
+            sx={{ 
+              p: 1, 
+              backgroundColor: !inputMessage.trim() || isLoading || !isServiceAvailable ? 'transparent' : '#6a11cb',
+              color: !inputMessage.trim() || isLoading || !isServiceAvailable ? 'inherit' : 'white',
+              '&:hover': {
+                backgroundColor: !inputMessage.trim() || isLoading || !isServiceAvailable ? 'transparent' : '#5c0fb3',
+              },
+            }}
+          >
+            <SendIcon fontSize="small" />
+          </IconButton>
+        </ChatInput>
+      </InlineChatContainer>
+    );
+  }
+
   return (
     <>
       <Box
@@ -310,14 +553,14 @@ const AIChatButton: React.FC = () => {
             }
           }}
         >
-          <div> {/* This div ensures the tooltip works even with disabled button */}
+          <div>
             <FloatingButton
               variant="contained"
               startIcon={<PsychologyIcon />}
-              onClick={() => setIsOpen(!isOpen)}
+              onClick={onToggle}
               disabled={!isServiceAvailable || !user || !account}
               sx={{
-                position: 'static', // Override the fixed position from styled component
+                position: 'static',
                 opacity: !account ? 0.8 : 1,
               }}
             >
@@ -332,146 +575,6 @@ const AIChatButton: React.FC = () => {
           </div>
         </Tooltip>
       </Box>
-
-      <Slide direction="up" in={isOpen} mountOnEnter unmountOnExit timeout={1000}>
-        <ChatContainer>
-          <ChatHeader>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-              {!isServiceAvailable ? 
-                <ErrorIcon sx={{ fontSize: 36 }} /> : 
-                <PsychologyIcon sx={{ fontSize: 36 }} />
-              }
-              <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                Cloud Architecture Assistant
-                {!isServiceAvailable && (
-                  <Typography variant="caption" color="error" sx={{ ml: 1, opacity: 0.9 }}>
-                    (Offline)
-                  </Typography>
-                )}
-              </Typography>
-            </Box>
-            <IconButton size="medium" onClick={() => setIsOpen(false)} sx={{ color: 'white' }}>
-              <CloseIcon />
-            </IconButton>
-          </ChatHeader>
-
-          <ChatMessages>
-            {messages.map((message, index) => (
-              <Fade in={true} key={index} timeout={1000}>
-                <Box
-                  sx={{
-                    display: 'flex',
-                    justifyContent: message.isUser ? 'flex-end' : 'flex-start',
-                    mb: 3,
-                  }}
-                >
-                  <Paper
-                    sx={{
-                      p: 2,
-                      maxWidth: '80%',
-                      backgroundColor: message.isUser
-                        ? theme.palette.primary.main
-                        : message.error
-                        ? theme.palette.error.light
-                        : '#ffffff',
-                      color: message.isUser ? 'white' : 'inherit',
-                      borderRadius: '18px',
-                      position: 'relative',
-                      boxShadow: message.isUser 
-                        ? '0 4px 15px rgba(0, 0, 0, 0.15)' 
-                        : '0 4px 15px rgba(0, 0, 0, 0.05)',
-                      background: message.isUser 
-                        ? theme.palette.primary.main
-                        : '#ffffff',
-                    }}
-                  >
-                    <Typography variant="body1">{message.text}</Typography>
-                    {message.error && (
-                      <Typography
-                        variant="caption"
-                        sx={{
-                          display: 'block',
-                          color: theme.palette.error.main,
-                          mt: 1,
-                        }}
-                      >
-                        Error: {message.error}
-                      </Typography>
-                    )}
-                    <Typography
-                      variant="caption"
-                      sx={{
-                        position: 'absolute',
-                        bottom: -20,
-                        right: message.isUser ? 0 : 'auto',
-                        left: message.isUser ? 'auto' : 0,
-                        color: theme.palette.text.secondary,
-                        fontSize: '0.7rem',
-                      }}
-                    >
-                      {formatTime(message.timestamp)}
-                    </Typography>
-                  </Paper>
-                </Box>
-              </Fade>
-            ))}
-            {isLoading && (
-              <Fade in={true} timeout={1000}>
-                <Box sx={{ display: 'flex', justifyContent: 'flex-start', mb: 2 }}>
-                  <Paper
-                    sx={{
-                      p: 2,
-                      maxWidth: '80%',
-                      backgroundColor: '#ffffff',
-                      borderRadius: '18px',
-                      boxShadow: '0 4px 15px rgba(0, 0, 0, 0.05)',
-                    }}
-                  >
-                    <Typography variant="body1">...</Typography>
-                  </Paper>
-                </Box>
-              </Fade>
-            )}
-            <div ref={messagesEndRef} />
-          </ChatMessages>
-
-          <ChatInput>
-            <TextField
-              fullWidth
-              size="medium"
-              variant="outlined"
-              placeholder={!isServiceAvailable ? 'Service is offline' : 'Ask something about your cloud architecture...'}
-              value={inputMessage}
-              onChange={(e) => setInputMessage(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-              disabled={isLoading || !isServiceAvailable}
-              sx={{
-                '& .MuiOutlinedInput-root': {
-                  borderRadius: '12px',
-                  '&.Mui-focused fieldset': {
-                    borderColor: '#6a11cb',
-                  },
-                },
-              }}
-            />
-            <IconButton
-              color="primary"
-              onClick={() => handleSendMessage()}
-              disabled={!inputMessage.trim() || isLoading || !isServiceAvailable}
-              sx={{ 
-                p: 1.5, 
-                backgroundColor: !inputMessage.trim() || isLoading || !isServiceAvailable ? 'transparent' : '#6a11cb',
-                color: !inputMessage.trim() || isLoading || !isServiceAvailable ? 'inherit' : 'white',
-                '&:hover': {
-                  backgroundColor: !inputMessage.trim() || isLoading || !isServiceAvailable ? 'transparent' : '#5c0fb3',
-                },
-              }}
-            >
-              <SendIcon />
-            </IconButton>
-          </ChatInput>
-        </ChatContainer>
-      </Slide>
 
       <Snackbar 
         open={snackbar.open} 
