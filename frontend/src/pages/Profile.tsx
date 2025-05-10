@@ -288,39 +288,71 @@ export default function Profile() {
       
       {/* Profile Information Section */}
       <Box sx={{ mb: 6 }}>
-        <Typography variant="h5" component="h2" fontWeight="500" gutterBottom>
-          Profile Information
-        </Typography>
-        <Divider sx={{ mb: 3 }} />
-        
         <form onSubmit={handleSubmit}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+            <Typography variant="h5" component="h2" fontWeight="500">
+              Profile Information
+            </Typography>
+            {isEditing ? (
+              <Box sx={{ display: 'flex', gap: 1 }}>
+                <Button 
+                  variant="outlined" 
+                  onClick={() => {
+                    setIsEditing(false);
+                    setUsername(user.username);
+                    setEmail(user.email);
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  type="submit" 
+                  variant="contained" 
+                  disabled={saving}
+                  startIcon={saving ? <CircularProgress size={20} /> : null}
+                >
+                  {saving ? 'Saving...' : 'Save Changes'}
+                </Button>
+              </Box>
+            ) : (
+              <Button 
+                variant="contained" 
+                startIcon={<EditIcon />}
+                onClick={() => setIsEditing(true)}
+              >
+                Edit Profile
+              </Button>
+            )}
+          </Box>
+          <Divider sx={{ mb: 3 }} />
+          
           <Grid container spacing={3}>
-            <Grid item xs={12} md={6}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-                <Box position="relative">
-                  <UserAvatar
-                    username={user.username}
-                    avatarUrl={user.avatarUrl}
-                    size={80}
-                    showUsername={false}
-                    userFromProps={true}
-                  />
-                  <IconButton
-                    size="small"
-                    sx={{
-                      position: 'absolute',
-                      bottom: 0,
-                      right: 0,
-                      backgroundColor: 'background.paper'
-                    }}
-                    onClick={handlePhotoDialogOpen}
-                  >
-                    <PhotoCamera fontSize="small" />
-                  </IconButton>
-                </Box>
+            {/* Profile Picture at the top */}
+            <Grid item xs={12} sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
+              <Box position="relative">
+                <UserAvatar
+                  username={user.username}
+                  avatarUrl={user.avatarUrl}
+                  size={100}
+                  showUsername={false}
+                  userFromProps={true}
+                />
+                <IconButton
+                  size="small"
+                  sx={{
+                    position: 'absolute',
+                    bottom: 0,
+                    right: 0,
+                    backgroundColor: 'background.paper'
+                  }}
+                  onClick={handlePhotoDialogOpen}
+                >
+                  <PhotoCamera fontSize="small" />
+                </IconButton>
               </Box>
             </Grid>
 
+            {/* Input fields in 2x2 grid */}
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
@@ -380,39 +412,6 @@ export default function Profile() {
               </Grid>
             )}
           </Grid>
-          
-          <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, mt: 4 }}>
-            {isEditing ? (
-              <>
-                <Button 
-                  variant="outlined" 
-                  onClick={() => {
-                    setIsEditing(false);
-                    setUsername(user.username);
-                    setEmail(user.email);
-                  }}
-                >
-                  Cancel
-                </Button>
-                <Button 
-                  type="submit" 
-                  variant="contained" 
-                  disabled={saving}
-                  startIcon={saving ? <CircularProgress size={20} /> : null}
-                >
-                  {saving ? 'Saving...' : 'Save Changes'}
-                </Button>
-              </>
-            ) : (
-              <Button 
-                variant="contained" 
-                startIcon={<EditIcon />}
-                onClick={() => setIsEditing(true)}
-              >
-                Edit Profile
-              </Button>
-            )}
-          </Box>
         </form>
       </Box>
 
