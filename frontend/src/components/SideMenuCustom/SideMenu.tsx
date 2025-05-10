@@ -67,7 +67,7 @@ export default function SideMenu() {
             alt="Aurora Logo" 
             style={{ 
               margin: '20px 0',
-              width: '200px', 
+              width: '190px', 
               height: 'auto',
               display: 'block',
               padding: '12px'

@@ -169,11 +169,6 @@ const updateUser = async (req: Request, res: Response) => {
     // Check if this is an internal service request
     const isInternalServiceRequest = req.headers['x-internal-service'] === 'true';
     
-    // For non-internal requests, check if the authenticated user matches the requested user ID
-    if (!isInternalServiceRequest && req.params.userId !== id) {
-      return res.status(403).json({ message: "Access denied" });
-    }
-    
     if (Object.keys(req.body).length === 0) {
       return res.status(400).json({
         message: "At least one field is required to update",
