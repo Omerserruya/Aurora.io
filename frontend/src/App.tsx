@@ -6,6 +6,7 @@ import Visualization from './pages/Visualization';
 import IAC from './pages/IAC';
 import About from './pages/About';
 import Settings from './pages/Settings';
+import AWSArchitectureVisualizationDemo from './pages/AWSArchitectureVisualizationDemo';
 import ThemeProvider from './theme/ThemeProvider';
 import Layout from './components/Layout';
 import Login from './pages/Login';
@@ -41,6 +42,7 @@ function App() {
           <Route path="/" element={<Navigate to="/home" replace />} />
           <Route path="/home" element={<Home />} />
           <Route path="/visualization" element={<Visualization />} />
+          <Route path="/aws-demo" element={<AWSArchitectureVisualizationDemo />} />
           <Route path="/iac" element={<IAC />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/about" element={<About />} />

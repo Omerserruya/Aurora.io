@@ -22,17 +22,32 @@ import {
   Fab,
 } from "@mui/material"
 import {
-  Storage as StorageIcon,
-  Cloud as CloudIcon,
-  Language as LanguageIcon,
-  Security as SecurityIcon,
-  Computer as ComputerIcon,
   Close as CloseIcon,
   Info as InfoIcon,
   CenterFocusStrong as ResetViewIcon,
   Add as AddIcon,
   Remove as RemoveIcon,
 } from "@mui/icons-material"
+
+// Import AWS SVG icons
+import S3Icon from '../assets/aws-icons/Storage/s3.svg';
+import VPCIcon from '../assets/aws-icons/Networking/vpc.svg';
+import SecurityGroupIcon from '../assets/aws-icons/Security/security-group.svg';
+import EC2Icon from '../assets/aws-icons/Compute/ec2.svg';
+import SubnetIcon from '../assets/aws-icons/Networking/subnet.svg';
+import RouteTableIcon from '../assets/aws-icons/Networking/route-table.svg';
+import InternetGatewayIcon from '../assets/aws-icons/Networking/internet-gateway.svg';
+import NATGatewayIcon from '../assets/aws-icons/Networking/nat-gateway.svg';
+import NetworkACLIcon from '../assets/aws-icons/Networking/network-acl.svg';
+import ElasticIPIcon from '../assets/aws-icons/Networking/elastic-ip.svg';
+import TransitGatewayIcon from '../assets/aws-icons/Networking/transit-gateway.svg';
+import LoadBalancerIcon from '../assets/aws-icons/Networking/load-balancer.svg';
+import ECSClusterIcon from '../assets/aws-icons/Containers/ecs-cluster.svg';
+import ECSTaskIcon from '../assets/aws-icons/Containers/ecs-task.svg';
+import LambdaIcon from '../assets/aws-icons/Compute/lambda.svg';
+import IAMRoleIcon from '../assets/aws-icons/Security/iam-role.svg';
+import IAMUserIcon from '../assets/aws-icons/Security/iam-user.svg';
+import IAMPolicyIcon from '../assets/aws-icons/Security/iam-policy.svg';
 
 // Define types for our AWS resources
 interface AWSResource {
@@ -50,12 +65,103 @@ interface Subnet extends AWSResource {
 
 interface SecurityGroup extends AWSResource {
   groupId: string
+  groupName?: string
+  description?: string
+  inboundRules?: any[]
+  outboundRules?: any[]
+}
+
+interface RouteTable extends AWSResource {
+  routeTableId: string
+  routes?: any[]
+  associations?: any[]
+}
+
+interface InternetGateway extends AWSResource {
+  internetGatewayId: string
+  attachments?: any[]
+}
+
+interface NATGateway extends AWSResource {
+  natGatewayId: string
+}
+
+interface NetworkACL extends AWSResource {
+  networkAclId: string
+  entries?: any[]
+}
+
+interface ElasticIP extends AWSResource {
+  publicIp: string
+  allocationId: string
+  instanceId?: string
+  networkInterfaceId?: string
+}
+
+interface TransitGateway extends AWSResource {
+  transitGatewayId: string
+  state?: string
+}
+
+interface LoadBalancer extends AWSResource {
+  loadBalancerArn: string
+  loadBalancerName: string
+  type?: string
+  scheme?: string
+}
+
+interface ECSCluster extends AWSResource {
+  clusterArn: string
+  clusterName: string
+  status?: string
+  tasks?: ECSTask[]
+}
+
+interface ECSTask extends AWSResource {
+  taskArn: string
+  clusterArn: string
+  taskDefinitionArn: string
+  lastStatus?: string
+}
+
+interface LambdaFunction extends AWSResource {
+  functionName: string
+  functionArn: string
+  runtime?: string
+  vpcConfig?: any
+}
+
+interface IAMRole extends AWSResource {
+  roleName: string
+  roleId: string
+  assumeRolePolicyDocument?: any
+}
+
+interface IAMUser extends AWSResource {
+  userName: string
+  userId: string
+  createDate?: string
+}
+
+interface IAMPolicy extends AWSResource {
+  policyName: string
+  policyId: string
+  attachmentCount?: number
 }
 
 interface VPC extends AWSResource {
   vpcId: string
   subnets: Subnet[]
   securityGroups: SecurityGroup[]
+  routeTables?: RouteTable[]
+  internetGateways?: InternetGateway[]
+  natGateways?: NATGateway[]
+  networkAcls?: NetworkACL[]
+  elasticIPs?: ElasticIP[]
+  transitGateways?: TransitGateway[]
+  loadBalancers?: LoadBalancer[]
+  lambdaFunctions?: LambdaFunction[]
+  ecsClusters?: ECSCluster[]
 }
 
 interface S3Bucket extends AWSResource {
@@ -66,11 +172,17 @@ interface S3Bucket extends AWSResource {
 export interface AWSArchitecture {
   vpcs: VPC[]
   s3Buckets: S3Bucket[]
+  iamRoles?: IAMRole[]
+  iamUsers?: IAMUser[]
+  iamPolicies?: IAMPolicy[]
 }
 
 // Define a type for the selected resource
 type SelectedResource = {
-  type: "vpc" | "subnet" | "securityGroup" | "instance" | "s3Bucket"
+  type: "vpc" | "subnet" | "securityGroup" | "instance" | "s3Bucket" | 
+        "routeTable" | "internetGateway" | "natGateway" | "networkAcl" | 
+        "elasticIp" | "transitGateway" | "loadBalancer" | "ecsCluster" | 
+        "ecsTask" | "lambdaFunction" | "iamRole" | "iamUser" | "iamPolicy"
   id: string
   data: any
 } | null
@@ -99,7 +211,7 @@ const S3BucketComponent: React.FC<{
       onClick={onClick}
     >
       <CardHeader
-        avatar={<StorageIcon sx={{ color: "#FF9900" }} />}
+        avatar={<img src={S3Icon} alt="S3 Bucket" width="24" height="24" />}
         title={
           <Typography variant="subtitle2" fontWeight="bold">
             S3 Bucket
@@ -146,7 +258,7 @@ const InstanceComponent: React.FC<{
       onClick={onClick}
     >
       <CardHeader
-        avatar={<ComputerIcon sx={{ color: "#EC7211" }} />}
+        avatar={<img src={EC2Icon} alt="EC2 Instance" width="24" height="24" />}
         title={
           <Typography variant="subtitle2" fontWeight="bold">
             EC2 Instance
@@ -202,7 +314,7 @@ const SubnetComponent: React.FC<{
       }}
     >
       <CardHeader
-        avatar={<LanguageIcon sx={{ color: "#7AA116" }} />}
+        avatar={<img src={SubnetIcon} alt="Subnet" width="24" height="24" />}
         title={
           <Typography variant="subtitle2" fontWeight="bold">
             Subnet
@@ -274,7 +386,7 @@ const SecurityGroupComponent: React.FC<{
       onClick={onClick}
     >
       <CardHeader
-        avatar={<SecurityIcon sx={{ color: "#D13212" }} />}
+        avatar={<img src={SecurityGroupIcon} alt="Security Group" width="24" height="24" />}
         title={
           <Typography variant="subtitle2" fontWeight="bold">
             Security Group
@@ -331,7 +443,7 @@ const VPCComponent: React.FC<{
       }
     >
       <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
-        <CloudIcon sx={{ color: "#232F3E", mr: 1 }} />
+        <img src={VPCIcon} alt="VPC" width="28" height="28" style={{ marginRight: "8px" }} />
         <Typography variant="h6" fontWeight="bold">
           VPC: {vpc.vpcId}
         </Typography>
@@ -342,6 +454,34 @@ const VPCComponent: React.FC<{
 
       <Divider sx={{ my: 2 }} />
 
+      {/* Internet Gateways Section */}
+      {vpc.internetGateways && vpc.internetGateways.length > 0 && (
+        <Box sx={{ mb: 3 }}>
+          <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 1 }}>
+            Internet Gateways ({vpc.internetGateways.length})
+          </Typography>
+          <Grid container spacing={2}>
+            {vpc.internetGateways.map((igw) => (
+              <Grid item key={igw.internetGatewayId}>
+                <InternetGatewayComponent
+                  internetGateway={igw}
+                  isSelected={selectedResource?.type === "internetGateway" && selectedResource.id === igw.internetGatewayId}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onSelect({
+                      type: "internetGateway",
+                      id: igw.internetGatewayId,
+                      data: igw,
+                    });
+                  }}
+                />
+              </Grid>
+            ))}
+          </Grid>
+        </Box>
+      )}
+
+      {/* Subnets Section */}
       {vpc.subnets.length > 0 && (
         <Box sx={{ mb: 3 }}>
           <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 1 }}>
@@ -361,6 +501,61 @@ const VPCComponent: React.FC<{
         </Box>
       )}
 
+      {/* Route Tables Section */}
+      {vpc.routeTables && vpc.routeTables.length > 0 && (
+        <Box sx={{ mb: 3 }}>
+          <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 1 }}>
+            Route Tables ({vpc.routeTables.length})
+          </Typography>
+          <Grid container spacing={2}>
+            {vpc.routeTables.map((rt) => (
+              <Grid item key={rt.routeTableId}>
+                <RouteTableComponent
+                  routeTable={rt}
+                  isSelected={selectedResource?.type === "routeTable" && selectedResource.id === rt.routeTableId}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onSelect({
+                      type: "routeTable",
+                      id: rt.routeTableId,
+                      data: rt,
+                    });
+                  }}
+                />
+              </Grid>
+            ))}
+          </Grid>
+        </Box>
+      )}
+
+      {/* Network ACLs Section */}
+      {vpc.networkAcls && vpc.networkAcls.length > 0 && (
+        <Box sx={{ mb: 3 }}>
+          <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 1 }}>
+            Network ACLs ({vpc.networkAcls.length})
+          </Typography>
+          <Grid container spacing={2}>
+            {vpc.networkAcls.map((nacl) => (
+              <Grid item key={nacl.networkAclId}>
+                <NetworkACLComponent
+                  networkAcl={nacl}
+                  isSelected={selectedResource?.type === "networkAcl" && selectedResource.id === nacl.networkAclId}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onSelect({
+                      type: "networkAcl",
+                      id: nacl.networkAclId,
+                      data: nacl,
+                    });
+                  }}
+                />
+              </Grid>
+            ))}
+          </Grid>
+        </Box>
+      )}
+
+      {/* Security Groups Section */}
       {vpc.securityGroups.length > 0 && (
         <Box>
           <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 1 }}>
@@ -392,6 +587,199 @@ const VPCComponent: React.FC<{
   )
 }
 
+// Component for Route Tables
+const RouteTableComponent: React.FC<{
+  routeTable: RouteTable
+  isSelected: boolean
+  onClick: (e: React.MouseEvent) => void
+}> = ({ routeTable, isSelected, onClick }) => {
+  return (
+    <Card
+      variant="outlined"
+      sx={{
+        m: 1,
+        width: 200,
+        border: isSelected ? "2px solid #8C4FFF" : "1px solid #8C4FFF",
+        borderRadius: 2,
+        boxShadow: isSelected ? 3 : 0,
+        cursor: "pointer",
+        transition: "all 0.2s",
+        "&:hover": {
+          boxShadow: 2,
+        },
+      }}
+      onClick={onClick}
+    >
+      <CardHeader
+        avatar={<img src={RouteTableIcon} alt="Route Table" width="24" height="24" />}
+        title={
+          <Typography variant="subtitle2" fontWeight="bold">
+            Route Table
+          </Typography>
+        }
+        sx={{
+          bgcolor: isSelected ? "rgba(140, 79, 255, 0.2)" : "rgba(140, 79, 255, 0.1)",
+          p: 1,
+        }}
+      />
+      <CardContent sx={{ p: 1 }}>
+        <Tooltip title={routeTable.routeTableId}>
+          <Typography variant="body2" noWrap>
+            {routeTable.routeTableId || "Route Table"}
+          </Typography>
+        </Tooltip>
+        <Typography variant="caption" color="textSecondary" noWrap>
+          Routes: {routeTable.routes?.length || 0}
+        </Typography>
+      </CardContent>
+    </Card>
+  )
+}
+
+// Component for Internet Gateways
+const InternetGatewayComponent: React.FC<{
+  internetGateway: InternetGateway
+  isSelected: boolean
+  onClick: (e: React.MouseEvent) => void
+}> = ({ internetGateway, isSelected, onClick }) => {
+  return (
+    <Card
+      variant="outlined"
+      sx={{
+        m: 1,
+        width: 200,
+        border: isSelected ? "2px solid #8C4FFF" : "1px solid #8C4FFF",
+        borderRadius: 2,
+        boxShadow: isSelected ? 3 : 0,
+        cursor: "pointer",
+        transition: "all 0.2s",
+        "&:hover": {
+          boxShadow: 2,
+        },
+      }}
+      onClick={onClick}
+    >
+      <CardHeader
+        avatar={<img src={InternetGatewayIcon} alt="Internet Gateway" width="24" height="24" />}
+        title={
+          <Typography variant="subtitle2" fontWeight="bold">
+            Internet Gateway
+          </Typography>
+        }
+        sx={{
+          bgcolor: isSelected ? "rgba(140, 79, 255, 0.2)" : "rgba(140, 79, 255, 0.1)",
+          p: 1,
+        }}
+      />
+      <CardContent sx={{ p: 1 }}>
+        <Tooltip title={internetGateway.internetGatewayId}>
+          <Typography variant="body2" noWrap>
+            {internetGateway.internetGatewayId || "IGW"}
+          </Typography>
+        </Tooltip>
+        <Typography variant="caption" color="textSecondary" noWrap>
+          Attachments: {internetGateway.attachments?.length || 0}
+        </Typography>
+      </CardContent>
+    </Card>
+  )
+}
+
+// Component for NAT Gateways
+const NATGatewayComponent: React.FC<{
+  natGateway: NATGateway
+  isSelected: boolean
+  onClick: (e: React.MouseEvent) => void
+}> = ({ natGateway, isSelected, onClick }) => {
+  return (
+    <Card
+      variant="outlined"
+      sx={{
+        m: 1,
+        width: 200,
+        border: isSelected ? "2px solid #8C4FFF" : "1px solid #8C4FFF",
+        borderRadius: 2,
+        boxShadow: isSelected ? 3 : 0,
+        cursor: "pointer",
+        transition: "all 0.2s",
+        "&:hover": {
+          boxShadow: 2,
+        },
+      }}
+      onClick={onClick}
+    >
+      <CardHeader
+        avatar={<img src={NATGatewayIcon} alt="NAT Gateway" width="24" height="24" />}
+        title={
+          <Typography variant="subtitle2" fontWeight="bold">
+            NAT Gateway
+          </Typography>
+        }
+        sx={{
+          bgcolor: isSelected ? "rgba(140, 79, 255, 0.2)" : "rgba(140, 79, 255, 0.1)",
+          p: 1,
+        }}
+      />
+      <CardContent sx={{ p: 1 }}>
+        <Tooltip title={natGateway.natGatewayId}>
+          <Typography variant="body2" noWrap>
+            {natGateway.natGatewayId || "NAT Gateway"}
+          </Typography>
+        </Tooltip>
+      </CardContent>
+    </Card>
+  )
+}
+
+// Component for Network ACLs
+const NetworkACLComponent: React.FC<{
+  networkAcl: NetworkACL
+  isSelected: boolean
+  onClick: (e: React.MouseEvent) => void
+}> = ({ networkAcl, isSelected, onClick }) => {
+  return (
+    <Card
+      variant="outlined"
+      sx={{
+        m: 1,
+        width: 200,
+        border: isSelected ? "2px solid #8C4FFF" : "1px solid #8C4FFF",
+        borderRadius: 2,
+        boxShadow: isSelected ? 3 : 0,
+        cursor: "pointer",
+        transition: "all 0.2s",
+        "&:hover": {
+          boxShadow: 2,
+        },
+      }}
+      onClick={onClick}
+    >
+      <CardHeader
+        avatar={<img src={NetworkACLIcon} alt="Network ACL" width="24" height="24" />}
+        title={
+          <Typography variant="subtitle2" fontWeight="bold">
+            Network ACL
+          </Typography>
+        }
+        sx={{
+          bgcolor: isSelected ? "rgba(140, 79, 255, 0.2)" : "rgba(140, 79, 255, 0.1)",
+          p: 1,
+        }}
+      />
+      <CardContent sx={{ p: 1 }}>
+        <Tooltip title={networkAcl.networkAclId}>
+          <Typography variant="body2" noWrap>
+            {networkAcl.networkAclId || "Network ACL"}
+          </Typography>
+        </Tooltip>
+        <Typography variant="caption" color="textSecondary" noWrap>
+          Rules: {networkAcl.entries?.length || 0}
+        </Typography>
+      </CardContent>
+    </Card>
+  )
+}
+
 // Details Panel Component
 const ResourceDetailsPanel: React.FC<{
   selectedResource: SelectedResource
@@ -411,6 +799,32 @@ const ResourceDetailsPanel: React.FC<{
         return `Instance: ${selectedResource.data.instanceId}`
       case "s3Bucket":
         return `S3 Bucket: ${selectedResource.data.name}`
+      case "routeTable":
+        return `Route Table: ${selectedResource.data.routeTableId}`
+      case "internetGateway":
+        return `Internet Gateway: ${selectedResource.data.internetGatewayId}`
+      case "natGateway":
+        return `NAT Gateway: ${selectedResource.data.natGatewayId}`
+      case "networkAcl":
+        return `Network ACL: ${selectedResource.data.networkAclId}`
+      case "elasticIp":
+        return `Elastic IP: ${selectedResource.data.publicIp}`
+      case "transitGateway":
+        return `Transit Gateway: ${selectedResource.data.transitGatewayId}`
+      case "loadBalancer":
+        return `Load Balancer: ${selectedResource.data.loadBalancerName}`
+      case "ecsCluster":
+        return `ECS Cluster: ${selectedResource.data.clusterName}`
+      case "ecsTask":
+        return `ECS Task: ${selectedResource.data.taskArn?.split('/').pop()}`
+      case "lambdaFunction":
+        return `Lambda: ${selectedResource.data.functionName}`
+      case "iamRole":
+        return `IAM Role: ${selectedResource.data.roleName}`
+      case "iamUser":
+        return `IAM User: ${selectedResource.data.userName}`
+      case "iamPolicy":
+        return `IAM Policy: ${selectedResource.data.policyName}`
       default:
         return "Resource Details"
     }
@@ -419,15 +833,41 @@ const ResourceDetailsPanel: React.FC<{
   const getIcon = () => {
     switch (selectedResource.type) {
       case "vpc":
-        return <CloudIcon sx={{ color: "#232F3E" }} />
+        return <img src={VPCIcon} alt="VPC" width="24" height="24" />
       case "subnet":
-        return <LanguageIcon sx={{ color: "#7AA116" }} />
+        return <img src={SubnetIcon} alt="Subnet" width="24" height="24" />
       case "securityGroup":
-        return <SecurityIcon sx={{ color: "#D13212" }} />
+        return <img src={SecurityGroupIcon} alt="Security Group" width="24" height="24" />
       case "instance":
-        return <ComputerIcon sx={{ color: "#EC7211" }} />
+        return <img src={EC2Icon} alt="EC2 Instance" width="24" height="24" />
       case "s3Bucket":
-        return <StorageIcon sx={{ color: "#FF9900" }} />
+        return <img src={S3Icon} alt="S3 Bucket" width="24" height="24" />
+      case "routeTable":
+        return <img src={RouteTableIcon} alt="Route Table" width="24" height="24" />
+      case "internetGateway":
+        return <img src={InternetGatewayIcon} alt="Internet Gateway" width="24" height="24" />
+      case "natGateway":
+        return <img src={NATGatewayIcon} alt="NAT Gateway" width="24" height="24" />
+      case "networkAcl":
+        return <img src={NetworkACLIcon} alt="Network ACL" width="24" height="24" />
+      case "elasticIp":
+        return <img src={ElasticIPIcon} alt="Elastic IP" width="24" height="24" />
+      case "transitGateway":
+        return <img src={TransitGatewayIcon} alt="Transit Gateway" width="24" height="24" />
+      case "loadBalancer":
+        return <img src={LoadBalancerIcon} alt="Load Balancer" width="24" height="24" />
+      case "ecsCluster":
+        return <img src={ECSClusterIcon} alt="ECS Cluster" width="24" height="24" />
+      case "ecsTask":
+        return <img src={ECSTaskIcon} alt="ECS Task" width="24" height="24" />
+      case "lambdaFunction":
+        return <img src={LambdaIcon} alt="Lambda Function" width="24" height="24" />
+      case "iamRole":
+        return <img src={IAMRoleIcon} alt="IAM Role" width="24" height="24" />
+      case "iamUser":
+        return <img src={IAMUserIcon} alt="IAM User" width="24" height="24" />
+      case "iamPolicy":
+        return <img src={IAMPolicyIcon} alt="IAM Policy" width="24" height="24" />
       default:
         return <InfoIcon />
     }
@@ -639,7 +1079,7 @@ const AWSArchitectureVisualizer: React.FC<{
   data: AWSArchitecture
   height?: string | number
   width?: string | number
-}> = ({ data, height = "600px", width = "100%" }) => {
+}> = ({ data, height = "100%", width = "100%" }) => {
   const theme = useTheme()
   const [selectedResource, setSelectedResource] = useState<SelectedResource>(null)
   const [detailsOpen, setDetailsOpen] = useState(false)
@@ -749,10 +1189,10 @@ const AWSArchitectureVisualizer: React.FC<{
         height,
         overflow: "hidden",
         position: "relative",
-        bgcolor: "#f0f2f5",
+        bgcolor: "background.paper",
         cursor: isDragging ? "grabbing" : "grab",
-        borderRadius: 2,
-        border: "1px solid #ddd",
+        borderRadius: 0,
+        border: 'none'
       }}
     >
       {/* Header - Now positioned relative to the container */}
