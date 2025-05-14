@@ -13,13 +13,59 @@ class CloudDataAdapter implements IDataAdapter {
   }
   
   public supportsQuery(query: string): boolean {
-    // Check if the query is about cloud resources, infrastructure, etc.
+    // ========== AWS KEYWORD MATCHING LOGIC ==========
+    // This adapter only responds to queries containing specific AWS/cloud terms
+    // It acts as a technical specialist that should only be called when the user
+    // is specifically asking about their cloud resources or infrastructure.
+    
+    // We use a deliberately targeted list of cloud-specific keywords to avoid this
+    // adapter being triggered for general conversation or non-technical queries.
     const cloudKeywords = [
-      'aws', 'ec2', 'rds', 's3', 'vpc', 'subnet', 'security', 
-      'cloud', 'instance', 'database', 'bucket', 'network',
-      'infrastructure', 'resources', 'region', 'architecture'
+      // Core AWS services
+      'aws', 'amazon', 'ec2', 'rds', 's3', 'lambda', 'dynamodb', 'ecs', 'eks',
+      'aurora', 'redshift', 'elasticache', 'sqs', 'sns', 'cloudwatch', 'cloudfront',
+      'route53', 'iam', 'kms', 'cloudformation', 'apigateway', 'step functions',
+      
+      // Networking concepts
+      'vpc', 'subnet', 'cidr', 'route table', 'acl', 'security group', 'nacl',
+      'internet gateway', 'igw', 'nat gateway', 'elb', 'alb', 'nlb', 'load balancer',
+      'network', 'firewall', 'transit gateway', 'vpn', 'direct connect', 'endpoint',
+      
+      // Compute terms
+      'instance', 'server', 'container', 'kubernetes', 'ec2', 'ami', 'auto scaling',
+      'serverless', 'fargate', 'batch', 'lightsail', 'elastic beanstalk', 'vm',
+      
+      // Storage terms
+      'storage', 'bucket', 's3', 'efs', 'ebs', 'volume', 'snapshot', 'backup',
+      'glacier', 'fsx', 'storage gateway', 'object storage', 'block storage',
+      
+      // Database terms
+      'database', 'db', 'rds', 'dynamodb', 'aurora', 'mysql', 'postgres', 'sql',
+      'nosql', 'mongodb', 'redis', 'elasticache', 'neptune', 'documentdb',
+      
+      // Security terms
+      'security', 'iam', 'role', 'policy', 'permission', 'encryption', 'kms',
+      'certificate', 'acm', 'waf', 'shield', 'guard duty', 'inspector', 'macie',
+      
+      // Cost and billing terms
+      'cost', 'billing', 'price', 'pricing', 'budget', 'spend', 'expense',
+      'reservation', 'saving plan', 'on-demand', 'spot', 'reserved instance', 'ri', 
+      'cost explorer', 'optimizer', 'allocation', 'usage', 'consumption',
+      
+      // Developer and DevOps tools
+      'codepipeline', 'codecommit', 'codebuild', 'codedeploy', 'codestar',
+      'cloud9', 'amplify', 'devops', 'ci/cd', 'pipeline', 'gitops',
+      'developer', 'artifact', 'repository', 'ecr', 'container registry',
+      
+      // General cloud concepts
+      'region', 'availability zone', 'az', 'cloud', 'infrastructure', 'resources',
+      'architecture', 'environment', 'workload', 'service', 'managed service',
+      'provisioning', 'deployment', 'configuration', 'terraform', 'cloudformation'
     ];
     
+    // Simple substring matching to identify if any cloud keyword is present
+    // This is the trigger that determines if this adapter should handle the query
+    // Note: This adapter has lowest priority in ContextService registration order
     return cloudKeywords.some(keyword => 
       query.toLowerCase().includes(keyword)
     );
@@ -296,223 +342,17 @@ class CloudDataAdapter implements IDataAdapter {
                   contextText += `        - ${range.CidrIp}\n`;
                 });
               }
-              
-              if (rule.ipv6Ranges && rule.ipv6Ranges.length > 0) {
-                contextText += '      Destination IPv6 Ranges:\n';
-                rule.ipv6Ranges.forEach((range: any) => {
-                  contextText += `        - ${range.CidrIpv6}\n`;
-                });
-              }
             });
           }
         });
-      }
-      
-      // Add route table details
-      if (routeTables.length > 0) {
-        contextText += '\nRoute Table Information:\n';
-        routeTables.forEach((rt) => {
-          contextText += `- Route Table ID: ${rt.routeTableId || 'Unknown'}\n`;
-          
-          if (rt.routes && rt.routes.length > 0) {
-            contextText += '  Routes:\n';
-            rt.routes.forEach((route: any) => {
-              contextText += `    - Destination: ${route.destinationCidrBlock}\n`;
-              contextText += `      Target: ${route.gatewayId}\n`;
-              contextText += `      State: ${route.state}\n`;
-            });
-          }
-          
-          if (rt.associations && rt.associations.length > 0) {
-            contextText += '  Subnet Associations:\n';
-            rt.associations.forEach((assoc: any) => {
-              contextText += `    - Subnet: ${assoc.subnetId}\n`;
-              contextText += `      Main: ${assoc.main}\n`;
-              contextText += `      State: ${assoc.state}\n`;
-            });
-          }
-        });
-      }
-      
-      // Add internet gateway details
-      if (internetGateways.length > 0) {
-        contextText += '\nInternet Gateway Information:\n';
-        internetGateways.forEach((igw) => {
-          contextText += `- Internet Gateway ID: ${igw.internetGatewayId || 'Unknown'}\n`;
-          
-          if (igw.attachments && igw.attachments.length > 0) {
-            contextText += '  VPC Attachments:\n';
-            igw.attachments.forEach((attachment: any) => {
-              contextText += `    - VPC: ${attachment.vpcId}\n`;
-              contextText += `      State: ${attachment.state}\n`;
-            });
-          }
-        });
-      }
-      
-      // Add network ACL details
-      if (networkAcls.length > 0) {
-        contextText += '\nNetwork ACL Information:\n';
-        networkAcls.forEach((acl) => {
-          contextText += `- Network ACL ID: ${acl.networkAclId || 'Unknown'}\n`;
-          
-          if (acl.entries && acl.entries.length > 0) {
-            contextText += '  Rules:\n';
-            acl.entries.forEach((entry: any) => {
-              contextText += `    - Rule #${entry.ruleNumber}\n`;
-              contextText += `      Type: ${entry.egress === 'true' ? 'Egress' : 'Ingress'}\n`;
-              contextText += `      Protocol: ${entry.protocol}\n`;
-              contextText += `      CIDR: ${entry.cidrBlock}\n`;
-              contextText += `      Action: ${entry.ruleAction}\n`;
-            });
-          }
-        });
-      }
-      
-      // Add load balancer details
-      if (loadBalancers.length > 0) {
-        contextText += '\nLoad Balancer Information:\n';
-        loadBalancers.forEach((lb) => {
-          contextText += `- Load Balancer: ${lb.loadBalancerArn || 'Unknown'}\n`;
-          
-          if (lb.properties) {
-            if (lb.properties.loadBalancerName) contextText += `  Name: ${lb.properties.loadBalancerName}\n`;
-            if (lb.properties.type) contextText += `  Type: ${lb.properties.type}\n`;
-            if (lb.properties.scheme) contextText += `  Scheme: ${lb.properties.scheme}\n`;
-          }
-        });
-      }
-      
-      // Add S3 bucket details
-      if (buckets.length > 0) {
-        contextText += '\nS3 Bucket Information:\n';
-        buckets.forEach((bucket) => {
-          contextText += `- Bucket: ${bucket.name || 'Unknown'}\n`;
-          
-          if (bucket.properties) {
-            if (bucket.properties.CreationDate) 
-              contextText += `  Created: ${bucket.properties.CreationDate}\n`;
-          }
-        });
-      }
-      
-      // If no specific resource details were found
-      if (vpcs.length === 0 && subnets.length === 0 && instances.length === 0 && 
-          securityGroups.length === 0 && routeTables.length === 0 && internetGateways.length === 0 &&
-          networkAcls.length === 0 && loadBalancers.length === 0 && buckets.length === 0) {
-        contextText += '\nNo detailed resource information available for this AWS environment.';
       }
       
       return contextText;
     } catch (error: any) {
-      logger.error('Error formatting cloud resource data:', error);
-      return `Error processing cloud resource data: ${error.message || 'Unknown error'}`;
+      logger.error(`Error formatting cloud data: ${error.message}`);
+      return '';
     }
-  }
-  
-  /**
-   * Original format method for the old API endpoint structure
-   */
-  private formatCloudData(data: any): string {
-    try {
-      let contextText = '';
-      
-      if (data.environment) {
-        contextText += `User environment: ${data.environment.name || 'Unknown'}\n`;
-        contextText += `Provider: ${data.environment.provider || 'Unknown'}\n`;
-        contextText += `Region: ${data.environment.region || 'Unknown'}\n`;
-      }
-      
-      if (data.resources && Array.isArray(data.resources)) {
-        contextText += `\nResources:\n`;
-        data.resources.forEach((resource: any) => {
-          contextText += `- ${resource.type || 'Unknown'}: ${resource.name || 'Unnamed'}\n`;
-          contextText += `  Node Type: ${resource.nodeType || 'Unknown'}\n`;
-          
-          // Add specific details based on resource type
-          if (resource.type === 'EC2') {
-            contextText += `  Instance Type: ${resource.instanceType || 'Unknown'}\n`;
-            contextText += `  Count: ${this.extractNumberValue(resource.count) || 1}\n`;
-          } else if (resource.type === 'RDS') {
-            contextText += `  Engine: ${resource.engine || 'Unknown'}\n`;
-            contextText += `  Storage: ${this.extractNumberValue(resource.storage) || 'Unknown'}GB\n`;
-          } else if (resource.type === 'S3') {
-            contextText += `  Bucket Count: ${this.extractNumberValue(resource.count) || 1}\n`;
-          }
-          
-          if (resource.details) {
-            contextText += `  Details: ${resource.details}\n`;
-          }
-        });
-      }
-      
-      if (data.network) {
-        contextText += `\nNetwork Configuration:\n`;
-        contextText += `  Node Type: ${data.network.nodeType || 'Unknown'}\n`;
-        
-        if (data.network.vpcCidr) {
-          contextText += `- VPC CIDR: ${data.network.vpcCidr}\n`;
-        }
-        if (data.network.subnets && Array.isArray(data.network.subnets)) {
-          const publicSubnets = data.network.subnets.filter((s: any) => s.type === 'public');
-          const privateSubnets = data.network.subnets.filter((s: any) => s.type === 'private');
-          
-          if (publicSubnets.length > 0) {
-            contextText += `- Public subnets: ${publicSubnets.map((s: any) => s.cidr).join(', ')}\n`;
-          }
-          
-          if (privateSubnets.length > 0) {
-            contextText += `- Private subnets: ${privateSubnets.map((s: any) => s.cidr).join(', ')}\n`;
-          }
-        }
-      }
-      
-      if (data.security) {
-        contextText += `\nSecurity:\n`;
-        contextText += `  Node Type: ${data.security.nodeType || 'Unknown'}\n`;
-        
-        if (data.security.settings && Array.isArray(data.security.settings)) {
-          data.security.settings.forEach((setting: any) => {
-            contextText += `- ${setting}\n`;
-          });
-        }
-      }
-      
-      return contextText;
-    } catch (error: any) {
-      logger.error('Error formatting cloud data:', error);
-      return `Error processing cloud data: ${error.message || 'Unknown error'}`;
-    }
-  }
-
-  /**
-   * Helper method to extract numeric values from Neo4j integer objects
-   */
-  private extractNumberValue(value: any): number | null {
-    if (value === null || value === undefined) {
-      return null;
-    }
-    
-    // Handle Neo4j integer objects which have a 'low' property
-    if (typeof value === 'object' && value !== null && 'low' in value) {
-      return value.low;
-    }
-    
-    // Handle regular numbers
-    if (typeof value === 'number') {
-      return value;
-    }
-    
-    // Try to parse string values
-    if (typeof value === 'string') {
-      const parsed = parseInt(value, 10);
-      if (!isNaN(parsed)) {
-        return parsed;
-      }
-    }
-    
-    return null;
   }
 }
 
-export default CloudDataAdapter; 
+export default CloudDataAdapter;
