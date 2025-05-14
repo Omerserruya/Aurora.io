@@ -144,8 +144,17 @@ class SocketService {
     const socket = this.getSocket();
     if (!socket) return () => {};
     
-    socket.on('receive_message', callback);
-    return () => socket.off('receive_message', callback);
+    // Add a wrapper to ensure data has a timestamp if backend doesn't provide one
+    const processCallback = (data: any) => {
+      // If timestamp is missing, add it
+      if (!data.timestamp) {
+        data.timestamp = new Date().toISOString();
+      }
+      callback(data);
+    };
+    
+    socket.on('receive_message', processCallback);
+    return () => socket.off('receive_message', processCallback);
   }
   
   // Subscribe to error events

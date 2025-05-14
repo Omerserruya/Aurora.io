@@ -1,13 +1,25 @@
 import { IDataAdapter, ContextData } from '../interfaces/IDataAdapter';
 import CloudDataAdapter from './data/cloudDataAdapter';
+import GeneralPromptAdapter from './data/generalPromptAdapter';
+import WelcomeAdapter from './data/welcomeAdapter';
+import HelpAdapter from './data/helpAdapter';
+import FeedbackAdapter from './data/feedbackAdapter';
+import ImprovementAdapter from './data/improvementAdapter';
+import TroubleshootingAdapter from './data/troubleshootingAdapter';
 import logger from '../utils/logger';
 
 class ContextService {
   private adapters: IDataAdapter[] = [];
   
   constructor() {
-    // Register data adapters
-    this.registerAdapter(new CloudDataAdapter());
+    // Register data adapters - order matters for evaluation priority
+    this.registerAdapter(new FeedbackAdapter()); // Highest priority for feedback handling
+    this.registerAdapter(new WelcomeAdapter()); // New users
+    this.registerAdapter(new HelpAdapter()); // Help requests
+    this.registerAdapter(new ImprovementAdapter()); // Improvement and optimization advice
+    this.registerAdapter(new TroubleshootingAdapter()); // Troubleshooting issues
+    this.registerAdapter(new GeneralPromptAdapter()); // General greetings
+    this.registerAdapter(new CloudDataAdapter()); // Technical queries
     
     logger.info(`ContextService initialized with ${this.adapters.length} data adapters`);
   }
@@ -34,7 +46,7 @@ class ContextService {
           timestamp: new Date().toISOString(),
           reliability: 0
         },
-        error: "No data sources available for this query"
+        error: "I'm not sure how to help with that query. I'm specialized in AWS cloud architecture and infrastructure. Could you try asking about your AWS resources, security setup, or cloud infrastructure?"
       };
     }
     

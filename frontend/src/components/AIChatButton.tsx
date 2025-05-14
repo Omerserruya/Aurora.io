@@ -448,19 +448,6 @@ const AIChatButton: React.FC<AIChatButtonProps> = ({ isInline = false, isOpen: p
                       Error: {message.error}
                     </Typography>
                   )}
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      position: 'absolute',
-                      bottom: -16,
-                      right: message.isUser ? 0 : 'auto',
-                      left: message.isUser ? 'auto' : 0,
-                      color: theme.palette.text.secondary,
-                      fontSize: '0.7rem',
-                    }}
-                  >
-                    {formatTime(message.timestamp)}
-                  </Typography>
                 </Paper>
               </Box>
             </Fade>
