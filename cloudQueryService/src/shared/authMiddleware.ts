@@ -14,7 +14,7 @@ export const authentification = (req: Request, res: Response, next: NextFunction
     return;
   }
 
-  jwt.verify(token, process.env.JWT_KEY as string, (err, payload) => {
+  jwt.verify(token, process.env.JWT_SECRET_KEY as string, (err, payload) => {
     if (err || !payload) {
       res.status(401).json({ message: 'Auth failed' });
       return;

@@ -117,7 +117,7 @@ The service requires the following environment variables:
 PORT=4002
 NODE_ENV=development
 MONGO_URI=mongodb://localhost:27017/aurora
-JWT_KEY=your_jwt_secret_key
+JWT_SECRET_KEY=your_jwt_secret_key
 JWT_REFRESH_KEY=your_jwt_refresh_secret_key
 JWT_EXPIRES_IN=1h
 JWT_REFRESH_EXPIRES_IN=7d

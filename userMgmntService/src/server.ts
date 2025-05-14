@@ -21,9 +21,9 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 
-const jwtSecret = process.env.JWT_KEY;
+const jwtSecret = process.env.JWT_SECRET_KEY;
 if (!jwtSecret) {
-  throw new Error("JWT_SECRET is not defined in the environment variables");
+  throw new Error("JWT_SECRET_KEY is not defined in the environment variables");
 }
 
 app.use(cookieParser());
