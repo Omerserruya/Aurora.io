@@ -13,7 +13,7 @@ export type RootState = ReturnType<typeof rootReducer>;
 const persistConfig = {
   key: 'root',
   storage,
-  whitelist: ['user', 'account'], // Only persist user and account
+  whitelist: ['user'], // Only persist user state
 };
 
 const rootReducer = combineReducers({

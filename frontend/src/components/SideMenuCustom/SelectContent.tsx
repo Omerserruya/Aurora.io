@@ -15,6 +15,7 @@ import CircularProgress from '@mui/material/CircularProgress';
 import { AddAccountDialog } from '../AccountConnection';
 import { AWSConnection } from '../../types/awsConnection';
 import { useAccount } from '../../hooks/compatibilityHooks';
+import { useUser } from '../../hooks/compatibilityHooks';
 import { fetchAwsConnections as fetchAwsConnectionsApi, createAwsConnection } from '../../api/awsConnectionApi';
 
 const Avatar = styled(MuiAvatar)(({ theme }) => ({
@@ -30,82 +31,91 @@ const ListItemAvatar = styled(MuiListItemAvatar)({
   marginRight: 12,
 });
 
-const saveAccountSelection = (accountId: string, accountName: string) => {
+const saveAccountSelection = (accountId: string, accountName: string, userId: string) => {
+  if (!userId) return;
+  
   try {
-    sessionStorage.setItem('selected_account_id', accountId);
-    sessionStorage.setItem('selected_account_name', accountName);
+    localStorage.setItem(`selected_account_id_${userId}`, accountId);
+    localStorage.setItem(`selected_account_name_${userId}`, accountName);
   } catch (error) {}
 };
 
-const getPersistedAccountId = () => {
-  const fromLocalStorage = localStorage.getItem('account_id');
-  const fromSessionStorage = sessionStorage.getItem('selected_account_id');
-  return fromLocalStorage || fromSessionStorage || '';
+const getPersistedAccountId = (userId: string) => {
+  if (!userId) return '';
+  return localStorage.getItem(`selected_account_id_${userId}`) || '';
 };
 
-const getPersistedAccountName = () => {
-  return sessionStorage.getItem('selected_account_name') || 'Account';
+const getPersistedAccountName = (userId: string) => {
+  if (!userId) return 'Account';
+  return localStorage.getItem(`selected_account_name_${userId}`) || 'Account';
+};
+
+const clearUserAccountSelection = (userId: string) => {
+  if (!userId) return;
+  localStorage.removeItem(`selected_account_id_${userId}`);
+  localStorage.removeItem(`selected_account_name_${userId}`);
 };
 
 export default function SelectContent() {
   const { account, setAccount, refreshAccountDetails } = useAccount();
+  const { user } = useUser();
+  const userId = user?._id || '';
   
-  const persistedId = getPersistedAccountId();
-  const persistedName = getPersistedAccountName();
+  const persistedId = getPersistedAccountId(userId);
+  const persistedName = getPersistedAccountName(userId);
   
-  const [selectedAccount, setSelectedAccount] = React.useState<string>(persistedId);
-  const [selectedAccountName, setSelectedAccountName] = React.useState<string>(persistedName);
+  const [selectedAccount, setSelectedAccount] = React.useState<string>('');
+  const [selectedAccountName, setSelectedAccountName] = React.useState<string>('Account');
   const [isAddDialogOpen, setIsAddDialogOpen] = React.useState(false);
   const [listAccounts, setListAccounts] = React.useState<any[]>([]);
   const [isLoading, setIsLoading] = React.useState(false);
   const [initialLoadComplete, setInitialLoadComplete] = React.useState(false);
-  
+
+  // Set initial values from persisted state when user becomes available
   React.useEffect(() => {
-    const fetchData = async () => {
-      await fetchAwsConnections();
-      
-      if (account && account._id) {
-        setSelectedAccount(account._id);
-        setSelectedAccountName(account.name);
-        saveAccountSelection(account._id, account.name);
-      } else {
-        const persistedId = getPersistedAccountId();
-        
-        if (persistedId) {
-          try {
-            await refreshAccountDetails();
-          } catch (error) {
-            if (listAccounts.length > 0) {
-              const persistedAccount = listAccounts.find(acc => acc.id === persistedId);
-              if (persistedAccount) {
-                setSelectedAccount(persistedId);
-                setSelectedAccountName(persistedAccount.name);
-                setAccount({
-                  _id: persistedId,
-                  name: persistedAccount.name
-                });
-              }
-            }
-          }
-        }
-      }
-      
-      setInitialLoadComplete(true);
-    };
-    
-    fetchData();
+    if (userId) {
+      const id = getPersistedAccountId(userId);
+      const name = getPersistedAccountName(userId);
+      setSelectedAccount(id);
+      setSelectedAccountName(name);
+    } else {
+      setSelectedAccount('');
+      setSelectedAccountName('Account');
+    }
+  }, [userId]);
+  
+  // Fetch AWS connections on mount
+  React.useEffect(() => {
+    fetchAwsConnections();
   }, []);
 
+  // Handle account state changes
   React.useEffect(() => {
-    if (account && account._id) {
+    if (account && account._id && userId) {
       setSelectedAccount(account._id);
       setSelectedAccountName(account.name);
-      
-      if (account.name) {
-        saveAccountSelection(account._id, account.name);
+      saveAccountSelection(account._id, account.name, userId);
+    }
+  }, [account, userId]);
+
+  // Handle initial account restoration
+  React.useEffect(() => {
+    if (initialLoadComplete && !account && persistedId && listAccounts.length > 0 && userId) {
+      const persistedAccount = listAccounts.find(acc => acc.id === persistedId);
+      if (persistedAccount) {
+        setSelectedAccount(persistedId);
+        setSelectedAccountName(persistedAccount.name);
+        setAccount({
+          _id: persistedId,
+          name: persistedAccount.name
+        });
+      } else {
+        clearUserAccountSelection(userId);
+        setSelectedAccount('');
+        setSelectedAccountName('Account');
       }
     }
-  }, [account]);
+  }, [initialLoadComplete, listAccounts, userId]);
 
   const fetchAwsConnections = async () => {
     setIsLoading(true);
@@ -121,19 +131,6 @@ export default function SelectContent() {
           isValid: conn.isValidated
         }));
         setListAccounts(formattedConnections);
-        
-        const persistedId = getPersistedAccountId();
-        if (persistedId && !account) {
-          const persistedAccount = formattedConnections.find(acc => acc.id === persistedId);
-          if (persistedAccount) {
-            setSelectedAccount(persistedId);
-            setSelectedAccountName(persistedAccount.name);
-            setAccount({
-              _id: persistedId,
-              name: persistedAccount.name
-            });
-          }
-        }
       } else if (data && typeof data === 'object') {
         const connections = data.connections || data.results || data.items || data.data || [];
         
@@ -146,19 +143,6 @@ export default function SelectContent() {
             isValid: conn.isValidated
           }));
           setListAccounts(formattedConnections);
-          
-          const persistedId = getPersistedAccountId();
-          if (persistedId && !account) {
-            const persistedAccount = formattedConnections.find(acc => acc.id === persistedId);
-            if (persistedAccount) {
-              setSelectedAccount(persistedId);
-              setSelectedAccountName(persistedAccount.name);
-              setAccount({
-                _id: persistedId,
-                name: persistedAccount.name
-              });
-            }
-          }
         } else {
           setListAccounts([]);
         }
@@ -170,6 +154,7 @@ export default function SelectContent() {
       setListAccounts([]);
     } finally {
       setIsLoading(false);
+      setInitialLoadComplete(true);
     }
   };
 
@@ -181,7 +166,7 @@ export default function SelectContent() {
       setSelectedAccount(value);
       
       const selectedAccountObj = listAccounts.find(acc => acc.id === value);
-      if (selectedAccountObj) {
+      if (selectedAccountObj && userId) {
         setSelectedAccountName(selectedAccountObj.name);
         
         setAccount({
@@ -189,7 +174,7 @@ export default function SelectContent() {
           name: selectedAccountObj.name
         });
         
-        saveAccountSelection(selectedAccountObj.id, selectedAccountObj.name);
+        saveAccountSelection(selectedAccountObj.id, selectedAccountObj.name, userId);
       }
     }
   };
@@ -200,7 +185,7 @@ export default function SelectContent() {
       
       await fetchAwsConnections();
       
-      if (data && data._id) {
+      if (data && data._id && userId) {
         setSelectedAccount(data._id);
         setSelectedAccountName(data.name);
         setAccount({
@@ -208,7 +193,7 @@ export default function SelectContent() {
           name: data.name
         });
         
-        saveAccountSelection(data._id, data.name);
+        saveAccountSelection(data._id, data.name, userId);
       }
       
       setIsAddDialogOpen(false);

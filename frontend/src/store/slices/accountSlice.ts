@@ -17,6 +17,20 @@ const initialState: AccountState = {
   error: null
 };
 
+// Helper function to clear user-specific account selection
+const clearUserSpecificData = (userId: string | null) => {
+  if (!userId) {
+    // If no user ID, just remove the base keys
+    localStorage.removeItem('account_id');
+    return;
+  }
+  
+  // Remove user-specific account selection
+  localStorage.removeItem(`selected_account_id_${userId}`);
+  localStorage.removeItem(`selected_account_name_${userId}`);
+  localStorage.removeItem('account_id');
+};
+
 // Async thunk for refreshing account details
 export const refreshAccountDetails = createAsyncThunk(
   'account/refreshDetails',
@@ -83,8 +97,11 @@ const accountSlice = createSlice({
       }
     },
     clearAccount: (state) => {
+      const userId = localStorage.getItem('user_id');
       state.account = null;
-      localStorage.removeItem('account_id');
+      state.loading = false;
+      state.error = null;
+      clearUserSpecificData(userId);
     }
   },
   extraReducers: (builder) => {
