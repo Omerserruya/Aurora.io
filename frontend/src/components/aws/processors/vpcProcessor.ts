@@ -1,7 +1,6 @@
 import { AWSNode as AWSNodeType } from '../awsNodes';
 import { AWSEdge } from '../awsEdges';
 import { ConversionResult } from '../types';
-import { GLOBAL_LAYOUT } from '../utils/constants';
 import { createVpcNode, createResourceNode } from '../utils/nodeFactory';
 import { 
   ResourceProcessor, 
@@ -45,14 +44,14 @@ export default class VpcProcessor implements ResourceProcessor {
       // Create VPC node ID
       const vpcId = getResourceId('vpc', vpc.vpcId, generateNodeId);
       
-      // Create VPC node with proper position
+      // Create VPC node with default position (0,0) - will be positioned by layoutEngine
       const vpcNode = createVpcNode(
         vpcId,
         vpc.name || `VPC ${vpc.vpcId || vpcIndex + 1}`,
         vpc.vpcId || '',
         vpc.cidrBlock || '',
-        GLOBAL_LAYOUT.X_START,
-        GLOBAL_LAYOUT.Y_START + (vpcIndex * GLOBAL_LAYOUT.VPC_SPACING)
+        0,  // X position - to be set by layout engine
+        0   // Y position - to be set by layout engine
       );
       
       // Add VPC node to results

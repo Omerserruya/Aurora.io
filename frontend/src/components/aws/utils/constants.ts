@@ -37,8 +37,8 @@ export const NODE_TYPES = {
 export const NODE_DIMENSIONS = {
   // VPC dimensions
   VPC: {
-    DEFAULT_WIDTH: 1200,
-    DEFAULT_HEIGHT: 1000,
+    DEFAULT_WIDTH: 1000,
+    DEFAULT_HEIGHT: 800,
     INFO_CARD_WIDTH: 400,
     INFO_CARD_HEIGHT: 200,
     PADDING: 20,
@@ -93,6 +93,6 @@ export const EDGE_TYPES = {
 export const GLOBAL_LAYOUT = {
   X_START: 50,
   Y_START: 50,
-  VPC_SPACING: 1250,
+  VPC_SPACING: 1500,
   GRID_COLUMNS: 2
 }; 

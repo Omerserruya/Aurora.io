@@ -352,39 +352,89 @@ function resizeParentBasedOnChildren(
   }
 }
 
-// Calculate VPC positions in a grid
-const calculateVpcPositions = (vpcs: any[], dimensions: any) => {
-  const { GRID_COLUMNS, X_START, Y_START, VPC_SPACING } = dimensions;
-  const vpcWidth = NODE_DIMENSIONS.VPC.DEFAULT_WIDTH;
-  const vpcHeight = NODE_DIMENSIONS.VPC.DEFAULT_HEIGHT;
+// Calculate VPC positions in a grid - SIDE BY SIDE with NO OVERLAP
+export const calculateVpcPositions = (vpcs: AWSNodeType[], dimensions = GLOBAL_LAYOUT) => {
+  const vpcPositions: Record<string, { x: number, y: number }> = {};
   
-  return vpcs.map((vpc, index) => {
-    const row = Math.floor(index / GRID_COLUMNS);
-    const col = index % GRID_COLUMNS;
+  // Assign fixed positions to each VPC with balanced spacing
+  vpcs.forEach((vpc, index) => {
+    // Use a simple layout - alternate between left and right columns
+    const row = Math.floor(index / 2);
+    const col = index % 2;
     
-    return {
-      ...vpc,
-      position: {
-        x: X_START + (col * VPC_SPACING),
-        y: Y_START + (row * (vpcHeight + 100)) // Add 100px vertical spacing between rows
-      }
-    };
+    // Increase horizontal spacing to create clear separation
+    // First column starts at x=50, second at x=1500
+    const xPos = col === 0 ? 50 : 1500;
+    const yPos = 50 + (row * 950); // Slightly more vertical space
+    
+    // Store the position for this VPC
+    vpcPositions[vpc.id] = { x: xPos, y: yPos };
+    
+    // Update the VPC with its fixed position
+    vpc.position = { x: xPos, y: yPos };
+    
+    // Ensure VPCs are independent nodes
+    vpc.parentNode = undefined;
+    vpc.extent = undefined;
   });
+  
+  return vpcs;
 };
 
 // Update the main layout function to use grid layout for VPCs
-export const calculateLayout = (nodes: any[], edges: any[]) => {
-  const vpcs = nodes.filter(node => node.type === NODE_TYPES.VPC);
-  const vpcsWithPositions = calculateVpcPositions(vpcs, GLOBAL_LAYOUT);
+export const calculateLayout = (nodes: AWSNodeType[], edges: any[]): { nodes: AWSNodeType[], edges: any[] } => {
+  // Find all VPC nodes
+  const vpcs = nodes.filter(node => node.data.type === NODE_TYPES.VPC);
   
-  // Update nodes with VPC positions
+  if (vpcs.length === 0) {
+    return { nodes, edges };
+  }
+  
+  // Calculate positions for VPCs in a grid layout with explicit positions
+  const positionedVpcs = calculateVpcPositions(vpcs);
+  
+  // Create a map for quick VPC ID lookup
+  const vpcMap = new Map();
+  positionedVpcs.forEach(vpc => {
+    vpcMap.set(vpc.id, vpc);
+  });
+  
+  // Create a new array with the updated nodes
   const updatedNodes = nodes.map(node => {
-    if (node.type === NODE_TYPES.VPC) {
-      const vpcWithPosition = vpcsWithPositions.find(v => v.id === node.id);
-      return { ...node, position: vpcWithPosition.position };
+    // For VPC nodes, use their pre-calculated positions
+    if (node.data.type === NODE_TYPES.VPC) {
+      const positionedVpc = vpcMap.get(node.id);
+      if (positionedVpc) {
+        return {
+          ...node,
+          position: { ...positionedVpc.position },
+          parentNode: undefined, // VPCs have no parent
+          extent: undefined, // VPCs are not restricted to an extent
+          // Force dimensions to be explicit
+          style: {
+            ...node.style,
+            width: NODE_DIMENSIONS.VPC.DEFAULT_WIDTH,
+            height: NODE_DIMENSIONS.VPC.DEFAULT_HEIGHT
+          },
+          draggable: true // Allow VPCs to be individually dragged
+        };
+      }
     }
+    
+    // For non-VPC nodes, maintain their relationship with parent VPCs
     return node;
   });
-
-  // ... rest of the existing layout code ...
+  
+  // Process the nodes to ensure parent-child relationships are maintained for subnet nodes
+  const parentIds = Array.from(new Set(updatedNodes
+    .filter(node => node.parentNode && node.data.type !== NODE_TYPES.VPC)
+    .map(node => node.parentNode as string)));
+  
+  // Return the updated nodes and edges
+  const finalNodes = updateParentDimensions(updatedNodes, parentIds);
+  
+  return {
+    nodes: finalNodes,
+    edges
+  };
 }; 

@@ -27,7 +27,8 @@ export function createVpcNode(
     style: {
       width: NODE_DIMENSIONS.VPC.DEFAULT_WIDTH,
       height: NODE_DIMENSIONS.VPC.DEFAULT_HEIGHT,
-      zIndex: Z_INDEX.CONTAINER
+      zIndex: Z_INDEX.CONTAINER,
+      backgroundColor: 'rgba(240, 248, 255, 0.5)'  // Light transparent background
     },
     data: {
       label,
@@ -35,7 +36,14 @@ export function createVpcNode(
       resourceId: id,
       VpcId: vpcId,
       CidrBlock: cidrBlock
-    }
+    },
+    // Make node fully independent
+    draggable: true,         // Allow dragging
+    selectable: true,        // Can be selected individually 
+    connectable: false,      // Prevent new connections
+    parentNode: undefined,   // No parent relationship
+    extent: undefined,       // Not constrained to parent
+    expandParent: false      // Don't expand parent when this node is moved
   };
 }
 

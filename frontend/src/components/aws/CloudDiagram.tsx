@@ -22,6 +22,8 @@ import { CloudDiagramProps } from './types';
 import ResourceDetailsPanel from './components/ResourceDetailsPanel';
 import DiagramControls from './components/DiagramControls';
 import { convertAwsDataToFlow } from './utils/dataConverter';
+import { calculateLayout } from './utils/layoutEngine';
+import { NODE_TYPES } from './utils/constants';
 import nodeTypes from './nodeRegistry';
 import { AWSNode as AWSNodeType } from './awsNodes';
 import { AWSEdge, AWSEdgeData } from './awsEdges';
@@ -38,11 +40,32 @@ const CloudDiagram: React.FC<CloudDiagramProps> = ({ awsData }) => {
   useEffect(() => {
     if (awsData) {
       const { nodes: convertedNodes, edges: convertedEdges } = convertAwsDataToFlow(awsData);
+      
       if (convertedNodes.length > 0) {
-        setNodes(convertedNodes);
-        setEdges(convertedEdges);
+        // Apply layout algorithm to ensure proper positioning
+        const { nodes: layoutNodes, edges: layoutEdges } = calculateLayout(convertedNodes, convertedEdges);
+        
+        // Ensure VPC nodes are independent (not connected in parent-child relationship)
+        const independentNodes = layoutNodes.map(node => {
+          // Only modify VPC nodes to make them fully independent
+          if (node.data.type === NODE_TYPES.VPC) {
+            return {
+              ...node,
+              parentNode: undefined,
+              extent: undefined,
+              draggable: true, // Allow individual dragging
+              connectable: false, // Prevent new connections
+            };
+          }
+          return node;
+        });
+        
+        // Set the nodes with calculated layout
+        setNodes(independentNodes);
+        setEdges(layoutEdges);
+        
         // Fit view to show the entire diagram
-        setTimeout(() => reactFlowInstance.fitView({ padding: 0.1 }), 100);
+        setTimeout(() => reactFlowInstance.fitView({ padding: 0.2 }), 200);
       }
     }
   }, [awsData, setNodes, setEdges, reactFlowInstance]);
@@ -71,20 +94,38 @@ const CloudDiagram: React.FC<CloudDiagramProps> = ({ awsData }) => {
 
   // Center the view to fit the diagram
   const fitView = useCallback(() => {
-    reactFlowInstance.fitView({ padding: 0.1 });
+    reactFlowInstance.fitView({ padding: 0.2 });
   }, [reactFlowInstance]);
 
   // Reset to the initial diagram
   const resetDiagram = useCallback(() => {
     if (awsData) {
       const { nodes: convertedNodes, edges: convertedEdges } = convertAwsDataToFlow(awsData);
-      setNodes(convertedNodes);
-      setEdges(convertedEdges);
+      
+      // Apply layout algorithm to ensure proper positioning
+      const { nodes: layoutNodes, edges: layoutEdges } = calculateLayout(convertedNodes, convertedEdges);
+      
+      // Ensure VPC nodes are independent
+      const independentNodes = layoutNodes.map(node => {
+        if (node.data.type === NODE_TYPES.VPC) {
+          return {
+            ...node,
+            parentNode: undefined,
+            extent: undefined,
+            draggable: true, // Allow individual dragging
+            connectable: false, // Prevent new connections
+          };
+        }
+        return node;
+      });
+      
+      setNodes(independentNodes);
+      setEdges(layoutEdges);
     } else {
       setNodes(initialNodes);
       setEdges(initialEdges);
     }
-    setTimeout(() => fitView(), 100);
+    setTimeout(() => fitView(), 200);
   }, [awsData, setNodes, setEdges, fitView]);
 
   return (
@@ -106,6 +147,15 @@ const CloudDiagram: React.FC<CloudDiagramProps> = ({ awsData }) => {
             minZoom={0.1}
             maxZoom={4}
             defaultEdgeOptions={{ type: 'smoothstep', animated: true }}
+            defaultViewport={{ x: 0, y: 0, zoom: 0.75 }}
+            nodesDraggable={true} // Enable dragging for nodes
+            multiSelectionKeyCode={null} // Disable multi-selection
+            selectionOnDrag={false} // Disable selection on drag
+            panOnDrag={true} // Enable panning
+            elementsSelectable={true} // Allow selecting elements
+            zoomOnScroll={true} // Enable zoom on scroll
+            zoomOnPinch={true} // Enable zoom on pinch
+            panOnScroll={false} // Disable pan on scroll to prevent unexpected behavior
           >
             <Background />
             <Controls />
