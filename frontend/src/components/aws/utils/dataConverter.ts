@@ -37,6 +37,7 @@ export function convertAwsDataToFlow(awsData: AWSArchitecture): ConversionResult
   // Process VPC resources (which will cascade to subnets, EC2, etc.)
   if (awsData.vpcs && awsData.vpcs.length > 0) {
     const vpcProcessor = new VpcProcessor();
+    // Pass all the VPC-related resources for processing
     vpcProcessor.process(awsData.vpcs, result, generateNodeId, generateEdgeId);
   }
   
@@ -53,16 +54,104 @@ function processGlobalResources(
   awsData: AWSArchitecture,
   result: ConversionResult
 ): void {
-  // Here you would add processing for global resources like:
-  // - S3 buckets
-  // - IAM roles/users/policies
-  // - Route53 domains
-  // - CloudFront distributions
-  // etc.
+  // Process S3 buckets if available
+  if (awsData.s3Buckets && awsData.s3Buckets.length > 0) {
+    processS3Buckets(awsData.s3Buckets, result);
+  }
   
-  // For example, if the data model includes these:
-  // processS3Buckets(awsData.s3Buckets || [], result);
-  // processIamResources(awsData.iamResources || {}, result);
+  // Process IAM resources if available
+  if (awsData.iamRoles || awsData.iamUsers || awsData.iamPolicies) {
+    processIamResources(awsData, result);
+  }
+}
+
+/**
+ * Process S3 buckets
+ */
+function processS3Buckets(
+  buckets: any[],
+  result: ConversionResult
+): void {
+  // Position buckets in a horizontal line at the bottom
+  const bucketStartX = 100;
+  const bucketY = 800;
+  const bucketSpacing = 200;
   
-  // These would be implemented in separate processor classes
+  buckets.forEach((bucket, index) => {
+    const nodeId = generateNodeId();
+    result.nodes.push({
+      id: nodeId,
+      type: 'awsS3Bucket',
+      position: { x: bucketStartX + (index * bucketSpacing), y: bucketY },
+      data: {
+        label: bucket.name,
+        name: bucket.name,
+        resource: bucket
+      }
+    });
+  });
+}
+
+/**
+ * Process IAM resources
+ */
+function processIamResources(
+  awsData: AWSArchitecture,
+  result: ConversionResult
+): void {
+  // Position IAM resources in a horizontal line at the top
+  const iamStartX = 100;
+  const iamY = 50;
+  const iamSpacing = 200;
+  
+  // Process roles
+  if (awsData.iamRoles) {
+    awsData.iamRoles.forEach((role, index) => {
+      const nodeId = generateNodeId();
+      result.nodes.push({
+        id: nodeId,
+        type: 'awsIAMRole',
+        position: { x: iamStartX + (index * iamSpacing), y: iamY },
+        data: {
+          label: role.roleName,
+          name: role.roleName,
+          resource: role
+        }
+      });
+    });
+  }
+  
+  // Process users
+  if (awsData.iamUsers) {
+    awsData.iamUsers.forEach((user, index) => {
+      const nodeId = generateNodeId();
+      result.nodes.push({
+        id: nodeId,
+        type: 'awsIAMUser',
+        position: { x: iamStartX + (index * iamSpacing), y: iamY + 120 },
+        data: {
+          label: user.userName,
+          name: user.userName,
+          resource: user
+        }
+      });
+    });
+  }
+  
+  // Process policies
+  if (awsData.iamPolicies) {
+    awsData.iamPolicies.forEach((policy, index) => {
+      const nodeId = generateNodeId();
+      result.nodes.push({
+        id: nodeId,
+        type: 'awsIAMPolicy',
+        position: { x: iamStartX + (index * iamSpacing), y: iamY + 240 },
+        data: {
+          label: policy.policyName,
+          name: policy.policyName,
+          resource: policy
+        }
+      });
+    });
+  }
 } 

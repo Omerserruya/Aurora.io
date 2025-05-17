@@ -100,6 +100,39 @@ export default class VpcProcessor implements ResourceProcessor {
           vpcId
         );
       }
+      
+      // Process route tables if any
+      if (vpc.routeTables && vpc.routeTables.length > 0) {
+        this.processRouteTables(
+          vpc.routeTables,
+          vpcId,
+          result,
+          generateNodeId,
+          generateEdgeId
+        );
+      }
+      
+      // Process network ACLs if any
+      if (vpc.networkAcls && vpc.networkAcls.length > 0) {
+        this.processNetworkAcls(
+          vpc.networkAcls,
+          vpcId,
+          result,
+          generateNodeId,
+          generateEdgeId
+        );
+      }
+      
+      // Process load balancers if any
+      if (vpc.loadBalancers && vpc.loadBalancers.length > 0) {
+        this.processLoadBalancers(
+          vpc.loadBalancers,
+          vpcId,
+          result,
+          generateNodeId,
+          generateEdgeId
+        );
+      }
     });
     
     // Update VPC dimensions after all children are added
@@ -158,6 +191,164 @@ export default class VpcProcessor implements ResourceProcessor {
         data: {
           type: 'natgw-to-vpc',
           description: 'NAT Gateway is in VPC'
+        }
+      });
+    });
+  }
+  
+  /**
+   * Process Route Tables
+   */
+  private processRouteTables(
+    routeTables: any[],
+    vpcId: string,
+    result: ConversionResult,
+    generateNodeId: () => string,
+    generateEdgeId: () => string
+  ): void {
+    const { nodes, edges } = result;
+    
+    // Process each Route Table
+    routeTables.forEach((routeTable, index) => {
+      // Create Route Table node ID
+      const rtId = getResourceId('rt', routeTable.routeTableId, generateNodeId);
+      
+      // Create Route Table node
+      const rtNode = createResourceNode(
+        rtId,
+        routeTable.name || `Route Table ${index + 1}`,
+        'route_table',
+        rtId,
+        vpcId,
+        0, 0, // Position will be updated by positionNodeInParent
+        {
+          RouteTableId: routeTable.routeTableId || '',
+          VpcId: vpcId,
+          Routes: routeTable.routes || []
+        }
+      );
+      
+      // Add Route Table node to results
+      nodes.push(rtNode);
+      
+      // Position Route Table relative to VPC
+      positionNodeInParent(rtNode, nodes, vpcId);
+      
+      // Create edge from Route Table to VPC
+      edges.push({
+        id: generateEdgeId(),
+        source: rtId,
+        target: vpcId,
+        type: 'smoothstep',
+        data: {
+          type: 'rt-to-vpc',
+          description: 'Route Table is in VPC'
+        }
+      });
+    });
+  }
+  
+  /**
+   * Process Network ACLs
+   */
+  private processNetworkAcls(
+    networkAcls: any[],
+    vpcId: string,
+    result: ConversionResult,
+    generateNodeId: () => string,
+    generateEdgeId: () => string
+  ): void {
+    const { nodes, edges } = result;
+    
+    // Process each Network ACL
+    networkAcls.forEach((nacl, index) => {
+      // Create Network ACL node ID
+      const naclId = getResourceId('nacl', nacl.networkAclId, generateNodeId);
+      
+      // Create Network ACL node
+      const naclNode = createResourceNode(
+        naclId,
+        nacl.name || `Network ACL ${index + 1}`,
+        'network_acl',
+        naclId,
+        vpcId,
+        0, 0, // Position will be updated by positionNodeInParent
+        {
+          NetworkAclId: nacl.networkAclId || '',
+          VpcId: vpcId,
+          Entries: nacl.entries || []
+        }
+      );
+      
+      // Add Network ACL node to results
+      nodes.push(naclNode);
+      
+      // Position Network ACL relative to VPC
+      positionNodeInParent(naclNode, nodes, vpcId);
+      
+      // Create edge from Network ACL to VPC
+      edges.push({
+        id: generateEdgeId(),
+        source: naclId,
+        target: vpcId,
+        type: 'smoothstep',
+        data: {
+          type: 'nacl-to-vpc',
+          description: 'Network ACL is in VPC'
+        }
+      });
+    });
+  }
+  
+  /**
+   * Process Load Balancers
+   */
+  private processLoadBalancers(
+    loadBalancers: any[],
+    vpcId: string,
+    result: ConversionResult,
+    generateNodeId: () => string,
+    generateEdgeId: () => string
+  ): void {
+    const { nodes, edges } = result;
+    
+    // Process each Load Balancer
+    loadBalancers.forEach((lb, index) => {
+      // Create Load Balancer node ID
+      const lbId = getResourceId('lb', lb.loadBalancerArn || `lb-${index}`, generateNodeId);
+      
+      // Create Load Balancer node
+      const lbNode = createResourceNode(
+        lbId,
+        lb.loadBalancerName || `Load Balancer ${index + 1}`,
+        'load_balancer',
+        lbId,
+        vpcId,
+        0, 0, // Position will be updated by positionNodeInParent
+        {
+          LoadBalancerArn: lb.loadBalancerArn || '',
+          LoadBalancerName: lb.loadBalancerName || '',
+          VpcId: vpcId,
+          Type: lb.type || '',
+          Scheme: lb.scheme || ''
+        }
+      );
+      
+      // Add Load Balancer node to results
+      nodes.push(lbNode);
+      
+      // Position Load Balancer relative to VPC
+      positionNodeInParent(lbNode, nodes, vpcId);
+      
+      // Create edge from Load Balancer to VPC
+      edges.push({
+        id: generateEdgeId(),
+        source: lbId,
+        target: vpcId,
+        type: 'smoothstep',
+        data: {
+          type: 'lb-to-vpc',
+          description: 'Load Balancer is deployed in VPC'
         }
       });
     });
