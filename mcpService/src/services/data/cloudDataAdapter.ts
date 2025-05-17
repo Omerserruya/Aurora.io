@@ -13,13 +13,59 @@ class CloudDataAdapter implements IDataAdapter {
   }
   
   public supportsQuery(query: string): boolean {
-    // Check if the query is about cloud resources, infrastructure, etc.
+    // ========== AWS KEYWORD MATCHING LOGIC ==========
+    // This adapter only responds to queries containing specific AWS/cloud terms
+    // It acts as a technical specialist that should only be called when the user
+    // is specifically asking about their cloud resources or infrastructure.
+    
+    // We use a deliberately targeted list of cloud-specific keywords to avoid this
+    // adapter being triggered for general conversation or non-technical queries.
     const cloudKeywords = [
-      'aws', 'ec2', 'rds', 's3', 'vpc', 'subnet', 'security', 
-      'cloud', 'instance', 'database', 'bucket', 'network',
-      'infrastructure', 'resources', 'region', 'architecture'
+      // Core AWS services
+      'aws', 'amazon', 'ec2', 'rds', 's3', 'lambda', 'dynamodb', 'ecs', 'eks',
+      'aurora', 'redshift', 'elasticache', 'sqs', 'sns', 'cloudwatch', 'cloudfront',
+      'route53', 'iam', 'kms', 'cloudformation', 'apigateway', 'step functions',
+      
+      // Networking concepts
+      'vpc', 'subnet', 'cidr', 'route table', 'acl', 'security group', 'nacl',
+      'internet gateway', 'igw', 'nat gateway', 'elb', 'alb', 'nlb', 'load balancer',
+      'network', 'firewall', 'transit gateway', 'vpn', 'direct connect', 'endpoint',
+      
+      // Compute terms
+      'instance', 'server', 'container', 'kubernetes', 'ec2', 'ami', 'auto scaling',
+      'serverless', 'fargate', 'batch', 'lightsail', 'elastic beanstalk', 'vm',
+      
+      // Storage terms
+      'storage', 'bucket', 's3', 'efs', 'ebs', 'volume', 'snapshot', 'backup',
+      'glacier', 'fsx', 'storage gateway', 'object storage', 'block storage',
+      
+      // Database terms
+      'database', 'db', 'rds', 'dynamodb', 'aurora', 'mysql', 'postgres', 'sql',
+      'nosql', 'mongodb', 'redis', 'elasticache', 'neptune', 'documentdb',
+      
+      // Security terms
+      'security', 'iam', 'role', 'policy', 'permission', 'encryption', 'kms',
+      'certificate', 'acm', 'waf', 'shield', 'guard duty', 'inspector', 'macie',
+      
+      // Cost and billing terms
+      'cost', 'billing', 'price', 'pricing', 'budget', 'spend', 'expense',
+      'reservation', 'saving plan', 'on-demand', 'spot', 'reserved instance', 'ri', 
+      'cost explorer', 'optimizer', 'allocation', 'usage', 'consumption',
+      
+      // Developer and DevOps tools
+      'codepipeline', 'codecommit', 'codebuild', 'codedeploy', 'codestar',
+      'cloud9', 'amplify', 'devops', 'ci/cd', 'pipeline', 'gitops',
+      'developer', 'artifact', 'repository', 'ecr', 'container registry',
+      
+      // General cloud concepts
+      'region', 'availability zone', 'az', 'cloud', 'infrastructure', 'resources',
+      'architecture', 'environment', 'workload', 'service', 'managed service',
+      'provisioning', 'deployment', 'configuration', 'terraform', 'cloudformation'
     ];
     
+    // Simple substring matching to identify if any cloud keyword is present
+    // This is the trigger that determines if this adapter should handle the query
+    // Note: This adapter has lowest priority in ContextService registration order
     return cloudKeywords.some(keyword => 
       query.toLowerCase().includes(keyword)
     );
@@ -515,4 +561,4 @@ class CloudDataAdapter implements IDataAdapter {
   }
 }
 
-export default CloudDataAdapter; 
+export default CloudDataAdapter;

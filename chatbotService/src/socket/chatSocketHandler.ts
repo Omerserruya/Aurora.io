@@ -72,8 +72,7 @@ export default function setupSocketHandlers(io: Server) {
         
         // Send response back to the specific room
         io.to(roomId).emit('receive_message', {
-          response: response.response,
-          timestamp: new Date().toISOString()
+          response: response.response
         });
         
       } catch (error: any) {
