@@ -66,8 +66,15 @@ const userSlice = createSlice({
       }
     },
     clearUser: (state) => {
+      const userId = state.user?._id || localStorage.getItem('user_id');
       state.user = null;
       localStorage.removeItem('user_id');
+      
+      // Remove user-specific account selection when logging out
+      if (userId) {
+        localStorage.removeItem(`selected_account_id_${userId}`);
+        localStorage.removeItem(`selected_account_name_${userId}`);
+      }
     }
   },
   extraReducers: (builder) => {

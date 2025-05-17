@@ -4,6 +4,11 @@ import { Strategy as GoogleStrategy, Profile as GoogleProfile } from 'passport-g
 import axios from 'axios';
 import { IUser } from './src/models/user_model'; // Keep just for the interface
 
+// Error constants
+const AUTH_ERRORS = {
+  EMAIL_EXISTS: 'email_exists'
+};
+
 // Create a userService for API calls
 const userServiceBaseUrl = process.env.USER_SERVICE_URL || 'http://users-service:4001';
 console.log(`Configuring passport with User Service URL: ${userServiceBaseUrl}`);
@@ -78,7 +83,7 @@ passport.use(
               if (!existingUser.githubId) {
                 console.log('User exists but has no githubId');
                 // User exists with email but hasn't used GitHub login before
-                return done(new Error('email_exists'), false);
+                return done(new Error(AUTH_ERRORS.EMAIL_EXISTS), false);
               }
               
               // User exists and has used GitHub login before - continue with login
@@ -171,7 +176,7 @@ passport.use(
               if (!existingUser.googleId) {
                 console.log('User exists but has no googleId');
                 // User exists with email but hasn't used Google login before
-                return done(new Error('email_exists'), false);
+                return done(new Error(AUTH_ERRORS.EMAIL_EXISTS), false);
               }
               
               // User exists and has used Google login before - continue with login
