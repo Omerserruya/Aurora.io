@@ -30,8 +30,8 @@ export const authentification = (req: Request, res: Response, next: NextFunction
   }
 
   try {
-    console.log('[Auth] Verifying token with JWT_KEY');
-    const payload = jwt.verify(token, process.env.JWT_KEY as string) as Payload;
+    console.log('[Auth] Verifying token with JWT_SECRET_KEY');
+    const payload = jwt.verify(token, process.env.JWT_SECRET_KEY as string) as Payload;
     
     console.log('[Auth] Token verified successfully, userId:', payload.userId);
     req.params.userId = payload.userId;

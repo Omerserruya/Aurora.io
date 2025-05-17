@@ -28,7 +28,7 @@ NODE_ENV=development
 GEMINI_API_KEY=your_gemini_api_key_here
 DB_SERVICE_URL=http://db-service:4003
 MCP_SERVICE_URL=http://mcp-service:4006
-JWT_KEY=your_jwt_secret_key
+JWT_SECRET_KEY=your_jwt_secret_key
 ```
 
 For production, create a `.env` file with similar configuration.

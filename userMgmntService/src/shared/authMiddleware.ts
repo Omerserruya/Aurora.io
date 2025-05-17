@@ -22,7 +22,7 @@ export const authentification = (req: Request, res: Response, next: NextFunction
   
   try {
     // Verify token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'default-secret-key') as any;
+    const decoded = jwt.verify(token, process.env.JWT_SECRET_KEY || 'default-secret-key') as any;
     
     // Add user ID to request params for route handlers
     req.params.userId = decoded.id;

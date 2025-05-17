@@ -141,7 +141,7 @@ const login = async (req: Request, res: Response, next: NextFunction) => {
         const token = generateToken(
             user._id, 
             user.email, 
-            process.env.JWT_KEY as Secret, 
+            process.env.JWT_SECRET_KEY as Secret, 
             process.env.JWT_EXPIRES_IN as string
         );
         
@@ -197,7 +197,7 @@ const loginExternal = async (req: Request, res: Response, next: NextFunction) =>
         const token = generateToken(
             user._id, 
             user.email, 
-            process.env.JWT_KEY as Secret, 
+            process.env.JWT_SECRET_KEY as Secret, 
             process.env.JWT_EXPIRES_IN as string
         );
         
@@ -302,7 +302,7 @@ export const authentification = async (req: Request, res: Response, next: NextFu
     }
     
     try {
-        jwt.verify(token, process.env.JWT_KEY as string, (err, payload) => {
+        jwt.verify(token, process.env.JWT_SECRET_KEY as string, (err, payload) => {
             if (err) {
                 return res.status(401).json({ message: 'Auth failed' });
             }
@@ -352,7 +352,7 @@ const refreshToken = async (req: Request, res: Response, next: any) => {
         const newToken = generateToken(
             decoded.userId, 
             decoded.email, 
-            process.env.JWT_KEY as Secret, 
+            process.env.JWT_SECRET_KEY as Secret, 
             process.env.JWT_EXPIRES_IN as string
         );
         
