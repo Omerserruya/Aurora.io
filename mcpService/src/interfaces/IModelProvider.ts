@@ -3,6 +3,7 @@ export interface ModelOptions {
   maxTokens?: number;
   topP?: number;
   topK?: number;
+  format?: 'text' | 'json';
 }
 
 export interface ModelInfo {

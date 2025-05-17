@@ -2,7 +2,6 @@ import { Request, Response } from 'express';
 import modelService from '../services/modelService';
 import contextService from '../services/contextService';
 import logger from '../utils/logger';
-
 export const mcpController = {
   /**
    * Process a user query using the MCP
@@ -45,7 +44,7 @@ export const mcpController = {
       const response = await modelService.generateResponse(
         prompt, 
         context.text, 
-        options
+        { ...options, format: 'text' } // Specify text format for chat
       );
       
       // Capture metrics

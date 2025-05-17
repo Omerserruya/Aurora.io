@@ -34,7 +34,7 @@ export default function NavbarBreadcrumbs() {
       separator={<NavigateNextRoundedIcon fontSize="small" />}
     >
       <Typography variant="body1" color="text.secondary">
-        Dashboard
+        Aurora
       </Typography>
       <Typography variant="body1" sx={{ color: 'text.primary', fontWeight: 600 }}>
         {getPageTitle(location.pathname) || 'Home'}
