@@ -1,8 +1,8 @@
 import express, { Express } from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
-import { environment } from './config/environment';
 import chatbotRoutes from './routes/chatbotRoutes';
+import aiRecommendationsRoutes from './routes/aiRecommendations.routes';
 
 const createServer = (): Express => {
   const app = express();
@@ -25,6 +25,7 @@ const createServer = (): Express => {
     next();
   });
   
+  app.use('/recommendations', aiRecommendationsRoutes);
   // Routes
   app.use('/', chatbotRoutes);
   

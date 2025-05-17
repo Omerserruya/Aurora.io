@@ -1,4 +1,4 @@
-import { MCP_SERVICE_URL } from '../config/index';
+import { API_URL } from '../config/index';
 
 export interface AIRecommendation {
     title: string;
@@ -42,14 +42,14 @@ export const getAIRecommendations = async (userId: string, connectionId: string)
     pendingRequest = (async () => {
         for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
             try {
-                console.log(`Fetching recommendations (attempt ${attempt}/${MAX_RETRIES}) from:`, 
-                    `${MCP_SERVICE_URL}/api/mcp/recommendations?userId=${userId}&connectionId=${connectionId}`);
+                const url = `${API_URL}/api/chatbot/recommendations?userId=${userId}&connectionId=${connectionId}`;
+                console.log(`Fetching recommendations (attempt ${attempt}/${MAX_RETRIES}) from:`, url);
                 
                 const controller = new AbortController();
                 const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
                 
                 const response = await fetch(
-                    `${MCP_SERVICE_URL}/api/mcp/recommendations?userId=${userId}&connectionId=${connectionId}`,
+                    url,
                     {
                         signal: controller.signal,
                         headers: {
