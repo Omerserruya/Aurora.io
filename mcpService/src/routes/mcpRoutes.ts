@@ -6,6 +6,9 @@ const router = Router();
 // Process a query
 router.post('/query', mcpController.processQuery);
 
+// Get AI recommendations
+router.get('/recommendations', mcpController.getRecommendations);
+
 // Health check endpoint
 router.get('/health', mcpController.healthCheck);
 

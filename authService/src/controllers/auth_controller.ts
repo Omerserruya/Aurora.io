@@ -29,6 +29,7 @@ interface User {
     tokens?: string[];
     password?: string;
     createdAt?: Date;
+    googleId?: string;
 }
 
 const generateToken = (
@@ -137,6 +138,12 @@ const login = async (req: Request, res: Response, next: NextFunction) => {
             return res.status(401).json({ message: 'Wrong email or password' });
         }
         
+        // Update last login and auth provider
+        await userServiceClient.put(`/${user._id}`, {
+            lastLogin: new Date(),
+            authProvider: 'local'
+        });
+        
         // Generate tokens
         const token = generateToken(
             user._id, 
@@ -177,9 +184,11 @@ const login = async (req: Request, res: Response, next: NextFunction) => {
                 _id: user._id,
                 username: user.username,
                 email: user.email,
+                authProvider: 'local',
+                lastLogin: new Date()
             }
         });
-    } catch (error: any) {
+    } catch (error) {
         console.error('Login error:', error);
         res.status(500).json({ message: 'Internal server error' });
     }
@@ -192,6 +201,15 @@ const loginExternal = async (req: Request, res: Response, next: NextFunction) =>
         if (!user) {
             return res.redirect(`/oauth/callback?error=auth_failed`);
         }
+
+        // Determine auth provider based on OAuth source
+        const authProvider = user.googleId ? 'google' : 'github';
+
+        // Update last login and auth provider
+        await userServiceClient.put(`/${user._id}`, {
+            lastLogin: new Date(),
+            authProvider
+        });
 
         // Generate tokens
         const token = generateToken(
@@ -208,7 +226,6 @@ const loginExternal = async (req: Request, res: Response, next: NextFunction) =>
             process.env.JWT_REFRESH_EXPIRES_IN as string
         );
       
-        
         // Set cookies with debug logging
         res.cookie('accessToken', token, { 
             httpOnly: true, 
@@ -228,7 +245,7 @@ const loginExternal = async (req: Request, res: Response, next: NextFunction) =>
         console.log('Cookies set, redirecting to:', `/oauth/callback`);
       
         // Redirect to the correct frontend route
-        res.redirect(`/oauth/callback?userId=${user._id}&username=${encodeURIComponent(user.username)}&email=${user.email}&role=${user.role}&createdAt=${user.createdAt}`);
+        res.redirect(`/oauth/callback?userId=${user._id}&username=${encodeURIComponent(user.username)}&email=${user.email}&role=${user.role}&createdAt=${user.createdAt}&authProvider=${authProvider}&lastLogin=${new Date()}`);
     } catch (error: any) {
         console.error('Error in external login:', error);
         return res.redirect(`/oauth/callback?error=auth_failed`);

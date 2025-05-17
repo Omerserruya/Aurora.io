@@ -10,6 +10,8 @@ export interface IUser extends Document {
   googleId?: string;
   avatarUrl: string;
   role?: string;
+  authProvider: 'google' | 'github' | 'local';
+  lastLogin: Date;
   createdAt?: Date;
   updatedAt?: Date;
   tokens?: string[];
@@ -37,6 +39,16 @@ const userSchema: Schema<IUser> = new mongoose.Schema({
     enum: ['user', 'admin'],
     default: 'user',
     required: false
+  },
+  authProvider: {
+    type: String,
+    enum: ['google', 'github', 'local'],
+    default: 'local',
+    required: true
+  },
+  lastLogin: {
+    type: Date,
+    default: Date.now
   },
   avatarUrl: {
     type: String,

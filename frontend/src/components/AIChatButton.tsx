@@ -130,9 +130,7 @@ const AIChatButton: React.FC<AIChatButtonProps> = ({ isInline = false, isOpen: p
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'error' as 'error' | 'warning' | 'info' | 'success' });
   const theme = useTheme();
   const messagesEndRef = useRef<null | HTMLDivElement>(null);
-
-  // Use controlled state if provided through props
-  const chatIsOpen = isInline ? propIsOpen : false;
+  const [chatIsOpen, setChatIsOpen] = useState(isInline ? propIsOpen : false);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -150,7 +148,6 @@ const AIChatButton: React.FC<AIChatButtonProps> = ({ isInline = false, isOpen: p
     setSnackbar({ ...snackbar, open: false });
   };
 
-  // Scroll to bottom when messages change
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
@@ -163,7 +160,6 @@ const AIChatButton: React.FC<AIChatButtonProps> = ({ isInline = false, isOpen: p
         socket.on('connect', () => {
           setSocketConnected(true);
           
-          // Join room when socket is connected and chat is open
           if (user && account) {
             const joined = socketService.joinRoom(user._id, account._id);
             if (joined) {
@@ -171,7 +167,6 @@ const AIChatButton: React.FC<AIChatButtonProps> = ({ isInline = false, isOpen: p
           }
         });
 
-        // Listen for room join confirmation
         const handleRoomJoined = () => {
           setRoomJoined(true);
         };
@@ -195,7 +190,6 @@ const AIChatButton: React.FC<AIChatButtonProps> = ({ isInline = false, isOpen: p
           setIsLoading(false);
         });
         
-        // Try to join room if we're already connected
         if (socketConnected && user && account) {
           socketService.joinRoom(user._id, account._id);
         }
@@ -222,6 +216,22 @@ const AIChatButton: React.FC<AIChatButtonProps> = ({ isInline = false, isOpen: p
     checkServiceHealth();
   }, []);
 
+  useEffect(() => {
+    const handler = (event: CustomEvent) => {
+      if (chatIsOpen) {
+        setChatIsOpen(false);
+      } else {
+        setChatIsOpen(true);
+        if (event.detail && event.detail.message) {
+          setInputMessage(`Your analysis gave me this recommendation: ${event.detail.message}\nPlease instruct me how to fix that. Thank you!`);
+        }
+      }
+      if (onToggle) onToggle();
+    };
+    window.addEventListener('open-ai-chat', handler as EventListener);
+    return () => window.removeEventListener('open-ai-chat', handler as EventListener);
+  }, [onToggle, chatIsOpen]);
+
   const handleSendMessage = async () => {
     if (!inputMessage.trim() || !user || !account) return;
 
@@ -247,7 +257,6 @@ const AIChatButton: React.FC<AIChatButtonProps> = ({ isInline = false, isOpen: p
             maxTokens: 150
           }
         });
-        // Socket response will be handled by the socket event listeners
       } catch (error) {
         console.error('Socket error:', error);
         sendMessageHttp(messageText);
@@ -493,8 +502,12 @@ const AIChatButton: React.FC<AIChatButtonProps> = ({ isInline = false, isOpen: p
             placeholder={!isServiceAvailable ? 'Service is offline' : 'Ask something...'}
             value={inputMessage}
             onChange={(e) => setInputMessage(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+            onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && handleSendMessage()}
             disabled={isLoading || !isServiceAvailable}
+            multiline
+            minRows={3}
+            maxRows={8}
+            inputProps={{ style: { overflowY: 'auto' } }}
             sx={{
               '& .MuiOutlinedInput-root': {
                 borderRadius: '8px',

@@ -35,6 +35,24 @@ class CloudDataAdapter implements IDataAdapter {
       const response = await axios.get(apiUrl);
       
       if (response.status === 200 && response.data) {
+        // Check if we have any data
+        const hasData = Object.keys(response.data).some(key => {
+          const value = response.data[key];
+          return Array.isArray(value) && value.length > 0;
+        });
+
+        if (!hasData) {
+          logger.warn('No cloud data found for user');
+          return {
+            text: 'No cloud infrastructure data found. This could be because:\n1. No cloud account is connected\n2. No cloud resources have been created\n3. The cloud account needs to be refreshed',
+            metadata: {
+              source: 'cloud-infrastructure',
+              timestamp: new Date().toISOString(),
+              reliability: 0
+            }
+          };
+        }
+
         logger.info('Successfully retrieved cloud data');
         const formattedData = this.formatAllResourcesData(response.data);
         
@@ -54,24 +72,22 @@ class CloudDataAdapter implements IDataAdapter {
       
       if (error.response && error.response.status === 404) {
         return {
-          text: '',
+          text: 'No cloud infrastructure data found. This could be because:\n1. No cloud account is connected\n2. No cloud resources have been created\n3. The cloud account needs to be refreshed',
           metadata: {
             source: 'cloud-infrastructure',
             timestamp: new Date().toISOString(),
             reliability: 0
-          },
-          error: 'No cloud data found for this user. Please connect your cloud account or create cloud resources first.'
+          }
         };
       }
       
       return {
-        text: '',
+        text: `Failed to retrieve cloud data: ${error.message}. Please try again later.`,
         metadata: {
           source: 'cloud-infrastructure',
           timestamp: new Date().toISOString(),
           reliability: 0
-        },
-        error: `Failed to retrieve cloud data: ${error.message}`
+        }
       };
     }
   }

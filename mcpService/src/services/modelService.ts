@@ -1,46 +1,53 @@
 import { IModelProvider, ModelOptions } from '../interfaces/IModelProvider';
 import GeminiProvider from './providers/geminiProvider';
-import { environment } from '../config/environment';
 import logger from '../utils/logger';
 
 class ModelService {
-  private providers: Map<string, IModelProvider> = new Map();
+  private providers: Map<string, IModelProvider>;
   private defaultProvider: string;
   
   constructor() {
-    // Register Gemini provider (the only one we're supporting)
-    this.registerProvider(new GeminiProvider());
+    this.providers = new Map();
+    this.defaultProvider = 'gemini';
     
-    // Set default provider
-    this.defaultProvider = environment.defaultModelProvider;
+    // Initialize providers
+    this.providers.set('gemini', new GeminiProvider());
     
     logger.info(`ModelService initialized with default provider: ${this.defaultProvider}`);
     logger.info(`Available providers: ${Array.from(this.providers.keys()).join(', ')}`);
   }
   
-  private registerProvider(provider: IModelProvider): void {
-    this.providers.set(provider.name, provider);
+  getAvailableProviders(): string[] {
+    return Array.from(this.providers.keys());
   }
   
-  public async generateResponse(
+  async generateResponse(
     prompt: string, 
     context: string, 
     options: ModelOptions = {}
   ): Promise<string> {
-    // We're only using Gemini in this implementation
-    const providerName = 'gemini';
-    
-    const provider = this.providers.get(providerName);
+    const provider = this.providers.get(this.defaultProvider);
     if (!provider) {
-      throw new Error(`Model provider "${providerName}" not available`);
+      throw new Error(`Provider ${this.defaultProvider} not found`);
     }
+
+    let formattedPrompt = prompt;
+    // Only add JSON formatting instructions if format is 'json'
+    if (options.format === 'json') {
+      formattedPrompt = `${prompt}\n\nIMPORTANT: Your response must be a valid JSON array wrapped in a markdown code block like this:\n\`\`\`json\n[...]\n\`\`\``;
+    }
+    // For normal chat, do not add any JSON formatting instructions
+
+    logger.info(`Generating response with ${this.defaultProvider} for: ${formattedPrompt.substring(0, 100)}...`);
     
-    logger.info(`Generating response using ${providerName} provider`);
-    return provider.generateResponse(prompt, context, options);
-  }
-  
-  public getAvailableProviders(): string[] {
-    return Array.from(this.providers.keys());
+    try {
+      const response = await provider.generateResponse(formattedPrompt, context, options);
+      logger.info('Generated response successfully');
+      return response;
+    } catch (error) {
+      logger.error(`Error generating response: ${error}`);
+      throw error;
+    }
   }
   
   public getProviderInfo(providerName: string): any {

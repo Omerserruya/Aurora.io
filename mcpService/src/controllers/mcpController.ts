@@ -3,6 +3,8 @@ import modelService from '../services/modelService';
 import contextService from '../services/contextService';
 import logger from '../utils/logger';
 
+const SYSTEM_PROMPT = `You are an expert cloud architect and security specialist. Analyze the following cloud infrastructure and provide the 3 most valuable recommendations.\n\nInstructions:\n- Each recommendation must be SHORT and CONCISE (1-2 sentences for problem and impact).\n- ALWAYS prioritize the highest severity issues: if there are any critical (error) issues, recommend those first, then medium, then low.\n- For each recommendation, provide:\n  1. A clear, concise title\n  2. A brief description of the problem (1-2 sentences max)\n  3. The potential impact (1-2 sentences max)\n  4. severity: string (must be one of: \"Critical\", \"Medium\", \"Low\")\n  5. A relevant MUI icon name (e.g., Security, Warning, TrendingUp)\n  6. A detailed chat prompt that explains the problem and suggests specific actions\n- Focus on:\n  - Security vulnerabilities\n  - Cost optimization opportunities\n  - Architecture improvements\n  - Performance bottlenecks\n- Format the response as a JSON array of recommendations.`;
+
 export const mcpController = {
   /**
    * Process a user query using the MCP
@@ -45,7 +47,7 @@ export const mcpController = {
       const response = await modelService.generateResponse(
         prompt, 
         context.text, 
-        options
+        { ...options, format: 'text' } // Specify text format for chat
       );
       
       // Capture metrics
@@ -84,6 +86,70 @@ export const mcpController = {
         status: 'unhealthy',
         error: error.message
       });
+    }
+  },
+
+  /**
+   * Get AI recommendations for cloud infrastructure
+   */
+  async getRecommendations(req: Request, res: Response) {
+    try {
+      const { userId, connectionId } = req.query;
+      
+      if (!userId || !connectionId) {
+        return res.status(400).json({ error: 'Missing required parameters' });
+      }
+
+      console.info(`Getting recommendations for user ${userId}, connection ${connectionId}`);
+      
+      // Get context data
+      const context = await contextService.getContext(
+        userId as string,
+        'infrastructure analysis',
+        connectionId as string
+      );
+
+      // If no cloud data is found, return a specific recommendation
+      if (context.text.includes('No cloud infrastructure data found')) {
+        return res.json({
+          recommendations: [{
+            title: 'Connect Cloud Account',
+            problem: 'No cloud infrastructure data is available for analysis.',
+            impact: 'Unable to provide infrastructure recommendations without cloud data.',
+            color: 'warning',
+            icon: 'CloudOff',
+            chatPrompt: 'Would you like help connecting your cloud account?'
+          }]
+        });
+      }
+
+      // Generate recommendations using Gemini
+      const response = await modelService.generateResponse(
+        SYSTEM_PROMPT,
+        context.text,
+        { format: 'json' } // Specify JSON format for recommendations
+      );
+
+      // Extract JSON from the response (remove markdown code block and any extra text)
+      const jsonMatch = response.match(/```json\n([\s\S]*?)\n```/);
+      if (!jsonMatch) {
+        console.error('No JSON found in response:', response);
+        return res.status(500).json({ error: 'Invalid response format' });
+      }
+      
+      const jsonStr = jsonMatch[1].trim();
+      
+      try {
+        const recommendations = JSON.parse(jsonStr);
+        return res.json({ recommendations });
+      } catch (parseError) {
+        console.error('Error parsing recommendations:', parseError);
+        console.error('Raw response:', response);
+        return res.status(500).json({ error: 'Failed to parse recommendations' });
+      }
+    } catch (error) {
+      console.error('Error getting recommendations:', error);
+      return res.status(500).json({ error: 'Failed to get recommendations' });
     }
   }
 }; 

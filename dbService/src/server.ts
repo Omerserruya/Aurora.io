@@ -11,6 +11,7 @@ import awsConnectionRoutes from './routes/awsConnection.routes';
 import MongoDBManager from './config/mongodb';
 import Neo4jManager from './config/neo4j';
 import neoRoutes from './routes/cloudQueryResults.routes';
+import resourceMetricsRoutes from './routes/resourceMetrics.routes';
 import { Neo4jService } from './services/neo4j.service';
 
 const app = express();
@@ -46,6 +47,7 @@ app.get('/health', (req, res) => {
 // AWS Connection routes
 app.use('/aws-connections', awsConnectionRoutes);
 app.use('/neo', neoRoutes);
+app.use('/resources', resourceMetricsRoutes);
 
 // Initialize database connections
 const mongoManager = MongoDBManager.getInstance();

@@ -15,6 +15,8 @@ import ScrollToTop from './components/ScrollToTop';
 import { useAppDispatch } from './store/hooks';
 import { refreshUserDetails } from './store/slices/userSlice';
 import { refreshAccountDetails } from './store/slices/accountSlice';
+import Users from './pages/admin/Users';
+import EditUser from './pages/admin/EditUser';
 
 function App() {
   const dispatch = useAppDispatch();
@@ -43,6 +45,11 @@ function App() {
           <Route path="/profile" element={<Profile />} />
           <Route path="/about" element={<About />} />
           <Route path="/setting" element={<Settings />} />
+          
+          {/* Admin routes */}
+          <Route path="/admin/users" element={<Users />} />
+          <Route path="/admin/users/edit/:userId" element={<EditUser />} />
+          <Route path="/admin/users/create" element={<EditUser />} />
         </Route>
       </Routes>
     </ThemeProvider>

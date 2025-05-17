@@ -1,9 +1,7 @@
-import * as React from 'react';
 import { styled, useTheme } from '@mui/material/styles';
 import MuiDrawer, { drawerClasses } from '@mui/material/Drawer';
 import Box from '@mui/material/Box';
 import MenuContent from './MenuContent';
-import UserCard from './UserCard';
 import Divider from '@mui/material/Divider';
 import SelectContent from './SelectContent';
 import List from '@mui/material/List';
@@ -11,7 +9,6 @@ import ListItem from '@mui/material/ListItem';
 import ListItemButton from '@mui/material/ListItemButton';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
-import SettingsRoundedIcon from '@mui/icons-material/SettingsRounded';
 import InfoRoundedIcon from '@mui/icons-material/InfoRounded';
 import { useNavigate, useLocation } from 'react-router-dom';
 
@@ -38,7 +35,6 @@ export default function SideMenu() {
   const theme = useTheme();
 
   const bottomMenuItems = [
-    { text: 'Settings', icon: <SettingsRoundedIcon />, path: '/setting' },
     { text: 'About', icon: <InfoRoundedIcon />, path: '/about' },
   ];
 
@@ -107,8 +103,6 @@ export default function SideMenu() {
               </ListItem>
             ))}
           </List>
-          <Divider />
-          <UserCard />
         </Box>
       </Box>
     </Drawer>
