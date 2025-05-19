@@ -1,6 +1,6 @@
 import { AWSNode as AWSNodeType } from '../awsNodes';
 import { AWSEdge } from '../awsEdges';
-import { ConversionResult } from '../types';
+import { ConversionResult, RelationshipType } from '../types';
 import { 
   positionChildNode, 
   updateParentDimensions, 
@@ -46,7 +46,7 @@ export function positionNodeInParent(
   if (childIndex === -1) return;
   
   // Calculate position and update node
-  const position = positionChildNode(parentNode, childIndex, siblings.length);
+  const position = positionChildNode(parentNode, childIndex, siblings.length, allNodes);
   childNode.position = position;
 }
 
@@ -57,7 +57,7 @@ export function createResourceRelationship(
   edges: AWSEdge[],
   sourceId: string,
   targetId: string,
-  type: string,
+  type: RelationshipType,
   description: string,
   generateEdgeId: () => string
 ): void {
@@ -65,7 +65,7 @@ export function createResourceRelationship(
     createRelationship(
       sourceId,
       targetId,
-      type as any,
+      type,
       description,
       generateEdgeId
     )
@@ -90,53 +90,129 @@ export function createGlobalResourcesContainer(
   generateNodeId: () => string,
   title: string,
   x: number = GLOBAL_LAYOUT.X_START,
-  y: number = GLOBAL_LAYOUT.Y_START
+  y: number = GLOBAL_LAYOUT.Y_START,
+  skipHeader: boolean = false,
+  type: string = 'global_container'
 ): string {
   const containerId = `global-resources-${generateNodeId()}`;
   
   // Create container node for global resources
   const containerNode: AWSNodeType = {
     id: containerId,
-    type: 'vpc', // Reuse vpc type for consistent styling
+    type: type,
     position: { x, y },
     style: {
       width: NODE_DIMENSIONS.VPC.DEFAULT_WIDTH,
       height: NODE_DIMENSIONS.VPC.DEFAULT_HEIGHT,
       zIndex: 4, // Below VPC z-index
-      backgroundColor: '#f5f9ff', // Lighter background to distinguish from VPCs
-      border: '2px dashed #ccd9ea' // Dashed border to indicate it's not a real VPC
     },
     data: {
       label: title,
-      type: 'vpc',
+      type: type,
       resourceId: containerId,
-      VpcId: 'global',
-      CidrBlock: ''
+      isGlobal: true
     }
   };
   
-  // Add header node
-  const headerId = `header-${generateNodeId()}`;
-  const headerNode: AWSNodeType = {
-    id: headerId,
-    type: 'header',
-    position: { x: 20, y: 20 },
-    parentNode: containerId,
-    extent: 'parent',
-    style: {
-      width: NODE_DIMENSIONS.HEADER.DEFAULT_WIDTH,
-      height: NODE_DIMENSIONS.HEADER.DEFAULT_HEIGHT,
-      zIndex: 7
-    },
-    data: {
-      label: title,
+  // Add header node only if not skipped
+  if (!skipHeader) {
+    const headerId = `header-${generateNodeId()}`;
+    const headerNode: AWSNodeType = {
+      id: headerId,
       type: 'header',
-      resourceId: headerId
-    }
-  };
+      position: { x: 20, y: 20 },
+      parentNode: containerId,
+      extent: 'parent',
+      style: {
+        width: NODE_DIMENSIONS.HEADER.DEFAULT_WIDTH,
+        height: NODE_DIMENSIONS.HEADER.DEFAULT_HEIGHT,
+        zIndex: 7
+      },
+      data: {
+        label: title,
+        type: 'header',
+        resourceId: headerId,
+        parentType: type
+      }
+    };
+    result.nodes.push(headerNode);
+  }
   
   result.nodes.push(containerNode);
-  result.nodes.push(headerNode);
   
   return containerId;
+}
+
+/**
+ * Create a group header text for a resource type
+ */
+export function createGroupHeader(
+  result: ConversionResult,
+  generateNodeId: () => string,
+  parentId: string,
+  resourceType: string,
+  count: number
+): void {
+  const headerId = `group-header-${resourceType}-${generateNodeId()}`;
+  const headerNode: AWSNodeType = {
+    id: headerId,
+    type: 'group_header',
+    position: { x: 0, y: 0 }, // Will be positioned by layout engine
+    parentNode: parentId,
+    extent: 'parent',
+    style: {
+      width: '100%',
+      height: 30,
+      zIndex: 5,
+      fontSize: '14px',
+      fontWeight: 'bold',
+      color: '#666',
+      padding: '5px 10px',
+      backgroundColor: 'transparent'
+    },
+    data: {
+      label: `${resourceType} (${count})`,
+      type: 'group_header',
+      resourceId: headerId,
+      parentType: resourceType,
+      isHeader: true
+    }
+  };
+  
+  result.nodes.push(headerNode);
+}
+
+/**
+ * Create group headers for all resource types in a container
+ */
+export function createGroupHeaders(
+  result: ConversionResult,
+  generateNodeId: () => string,
+  parentId: string,
+  allNodes: AWSNodeType[]
+): void {
+  // Get all children of the parent
+  const children = findChildNodes(parentId, allNodes);
+  
+  // Group children by type
+  const childrenByType: Record<string, AWSNodeType[]> = {};
+  children.forEach(node => {
+    if (node && node.data && node.data.type) {
+      const type = node.data.type;
+      if (!childrenByType[type]) {
+        childrenByType[type] = [];
+      }
+      childrenByType[type].push(node);
+    }
+  });
+  
+  // Find parent node
+  const parentNode = result.nodes.find(node => node.id === parentId);
+  if (!parentNode) return;
+
+  // Add group headers to parent node data
+  parentNode.data.groupHeaders = Object.entries(childrenByType).map(([type, nodes]) => ({
+    type,
+    count: nodes.length
+  }));
 } 

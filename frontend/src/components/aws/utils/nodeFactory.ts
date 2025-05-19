@@ -1,4 +1,4 @@
-import { AWSNode as AWSNodeType } from '../awsNodes';
+import { AWSNode, AWSNodeData } from '../awsNodes';
 import { Z_INDEX, NODE_DIMENSIONS, NODE_TYPES } from './constants';
 
 // Type for AWS node types matching the types from awsNodes.ts
@@ -10,45 +10,37 @@ type AWSNodeTypeId = 'vpc' | 'subnet' | 'ec2' | 'security_group' | 's3' |
                      'iam_policy' | 'header';
 
 /**
- * Create a VPC node with proper styling
+ * Create a VPC container node
  */
 export function createVpcNode(
   id: string,
   label: string,
   vpcId: string,
-  cidrBlock: string = '',
+  cidrBlock: string,
   x: number,
   y: number
-): AWSNodeType {
+): AWSNode {
   return {
     id,
-    type: 'vpc' as AWSNodeTypeId,
+    type: 'vpc',
     position: { x, y },
-    style: {
-      width: NODE_DIMENSIONS.VPC.DEFAULT_WIDTH,
-      height: NODE_DIMENSIONS.VPC.DEFAULT_HEIGHT,
-      zIndex: Z_INDEX.CONTAINER,
-      backgroundColor: 'rgba(240, 248, 255, 0.5)'  // Light transparent background
-    },
     data: {
       label,
       type: 'vpc',
-      resourceId: id,
+      resourceId: vpcId,
       VpcId: vpcId,
       CidrBlock: cidrBlock
     },
-    // Make node fully independent
-    draggable: true,         // Allow dragging
-    selectable: true,        // Can be selected individually 
-    connectable: false,      // Prevent new connections
-    parentNode: undefined,   // No parent relationship
-    extent: undefined,       // Not constrained to parent
-    expandParent: false      // Don't expand parent when this node is moved
+    style: {
+      width: NODE_DIMENSIONS.VPC.DEFAULT_WIDTH,
+      height: NODE_DIMENSIONS.VPC.DEFAULT_HEIGHT
+    },
+    draggable: true
   };
 }
 
 /**
- * Create a subnet node with proper styling
+ * Create a subnet container node
  */
 export function createSubnetNode(
   id: string,
@@ -58,28 +50,27 @@ export function createSubnetNode(
   parentId: string,
   x: number,
   y: number,
-  cidrBlock: string = ''
-): AWSNodeType {
+  cidrBlock: string
+): AWSNode {
   return {
     id,
-    type: 'subnet' as AWSNodeTypeId,
+    type: 'subnet',
     position: { x, y },
-    parentNode: parentId,
-    extent: 'parent',
-    style: {
-      width: NODE_DIMENSIONS.SUBNET.DEFAULT_WIDTH,
-      height: NODE_DIMENSIONS.SUBNET.DEFAULT_HEIGHT,
-      zIndex: Z_INDEX.CONTAINER + 1
-    },
     data: {
       label,
       type: 'subnet',
-      resourceId: id,
-      parentId,
+      resourceId: subnetId,
       SubnetId: subnetId,
       VpcId: vpcId,
       CidrBlock: cidrBlock
-    }
+    },
+    parentNode: parentId,
+    extent: 'parent',
+    style: {
+      width: NODE_DIMENSIONS.RESOURCE.DEFAULT_WIDTH,
+      height: NODE_DIMENSIONS.RESOURCE.DEFAULT_HEIGHT
+    },
+    draggable: true
   };
 }
 
@@ -100,7 +91,7 @@ export function createEc2Node(
     imageId?: string,
     image?: string
   } = {}
-): AWSNodeType {
+): AWSNode {
   return {
     id,
     type: 'ec2' as AWSNodeTypeId,
@@ -144,7 +135,7 @@ export function createSecurityGroupNode(
     inboundRules?: any[],
     outboundRules?: any[]
   } = {}
-): AWSNodeType {
+): AWSNode {
   return {
     id,
     type: 'security_group' as AWSNodeTypeId,
@@ -186,7 +177,7 @@ export function createRouteTableNode(
     routes?: any[],
     associations?: any[]
   } = {}
-): AWSNodeType {
+): AWSNode {
   return {
     id,
     type: 'route_table' as AWSNodeTypeId,
@@ -224,7 +215,7 @@ export function createInternetGatewayNode(
   props: {
     attachments?: any[]
   } = {}
-): AWSNodeType {
+): AWSNode {
   return {
     id,
     type: 'internet_gateway' as AWSNodeTypeId,
@@ -253,34 +244,23 @@ export function createInternetGatewayNode(
 export function createHeaderNode(
   id: string,
   label: string,
-  parentId: string | undefined,
   x: number,
   y: number
-): AWSNodeType {
+): AWSNode {
   return {
     id,
-    type: 'header' as AWSNodeTypeId,
+    type: 'header',
     position: { x, y },
-    parentId,
-    extent: parentId ? 'parent' : undefined,
-    hidden: false,
-    selectable: false,
-    style: { 
-      width: NODE_DIMENSIONS.HEADER.DEFAULT_WIDTH,
-      height: NODE_DIMENSIONS.HEADER.DEFAULT_HEIGHT,
-      padding: 0,
-      borderWidth: 0,
-      fontSize: 16,
-      fontWeight: 'bold',
-      color: '#000',
-      backgroundColor: 'transparent',
-      zIndex: Z_INDEX.HEADER
-    },
     data: {
       label,
       type: 'header',
       resourceId: id
-    }
+    },
+    style: {
+      width: NODE_DIMENSIONS.HEADER.DEFAULT_WIDTH,
+      height: NODE_DIMENSIONS.HEADER.DEFAULT_HEIGHT
+    },
+    draggable: false
   };
 }
 
@@ -291,57 +271,28 @@ export function createHeaderNode(
 export function createResourceNode(
   id: string,
   label: string,
-  resourceType: AWSNodeTypeId,
+  type: string,
   resourceId: string,
   parentId: string | undefined,
   x: number,
   y: number,
-  additionalData: Record<string, any> = {}
-): AWSNodeType {
+  properties: Record<string, any> = {}
+): AWSNode {
   return {
     id,
-    type: resourceType,
+    type,
     position: { x, y },
-    parentNode: parentId,
-    extent: parentId ? 'parent' : undefined,
-    style: { 
-      width: NODE_DIMENSIONS.RESOURCE.DEFAULT_WIDTH, 
-      height: NODE_DIMENSIONS.RESOURCE.DEFAULT_HEIGHT,
-      zIndex: Z_INDEX.RESOURCE
-    },
     data: {
       label,
-      type: resourceType,
+      type,
       resourceId,
-      parentId,
-      // Adding default values for common properties to satisfy TypeScript
-      // Specific properties should be provided in additionalData
-      VpcId: '',
-      SubnetId: '',
-      GroupId: '',
-      RouteTableId: '',
-      InternetGatewayId: '',
-      NatGatewayId: '',
-      NetworkAclId: '',
-      PublicIp: '',
-      AllocationId: '',
-      TransitGatewayId: '',
-      LoadBalancerArn: '',
-      LoadBalancerName: '',
-      ClusterArn: '',
-      ClusterName: '',
-      TaskArn: '',
-      TaskDefinitionArn: '',
-      FunctionName: '',
-      FunctionArn: '',
-      RoleName: '',
-      RoleId: '',
-      UserName: '',
-      UserId: '',
-      PolicyName: '',
-      PolicyId: '',
-      // Override with provided additional data
-      ...additionalData
-    } as any // Use type assertion as a last resort
+      ...properties
+    },
+    ...(parentId ? { parentNode: parentId, extent: 'parent' } : {}),
+    style: {
+      width: NODE_DIMENSIONS.RESOURCE.DEFAULT_WIDTH,
+      height: NODE_DIMENSIONS.RESOURCE.DEFAULT_HEIGHT
+    },
+    draggable: true
   };
 } 

@@ -1,257 +1,202 @@
-import { AWSEdge, RelationshipType } from '../awsEdges';
-import { AWSNode as AWSNodeType } from '../awsNodes';
-import { EDGE_TYPES } from './constants';
+import { AWSEdge, AWSEdgeData } from '../awsEdges';
+import { RelationshipType } from '../types';
+
+// Counter for generating unique edge IDs
+let edgeIdCounter = 0;
 
 /**
- * Create a relationship between AWS resources
+ * Generate a unique edge ID
  */
-export function createRelationship(
-  sourceId: string,
-  targetId: string,
+export function generateEdgeId(): string {
+  return `e-${++edgeIdCounter}`;
+}
+
+/**
+ * Reset edge ID counter
+ */
+export function resetEdgeIdCounter(): void {
+  edgeIdCounter = 0;
+}
+
+/**
+ * Create a relationship edge between resources
+ */
+export function createRelationshipEdge(
+  source: string,
+  target: string,
   type: RelationshipType,
-  description: string,
-  edgeIdGenerator: () => string
+  description?: string
 ): AWSEdge {
   return {
-    id: edgeIdGenerator(),
-    source: sourceId,
-    target: targetId,
+    id: generateEdgeId(),
+    source,
+    target,
     type: 'smoothstep',
+    animated: type === RelationshipType.IAM_TO_RESOURCE || type === RelationshipType.LAMBDA_TO_OTHER,
+    style: {
+      strokeWidth: 2
+    },
     data: {
       type,
-      description
+      description: description || getDefaultDescription(type)
     }
   };
 }
 
 /**
- * Create a VPC to subnet relationship
+ * Create a relationship - alias for createRelationshipEdge
+ */
+export function createRelationship(
+  source: string,
+  target: string,
+  type: RelationshipType,
+  description?: string,
+  generateId?: () => string
+): AWSEdge {
+  return {
+    id: generateId ? generateId() : generateEdgeId(),
+    source,
+    target,
+    type: 'smoothstep',
+    animated: type === RelationshipType.IAM_TO_RESOURCE || type === RelationshipType.LAMBDA_TO_OTHER,
+    style: {
+      strokeWidth: 2
+    },
+    data: {
+      type,
+      description: description || getDefaultDescription(type)
+    }
+  };
+}
+
+/**
+ * Create VPC to Subnet edge
  */
 export function createVpcToSubnetEdge(
   vpcId: string,
   subnetId: string,
-  edgeIdGenerator: () => string
+  generateEdgeId: () => string
 ): AWSEdge {
   return createRelationship(
     vpcId,
     subnetId,
-    'vpc-to-subnet',
-    'Subnet belongs to VPC',
-    edgeIdGenerator
+    RelationshipType.VPC_TO_SUBNET,
+    'Subnet is in VPC',
+    generateEdgeId
   );
 }
 
 /**
- * Create a subnet to EC2 relationship
+ * Create Subnet to EC2 edge
  */
 export function createSubnetToEc2Edge(
   subnetId: string,
   ec2Id: string,
-  edgeIdGenerator: () => string
+  generateEdgeId: () => string
 ): AWSEdge {
   return createRelationship(
     subnetId,
     ec2Id,
-    'subnet-to-ec2',
-    'EC2 instance in subnet',
-    edgeIdGenerator
+    RelationshipType.SUBNET_TO_EC2,
+    'Instance is in Subnet',
+    generateEdgeId
   );
 }
 
 /**
- * Create a subnet to load balancer relationship
- */
-export function createSubnetToLbEdge(
-  subnetId: string,
-  lbId: string,
-  edgeIdGenerator: () => string
-): AWSEdge {
-  return createRelationship(
-    subnetId,
-    lbId,
-    'subnet-to-lb',
-    'Load balancer in subnet',
-    edgeIdGenerator
-  );
-}
-
-/**
- * Create a security group to resource relationship
+ * Create Security Group to Resource edge
  */
 export function createSecurityGroupToResourceEdge(
   sgId: string,
   resourceId: string,
-  edgeIdGenerator: () => string
+  generateEdgeId: () => string
 ): AWSEdge {
   return createRelationship(
     sgId,
     resourceId,
-    'sg-to-resource',
-    'Security group protecting resource',
-    edgeIdGenerator
+    RelationshipType.SG_TO_RESOURCE,
+    'Security Group attached to resource',
+    generateEdgeId
   );
 }
 
 /**
- * Create a route table to subnet relationship
- */
-export function createRouteTableToSubnetEdge(
-  routeTableId: string,
-  subnetId: string,
-  edgeIdGenerator: () => string
-): AWSEdge {
-  return createRelationship(
-    routeTableId,
-    subnetId,
-    'rt-to-subnet',
-    'Route table associated with subnet',
-    edgeIdGenerator
-  );
-}
-
-/**
- * Create an internet gateway to VPC relationship
+ * Create Internet Gateway to VPC edge
  */
 export function createIgwToVpcEdge(
   igwId: string,
   vpcId: string,
-  edgeIdGenerator: () => string
+  generateEdgeId: () => string
 ): AWSEdge {
   return createRelationship(
     igwId,
     vpcId,
-    'igw-to-vpc',
-    'Internet gateway attached to VPC',
-    edgeIdGenerator
+    RelationshipType.IGW_TO_VPC,
+    'Internet Gateway attached to VPC',
+    generateEdgeId
   );
 }
 
 /**
- * Create a NAT gateway to VPC relationship
- */
-export function createNatGwToVpcEdge(
-  natGwId: string,
-  vpcId: string,
-  edgeIdGenerator: () => string
-): AWSEdge {
-  return createRelationship(
-    natGwId,
-    vpcId,
-    'natgw-to-vpc',
-    'NAT gateway in VPC',
-    edgeIdGenerator
-  );
-}
-
-/**
- * Create a load balancer to EC2 relationship
- */
-export function createLbToEc2Edge(
-  lbId: string,
-  ec2Id: string,
-  edgeIdGenerator: () => string
-): AWSEdge {
-  return createRelationship(
-    lbId,
-    ec2Id,
-    'lb-to-ec2',
-    'Load balancer target',
-    edgeIdGenerator
-  );
-}
-
-/**
- * Create a Lambda to API Gateway relationship
- */
-export function createLambdaToApiGwEdge(
-  lambdaId: string,
-  apiGwId: string,
-  edgeIdGenerator: () => string
-): AWSEdge {
-  return createRelationship(
-    lambdaId,
-    apiGwId,
-    'lambda-to-apigw',
-    'Lambda integrated with API Gateway',
-    edgeIdGenerator
-  );
-}
-
-/**
- * Create an IAM role to resource relationship
+ * Create IAM Role/User/Policy to Resource edge
  */
 export function createIamToResourceEdge(
   iamId: string,
   resourceId: string,
-  edgeIdGenerator: () => string
+  generateEdgeId: () => string
 ): AWSEdge {
   return createRelationship(
     iamId,
     resourceId,
-    'iam-to-resource',
-    'IAM role assigned to resource',
-    edgeIdGenerator
+    RelationshipType.IAM_TO_RESOURCE,
+    'IAM Role attached to resource',
+    generateEdgeId
   );
 }
 
 /**
- * Edge ID generator
+ * Create Lambda to API Gateway edge
  */
-let edgeIdCounter = 0;
-export const generateEdgeId = () => `e-${++edgeIdCounter}`;
-
-/**
- * Reset edge ID counter
- */
-export function resetEdgeIdCounter() {
-  edgeIdCounter = 0;
+export function createLambdaToApiGwEdge(
+  lambdaId: string,
+  apiGwId: string,
+  generateEdgeId: () => string
+): AWSEdge {
+  return createRelationship(
+    lambdaId,
+    apiGwId,
+    RelationshipType.LAMBDA_TO_OTHER,
+    'Lambda integrated with API Gateway',
+    generateEdgeId
+  );
 }
 
 /**
- * Create an edge based on resource types
- * This is a more generic function that determines the edge type based on source and target types
+ * Get default description for a relationship type
  */
-export function createEdgeByResourceTypes(
-  sourceNode: AWSNodeType,
-  targetNode: AWSNodeType,
-  edgeIdGenerator: () => string
-): AWSEdge | null {
-  const sourceType = sourceNode.data.type;
-  const targetType = targetNode.data.type;
-  
-  // Determine edge type based on source and target types
-  if (sourceType === 'vpc' && targetType === 'subnet') {
-    return createVpcToSubnetEdge(sourceNode.id, targetNode.id, edgeIdGenerator);
+function getDefaultDescription(type: RelationshipType): string {
+  switch (type) {
+    case RelationshipType.VPC_TO_SUBNET:
+      return 'Subnet is in VPC';
+    case RelationshipType.SUBNET_TO_EC2:
+      return 'Instance is in Subnet';
+    case RelationshipType.SG_TO_RESOURCE:
+      return 'Security Group attached to resource';
+    case RelationshipType.RT_TO_SUBNET:
+      return 'Route Table associated with Subnet';
+    case RelationshipType.IGW_TO_VPC:
+      return 'Internet Gateway attached to VPC';
+    case RelationshipType.NATGW_TO_VPC:
+      return 'NAT Gateway in VPC';
+    case RelationshipType.LB_TO_EC2:
+      return 'Load Balancer routes to Instance';
+    case RelationshipType.IAM_TO_RESOURCE:
+      return 'IAM Role attached to resource';
+    case RelationshipType.LAMBDA_TO_OTHER:
+      return 'Lambda integrated with resource';
+    case RelationshipType.RESOURCE_TO_RESOURCE:
+      return 'Resource relationship';
+    default:
+      return 'Connected to';
   }
-  
-  if (sourceType === 'subnet' && targetType === 'ec2') {
-    return createSubnetToEc2Edge(sourceNode.id, targetNode.id, edgeIdGenerator);
-  }
-  
-  if (sourceType === 'subnet' && targetType === 'load_balancer') {
-    return createSubnetToLbEdge(sourceNode.id, targetNode.id, edgeIdGenerator);
-  }
-  
-  if (sourceType === 'security_group') {
-    return createSecurityGroupToResourceEdge(sourceNode.id, targetNode.id, edgeIdGenerator);
-  }
-  
-  if (sourceType === 'route_table' && targetType === 'subnet') {
-    return createRouteTableToSubnetEdge(sourceNode.id, targetNode.id, edgeIdGenerator);
-  }
-  
-  if (sourceType === 'internet_gateway' && targetType === 'vpc') {
-    return createIgwToVpcEdge(sourceNode.id, targetNode.id, edgeIdGenerator);
-  }
-  
-  if (sourceType === 'nat_gateway' && targetType === 'vpc') {
-    return createNatGwToVpcEdge(sourceNode.id, targetNode.id, edgeIdGenerator);
-  }
-  
-  if (sourceType === 'load_balancer' && targetType === 'ec2') {
-    return createLbToEc2Edge(sourceNode.id, targetNode.id, edgeIdGenerator);
-  }
-  
-  // Default case - no recognized relationship
-  return null;
 } 

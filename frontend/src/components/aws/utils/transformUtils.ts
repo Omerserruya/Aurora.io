@@ -1,6 +1,21 @@
 import { AWSEdge, RelationshipType } from '../awsEdges';
 import { AWSNode as AWSNodeType } from '../awsNodes';
-import { SectionBottoms } from '../types';
+import { RelationshipType as RelationshipTypeType } from '../types';
+
+// Define SectionBottoms interface locally
+export interface SectionBottoms {
+  vpc_info: number;
+  igw: number;
+  subnets: number;
+  routeTables: number;
+  securityGroups: number;
+  networkAcls: number;
+  elasticIPs: number;
+  transitGateways: number;
+  lambdaFunctions: number;
+  ecsClusters: number;
+  [key: string]: number;
+}
 
 // Utility functions for creating relationships between AWS resources
 export const createResourceRelationship = (

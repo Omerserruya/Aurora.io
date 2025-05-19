@@ -23,16 +23,16 @@ import ResourceDetailsPanel from './components/ResourceDetailsPanel';
 import DiagramControls from './components/DiagramControls';
 import { convertAwsDataToFlow } from './utils/dataConverter';
 import { calculateLayout } from './utils/layoutEngine';
-import { NODE_TYPES } from './utils/constants';
+import { NODE_TYPES } from './constants';
 import nodeTypes from './nodeRegistry';
-import { AWSNode as AWSNodeType } from './awsNodes';
+import { AWSNode } from './awsNodes';
 import { AWSEdge, AWSEdgeData } from './awsEdges';
 
 const CloudDiagram: React.FC<CloudDiagramProps> = ({ awsData }) => {
   // Initialize with test data or converted AWS data
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
-  const [selectedNode, setSelectedNode] = useState<AWSNodeType | null>(null);
+  const [selectedNode, setSelectedNode] = useState<AWSNode | null>(null);
 
   const reactFlowInstance = useReactFlow();
 
@@ -45,23 +45,8 @@ const CloudDiagram: React.FC<CloudDiagramProps> = ({ awsData }) => {
         // Apply layout algorithm to ensure proper positioning
         const { nodes: layoutNodes, edges: layoutEdges } = calculateLayout(convertedNodes, convertedEdges);
         
-        // Ensure VPC nodes are independent (not connected in parent-child relationship)
-        const independentNodes = layoutNodes.map(node => {
-          // Only modify VPC nodes to make them fully independent
-          if (node.data.type === NODE_TYPES.VPC) {
-            return {
-              ...node,
-              parentNode: undefined,
-              extent: undefined,
-              draggable: true, // Allow individual dragging
-              connectable: false, // Prevent new connections
-            };
-          }
-          return node;
-        });
-        
         // Set the nodes with calculated layout
-        setNodes(independentNodes);
+        setNodes(layoutNodes);
         setEdges(layoutEdges);
         
         // Fit view to show the entire diagram
@@ -72,7 +57,7 @@ const CloudDiagram: React.FC<CloudDiagramProps> = ({ awsData }) => {
 
   // Handle node selection
   const onNodeClick: NodeMouseHandler = useCallback((event, node) => {
-    setSelectedNode(node as AWSNodeType);
+    setSelectedNode(node as AWSNode);
   }, []);
 
   // Handle edge connection
@@ -105,21 +90,7 @@ const CloudDiagram: React.FC<CloudDiagramProps> = ({ awsData }) => {
       // Apply layout algorithm to ensure proper positioning
       const { nodes: layoutNodes, edges: layoutEdges } = calculateLayout(convertedNodes, convertedEdges);
       
-      // Ensure VPC nodes are independent
-      const independentNodes = layoutNodes.map(node => {
-        if (node.data.type === NODE_TYPES.VPC) {
-          return {
-            ...node,
-            parentNode: undefined,
-            extent: undefined,
-            draggable: true, // Allow individual dragging
-            connectable: false, // Prevent new connections
-          };
-        }
-        return node;
-      });
-      
-      setNodes(independentNodes);
+      setNodes(layoutNodes);
       setEdges(layoutEdges);
     } else {
       setNodes(initialNodes);

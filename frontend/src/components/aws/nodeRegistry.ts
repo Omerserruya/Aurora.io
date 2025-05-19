@@ -1,32 +1,55 @@
 import { NodeTypes } from 'reactflow';
+import { NODE_TYPES } from './constants';
+import AWSNode from './components/AWSNode';
 import ContainerNode from './components/ContainerNode';
-import ResourceNode from './components/ResourceNode';
-import { NODE_TYPES } from './utils/constants';
+import HeaderNode from './components/HeaderNode';
 
-// Define custom node types
+// Registry of custom node types for React Flow
 const nodeTypes: NodeTypes = {
   // Container nodes
   [NODE_TYPES.VPC]: ContainerNode,
   [NODE_TYPES.SUBNET]: ContainerNode,
+  [NODE_TYPES.GLOBAL_CONTAINER]: ContainerNode, // Global container for non-VPC resources
   
-  // Regular resource nodes
-  [NODE_TYPES.EC2]: ResourceNode,
-  [NODE_TYPES.SECURITY_GROUP]: ResourceNode,
-  [NODE_TYPES.S3]: ResourceNode,
-  [NODE_TYPES.ROUTE_TABLE]: ResourceNode,
-  [NODE_TYPES.INTERNET_GATEWAY]: ResourceNode,
-  [NODE_TYPES.NAT_GATEWAY]: ResourceNode,
-  [NODE_TYPES.NETWORK_ACL]: ResourceNode,
-  [NODE_TYPES.ELASTIC_IP]: ResourceNode,
-  [NODE_TYPES.TRANSIT_GATEWAY]: ResourceNode,
-  [NODE_TYPES.LOAD_BALANCER]: ResourceNode,
-  [NODE_TYPES.ECS_CLUSTER]: ResourceNode,
-  [NODE_TYPES.ECS_TASK]: ResourceNode,
-  [NODE_TYPES.LAMBDA_FUNCTION]: ResourceNode,
-  [NODE_TYPES.IAM_ROLE]: ResourceNode,
-  [NODE_TYPES.IAM_USER]: ResourceNode,
-  [NODE_TYPES.IAM_POLICY]: ResourceNode,
-  [NODE_TYPES.HEADER]: ResourceNode
+  // Header node for containers
+  'header': HeaderNode,
+  
+  // Resource nodes
+  [NODE_TYPES.EC2]: AWSNode,
+  [NODE_TYPES.SECURITY_GROUP]: AWSNode,
+  [NODE_TYPES.ROUTE_TABLE]: AWSNode,
+  [NODE_TYPES.INTERNET_GATEWAY]: AWSNode,
+  [NODE_TYPES.NAT_GATEWAY]: AWSNode,
+  [NODE_TYPES.NETWORK_ACL]: AWSNode,
+  [NODE_TYPES.LOAD_BALANCER]: AWSNode,
+  
+  // Storage
+  [NODE_TYPES.S3]: AWSNode,
+  [NODE_TYPES.DYNAMODB]: AWSNode,
+  [NODE_TYPES.RDS]: AWSNode,
+  
+  // Compute and Serverless
+  [NODE_TYPES.LAMBDA]: AWSNode,
+  [NODE_TYPES.ECS]: AWSNode,
+  [NODE_TYPES.EKS]: AWSNode,
+  [NODE_TYPES.ELASTIC_BEANSTALK]: AWSNode,
+  
+  // Security and Identity
+  [NODE_TYPES.IAM_ROLE]: AWSNode,
+  [NODE_TYPES.IAM_USER]: AWSNode,
+  [NODE_TYPES.IAM_POLICY]: AWSNode,
+  [NODE_TYPES.KMS]: AWSNode,
+  
+  // Messaging
+  [NODE_TYPES.SQS]: AWSNode,
+  [NODE_TYPES.SNS]: AWSNode,
+  
+  // API and Monitoring
+  [NODE_TYPES.API_GATEWAY]: AWSNode,
+  [NODE_TYPES.CLOUDWATCH]: AWSNode,
+  
+  // Generic fallback
+  [NODE_TYPES.GENERIC]: AWSNode
 };
 
 export default nodeTypes; 

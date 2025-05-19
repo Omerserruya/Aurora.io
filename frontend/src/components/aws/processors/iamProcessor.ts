@@ -8,6 +8,8 @@ import {
   createGlobalResourcesContainer,
   updateContainerDimensions
 } from './baseProcessor';
+import { NODE_TYPES } from '../constants';
+import { AWSNode } from '../awsNodes';
 
 /**
  * Processor for AWS IAM resources
@@ -91,20 +93,26 @@ export default class IAMProcessor implements ResourceProcessor {
       // Create IAM role node ID
       const roleId = getResourceId('role', role.roleName, generateNodeId);
       
-      // Create IAM role node
-      const roleNode = createResourceNode(
-        roleId,
-        role.roleName || `IAM Role ${index + 1}`,
-        'iam_role',
-        roleId,
-        containerId, // Now a child of the global container
-        0, 0, // Position will be updated by positionNodeInParent
-        {
+      // Create IAM role node with explicit parent relationship
+      const roleNode: AWSNode = {
+        id: roleId,
+        type: NODE_TYPES.IAM_ROLE,
+        position: { x: 0, y: 0 }, // Will be positioned by positionNodeInParent
+        data: {
+          label: role.roleName || `IAM Role ${index + 1}`,
+          type: NODE_TYPES.IAM_ROLE,
+          resourceId: roleId,
           RoleName: role.roleName || '',
           RoleId: role.roleId || '',
           AssumeRolePolicyDocument: role.assumeRolePolicyDocument || {}
+        },
+        parentNode: containerId,
+        extent: 'parent' as const,
+        style: {
+          width: 200,
+          height: 100
         }
-      );
+      };
       
       // Add IAM role node to results
       nodes.push(roleNode);
@@ -144,20 +152,26 @@ export default class IAMProcessor implements ResourceProcessor {
       // Create IAM user node ID
       const userId = getResourceId('user', user.userName, generateNodeId);
       
-      // Create IAM user node
-      const userNode = createResourceNode(
-        userId,
-        user.userName || `IAM User ${index + 1}`,
-        'iam_user',
-        userId,
-        containerId, // Now a child of the global container
-        0, 0, // Position will be updated by positionNodeInParent
-        {
+      // Create IAM user node with explicit parent relationship
+      const userNode: AWSNode = {
+        id: userId,
+        type: NODE_TYPES.IAM_USER,
+        position: { x: 0, y: 0 }, // Will be positioned by positionNodeInParent
+        data: {
+          label: user.userName || `IAM User ${index + 1}`,
+          type: NODE_TYPES.IAM_USER,
+          resourceId: userId,
           UserName: user.userName || '',
           UserId: user.userId || '',
-          CreateDate: user.createDate || ''
+          Arn: user.arn || ''
+        },
+        parentNode: containerId,
+        extent: 'parent' as const,
+        style: {
+          width: 200,
+          height: 100
         }
-      );
+      };
       
       // Add IAM user node to results
       nodes.push(userNode);
@@ -184,20 +198,26 @@ export default class IAMProcessor implements ResourceProcessor {
       // Create IAM policy node ID
       const policyId = getResourceId('policy', policy.policyName, generateNodeId);
       
-      // Create IAM policy node
-      const policyNode = createResourceNode(
-        policyId,
-        policy.policyName || `IAM Policy ${index + 1}`,
-        'iam_policy',
-        policyId,
-        containerId, // Now a child of the global container
-        0, 0, // Position will be updated by positionNodeInParent
-        {
+      // Create IAM policy node with explicit parent relationship
+      const policyNode: AWSNode = {
+        id: policyId,
+        type: NODE_TYPES.IAM_POLICY,
+        position: { x: 0, y: 0 }, // Will be positioned by positionNodeInParent
+        data: {
+          label: policy.policyName || `IAM Policy ${index + 1}`,
+          type: NODE_TYPES.IAM_POLICY,
+          resourceId: policyId,
           PolicyName: policy.policyName || '',
           PolicyId: policy.policyId || '',
           AttachmentCount: policy.attachmentCount || 0
+        },
+        parentNode: containerId,
+        extent: 'parent' as const,
+        style: {
+          width: 200,
+          height: 100
         }
-      );
+      };
       
       // Add IAM policy node to results
       nodes.push(policyNode);

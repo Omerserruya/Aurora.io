@@ -612,13 +612,7 @@ export const processCloudQueryResults = async (req: Request, res: Response) => {
     }
 };
 
-export const getInfrastructureData = async (req: Request, res: Response) => {
-    const { connectionId } = req.params;
-    const userId = req.user?.id;
-
-    if (!userId || !connectionId) {
-        return res.status(400).json({ error: 'Missing required parameters' });
-    }
+export const getInfrastructureData = async (req: Request, res: Response) => {    const { connectionId, userId } = req.params;    if (!userId || !connectionId) {        return res.status(400).json({ error: 'Missing required parameters' });    }
 
     const session = Neo4jService.getSession();
     try {
@@ -654,7 +648,7 @@ export const getInfrastructureData = async (req: Request, res: Response) => {
         const internetGateways = new Map();
         const networkAcls = new Map();
         const loadBalancers = new Map();
-        const s3Buckets = [];
+        const s3Buckets: Array<{name: string; properties: any}> = [];
         
         // Process all records to collect resources
         result.records.forEach(record => {

@@ -1,4 +1,4 @@
-import { ConversionResult } from '../types';
+import { ConversionResult, RelationshipType } from '../types';
 import { createResourceNode } from '../utils/nodeFactory';
 import { createLambdaToApiGwEdge } from '../utils/edgeFactory';
 import { 
@@ -61,7 +61,7 @@ export default class LambdaProcessor implements ResourceProcessor {
           target: vpcId,
           type: 'smoothstep',
           data: {
-            type: 'lambda-to-apigw', // Using an existing edge type
+            type: RelationshipType.LAMBDA_TO_APIGW,
             description: 'Lambda is in VPC'
           }
         });
@@ -115,7 +115,7 @@ export default class LambdaProcessor implements ResourceProcessor {
           target: lambdaId,
           type: 'smoothstep',
           data: {
-            type: 'lambda-to-event',
+            type: RelationshipType.LAMBDA_TO_EVENT,
             description: `Lambda triggered by ${eventSource.type || 'event'}`
           }
         });

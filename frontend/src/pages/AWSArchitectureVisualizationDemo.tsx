@@ -4,6 +4,10 @@ import AWSArchitectureVisualizer from '../components/aws-architecture-visualizer
 import CloudDiagram from '../components/aws/CloudDiagram';
 import SampleDataSelector from '../components/aws/SampleDataSelector';
 import { AWSArchitecture } from '../components/aws-architecture-visualizer';
+import { AWSResources } from '../components/aws/types';
+
+// Generic type for AWS data to handle both interfaces
+type AWSData = AWSArchitecture | AWSResources;
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -37,13 +41,13 @@ function a11yProps(index: number) {
 
 const AWSArchitectureVisualizationDemo: React.FC = () => {
   const [tabValue, setTabValue] = useState(0);
-  const [awsData, setAwsData] = useState<AWSArchitecture | null>(null);
+  const [awsData, setAwsData] = useState<AWSData | null>(null);
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
   };
 
-  const handleDataSelected = (data: AWSArchitecture) => {
+  const handleDataSelected = (data: AWSData) => {
     setAwsData(data);
   };
 

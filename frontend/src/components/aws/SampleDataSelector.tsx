@@ -1,75 +1,68 @@
-import React, { useState } from 'react';
-import { Box, Button, FormControl, InputLabel, MenuItem, Select, Typography, Paper } from '@mui/material';
-import { SelectChangeEvent } from '@mui/material/Select';
-
-// Import sample data
+import React from 'react';
+import {
+  Box,
+  Typography,
+  Card,
+  CardContent,
+  Button,
+  Grid
+} from '@mui/material';
 import sampleCompleteArchitecture from '../../data/sample-aws-architecture.json';
+import { AWSResources } from './types';
 
-// Define available sample data options
-const SAMPLE_OPTIONS = [
-  { id: 'complete', label: 'Complete Architecture (All Resources)', data: sampleCompleteArchitecture },
+// Define a generic type for AWS data to support both interfaces
+type AWSData = AWSResources | any; // Using 'any' to support AWSArchitecture
+
+const samples: { name: string; description: string; data: AWSData }[] = [
+  {
+    name: 'Complete Architecture',
+    description: 'A comprehensive AWS architecture with all supported resource types',
+    data: sampleCompleteArchitecture as AWSData
+  }
 ];
 
-export interface SampleDataSelectorProps {
-  onDataSelected: (data: any) => void;
+interface SampleDataSelectorProps {
+  onDataSelected: (data: AWSData) => void;
 }
 
+/**
+ * Component to select sample AWS architecture data for visualization
+ */
 const SampleDataSelector: React.FC<SampleDataSelectorProps> = ({ onDataSelected }) => {
-  const [selectedSample, setSelectedSample] = useState<string>('');
-
-  const handleChange = (event: SelectChangeEvent) => {
-    const sampleId = event.target.value;
-    setSelectedSample(sampleId);
-    
-    // Find the selected sample data
-    const selectedData = SAMPLE_OPTIONS.find(option => option.id === sampleId);
-    if (selectedData) {
-      onDataSelected(selectedData.data);
-    }
-  };
-
   return (
-    <Paper elevation={2} sx={{ p: 3, mb: 4 }}>
-      <Typography variant="h6" gutterBottom>
+    <Box sx={{ p: 2 }}>
+      <Typography variant="h5" gutterBottom>
         AWS Architecture Samples
       </Typography>
       
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+      <Typography variant="body1" sx={{ mb: 2 }}>
         Choose a pre-configured AWS architecture sample to visualize. These samples demonstrate all 17 resource types and their relationships.
       </Typography>
       
-      <Box sx={{ display: 'flex', alignItems: 'flex-end', gap: 2 }}>
-        <FormControl sx={{ minWidth: 300 }}>
-          <InputLabel id="sample-data-select-label">Sample Architecture</InputLabel>
-          <Select
-            labelId="sample-data-select-label"
-            id="sample-data-select"
-            value={selectedSample}
-            label="Sample Architecture"
-            onChange={handleChange}
-          >
-            {SAMPLE_OPTIONS.map(option => (
-              <MenuItem key={option.id} value={option.id}>
-                {option.label}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-        
-        <Button 
-          variant="contained" 
-          disabled={!selectedSample}
-          onClick={() => {
-            const selectedData = SAMPLE_OPTIONS.find(option => option.id === selectedSample);
-            if (selectedData) {
-              onDataSelected(selectedData.data);
-            }
-          }}
-        >
-          Load Sample
-        </Button>
-      </Box>
-    </Paper>
+      <Grid container spacing={2}>
+        {samples.map((sample, index) => (
+          <Grid item xs={12} sm={6} md={4} key={index}>
+            <Card variant="outlined">
+              <CardContent>
+                <Typography variant="h6" gutterBottom>
+                  {sample.name}
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                  {sample.description}
+                </Typography>
+                <Button 
+                  variant="contained" 
+                  onClick={() => onDataSelected(sample.data)}
+                  fullWidth
+                >
+                  Load Sample
+                </Button>
+              </CardContent>
+            </Card>
+          </Grid>
+        ))}
+      </Grid>
+    </Box>
   );
 };
 

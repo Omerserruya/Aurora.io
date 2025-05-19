@@ -7,6 +7,8 @@ import {
   createGlobalResourcesContainer,
   updateContainerDimensions
 } from './baseProcessor';
+import { NODE_TYPES } from '../constants';
+import { AWSNode } from '../awsNodes';
 
 /**
  * Processor for AWS S3 bucket resources
@@ -33,7 +35,9 @@ export default class S3Processor implements ResourceProcessor {
       generateNodeId,
       'S3 Buckets',
       x,
-      y
+      y,
+      true, // Skip header for S3 buckets
+      NODE_TYPES.S3 // Use S3 type for correct logo and color
     );
     
     // Process each S3 bucket
@@ -41,19 +45,25 @@ export default class S3Processor implements ResourceProcessor {
       // Create S3 bucket node ID
       const bucketId = getResourceId('s3', bucket.name, generateNodeId);
       
-      // Create S3 bucket node
-      const s3Node = createResourceNode(
-        bucketId,
-        bucket.name || `S3 Bucket ${index + 1}`,
-        's3',
-        bucketId,
-        containerId, // Now a child of the global container
-        0, 0, // Position will be updated by positionNodeInParent
-        {
+      // Create S3 bucket node with explicit parent relationship
+      const s3Node: AWSNode = {
+        id: bucketId,
+        type: NODE_TYPES.S3,
+        position: { x: 0, y: 0 }, // Will be positioned by positionNodeInParent
+        data: {
+          label: bucket.name || `S3 Bucket ${index + 1}`,
+          type: NODE_TYPES.S3,
+          resourceId: bucketId,
           Name: bucket.name || '',
           CreationDate: bucket.creationDate || bucket.properties?.CreationDate || ''
+        },
+        parentNode: containerId,
+        extent: 'parent' as const,
+        style: {
+          width: 200,
+          height: 100
         }
-      );
+      };
       
       // Add S3 bucket node to results
       nodes.push(s3Node);

@@ -1,6 +1,62 @@
-# AWS Architecture Visualization Components
+# AWS Cloud Diagram
 
-This directory contains components and utilities for visualizing AWS architecture using ReactFlow.
+This module provides an interactive visualization of AWS cloud architecture using React Flow.
+
+## Overview
+
+The AWS Cloud Diagram component renders a visual representation of AWS resources and their relationships. It supports dark/light theme, custom SVG icons, resource-type specific colors, interactivity features and more.
+
+## Components
+
+- `CloudDiagram.tsx`: The main React Flow component that renders the AWS resources diagram
+- `nodeRegistry.ts`: Registry of custom node types with their styling and rendering logic
+- `constants.ts`: Shared constants including node types, colors, and configuration
+- `types.ts`: TypeScript interfaces and types for the module
+
+## Data Processing
+
+The visualization consumes a standardized AWS architecture data format with resources at the root level:
+
+```json
+{
+  "vpcs": [...],
+  "s3Buckets": [...],
+  "iamRoles": [...],
+  /* Other top-level resources */
+}
+```
+
+### Internal Data Flow
+
+1. Raw AWS data → Data Converter → React Flow format
+2. Processors for each resource type handle specific transformations
+3. Layout Engine automatically positions nodes to avoid overlap
+4. Node/Edge factories create themed, consistent UI elements
+
+## Adding New Resource Types
+
+To add support for a new AWS resource type:
+
+1. Update `types.ts` with the new resource interface
+2. Create a custom node component in `components/` if needed
+3. Add the resource color scheme in `constants.ts`
+4. Register the node type in `nodeRegistry.ts`
+5. Update the data converter to process the new resource type
+6. Add any necessary relationship processors
+
+## Theme Support
+
+The visualization supports both light and dark themes through the ThemeContext. Each node type has specific color schemes for both modes.
+
+## Architecture Improvements
+
+The refactored architecture:
+
+1. Moved from a nested hierarchy to a flat resource structure
+2. Uses ELK layout engine for optimal node positioning
+3. Consolidated resource-specific logic into dedicated processors
+4. Improved type safety and documentation
+5. Supports all AWS resource types from the backend
 
 ## File Structure
 

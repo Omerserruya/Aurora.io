@@ -1,83 +1,131 @@
 import { Node } from 'reactflow';
 import { AWSNode as AWSNodeType } from '../awsNodes';
 import { Z_INDEX, NODE_DIMENSIONS, NODE_TYPES, GLOBAL_LAYOUT } from './constants';
+import { AWSNode } from '../awsNodes';
+import { AWSEdge } from '../awsEdges';
+import { LAYOUT_CONFIG, ELK_LAYOUT_OPTIONS } from '../constants';
+import ELK from 'elkjs/lib/elk.bundled.js';
 
 /**
  * Utility functions for positioning AWS diagram nodes with proper parent-child relationships
  */
 
 /**
- * Position a child node relative to its parent node's info card
+ * Position a child node relative to its parent node
  * @param parentNode The parent node
  * @param childIndex Index of the child in the collection
  * @param totalChildren Total number of children
+ * @param allNodes All nodes in the diagram
  * @returns Position coordinates {x, y}
  */
 export function positionChildNode(
   parentNode: AWSNodeType,
   childIndex: number,
-  totalChildren: number
+  totalChildren: number,
+  allNodes: AWSNodeType[]
 ): { x: number, y: number } {
   const parentType = parentNode.data.type;
   const padding = getNodePadding(parentType);
-  
-  // VPC special case - position subnets below the VPC info card with more spacing
-  if (parentType === NODE_TYPES.VPC) {
-    const infoCardHeight = NODE_DIMENSIONS.VPC.INFO_CARD_HEIGHT;
-    const subnetHeight = NODE_DIMENSIONS.SUBNET.DEFAULT_HEIGHT;
-    const margin = NODE_DIMENSIONS.RESOURCE.MARGIN * 3; // Triple the margin for more space
-    
-    return {
-      x: padding + 40, // Additional left padding to prevent sticking to the edge
-      y: infoCardHeight + padding + 60 + (childIndex * (subnetHeight + margin)) // Add extra 60px of spacing from info card
-    };
+  const headerHeight = parentType === NODE_TYPES.VPC 
+    ? NODE_DIMENSIONS.VPC.INFO_CARD_HEIGHT 
+    : parentType === NODE_TYPES.SUBNET 
+      ? NODE_DIMENSIONS.SUBNET.INFO_CARD_HEIGHT 
+      : 0;
+
+  // Get all children of the parent using allNodes
+  const allChildren = findChildNodes(parentNode.id, allNodes);
+  if (!allChildren.length || childIndex >= allChildren.length) {
+    return { x: padding, y: headerHeight + padding };
   }
-  
-  // Subnet special case - position resources below the subnet info card with more spacing
-  if (parentType === NODE_TYPES.SUBNET) {
-    const infoCardHeight = NODE_DIMENSIONS.SUBNET.INFO_CARD_HEIGHT;
-    const resourceHeight = NODE_DIMENSIONS.RESOURCE.DEFAULT_HEIGHT;
-    const margin = NODE_DIMENSIONS.RESOURCE.MARGIN * 2; // Double the margin
-    
-    return {
-      x: padding + 20, // Additional left padding
-      y: infoCardHeight + padding + 40 + (childIndex * (resourceHeight + margin)) // Add extra 40px spacing from info card
-    };
+
+  // Group children by type
+  const childrenByType: Record<string, AWSNodeType[]> = {};
+  allChildren.forEach(node => {
+    if (node && node.data && node.data.type) {
+      const type = node.data.type;
+      if (!childrenByType[type]) {
+        childrenByType[type] = [];
+      }
+      childrenByType[type].push(node);
+    }
+  });
+
+  // Type order: subnets first for VPCs, S3 buckets first for S3 containers
+  const typeOrder = (parentType === NODE_TYPES.VPC)
+    ? [NODE_TYPES.SUBNET, ...Object.keys(childrenByType).filter(type => type !== NODE_TYPES.SUBNET).sort()]
+    : (parentType === NODE_TYPES.S3)
+      ? [NODE_TYPES.S3, ...Object.keys(childrenByType).filter(type => type !== NODE_TYPES.S3).sort()]
+      : Object.keys(childrenByType).sort();
+
+  // Find the group/type and index within group for this child
+  let groupStartY = headerHeight + padding;
+  let found = false;
+  let x = padding;
+  let y = groupStartY;
+
+  for (let t = 0; t < typeOrder.length; t++) {
+    const type = typeOrder[t];
+    const group = childrenByType[type] || [];
+    // Use fixed maxColumns for subnets and S3, else calculate as before
+    let maxColumns = 3;
+    if (type !== NODE_TYPES.SUBNET && type !== NODE_TYPES.S3) {
+      maxColumns = Math.max(1, Math.floor((parentNode.style?.width as number - 2 * padding) / 250));
+    }
+    // --- Grid calculation ---
+    // First pass: measure row heights and col widths
+    let rowHeights: number[] = [];
+    let maxColWidths: number[] = [];
+    let col = 0;
+    let maxRowHeight = 0;
+    for (let i = 0; i < group.length; i++) {
+      const node = group[i];
+      const width = (node.style?.width as number) || 200;
+      const height = (node.style?.height as number) || 100;
+      if (!maxColWidths[col] || width > maxColWidths[col]) maxColWidths[col] = width;
+      if (height > maxRowHeight) maxRowHeight = height;
+      col++;
+      if (col >= maxColumns) {
+        rowHeights.push(maxRowHeight);
+        maxRowHeight = 0;
+        col = 0;
+      }
+    }
+    if (col > 0) rowHeights.push(maxRowHeight);
+    // Second pass: position
+    let row = 0;
+    col = 0;
+    let curY = groupStartY;
+    let rowStartX = padding;
+    for (let i = 0; i < group.length; i++) {
+      const node = group[i];
+      const width = (node.style?.width as number) || 200;
+      // Calculate x
+      let xPos = rowStartX;
+      for (let c = 0; c < col; c++) {
+        xPos += (maxColWidths[c] || 200) + NODE_DIMENSIONS.RESOURCE.MARGIN;
+      }
+      // Calculate y
+      let yPos = curY;
+      // If this is the node we're positioning, set x/y
+      if (!found && node.id === allChildren[childIndex].id) {
+        x = xPos;
+        y = yPos;
+        found = true;
+      }
+      col++;
+      if (col >= maxColumns) {
+        col = 0;
+        row++;
+        curY += (rowHeights[row - 1] || 100) + NODE_DIMENSIONS.RESOURCE.MARGIN;
+        rowStartX = padding;
+      }
+    }
+    // After this group, move groupStartY down by total group height
+    let groupHeight = rowHeights.reduce((a, b) => a + b, 0) + (rowHeights.length - 1) * NODE_DIMENSIONS.RESOURCE.MARGIN;
+    groupStartY += 30 + 40 + groupHeight; // header + spacing + group height
+    if (found) break;
   }
-  
-  // Default positioning for other node types - use an improved grid layout
-  const parentWidth = (parentNode.style?.width as number) || 
-    getDefaultNodeWidth(parentType);
-  
-  const itemWidth = NODE_DIMENSIONS.RESOURCE.DEFAULT_WIDTH;
-  const itemHeight = NODE_DIMENSIONS.RESOURCE.DEFAULT_HEIGHT;
-  const itemMargin = NODE_DIMENSIONS.RESOURCE.MARGIN;
-  const availableWidth = parentWidth - (padding * 2) - 40; // Extra 40px margin for better spacing
-  
-  // Calculate max columns that can fit in the available width
-  const maxColumns = Math.max(1, Math.floor(availableWidth / (itemWidth + itemMargin)));
-  
-  // Adaptive column count based on number of children
-  let columns: number;
-  if (totalChildren <= 2) columns = 1;
-  else if (totalChildren <= 4) columns = 2;
-  else if (totalChildren <= 8) columns = 3;
-  else columns = Math.min(totalChildren, maxColumns, 4); // Cap at 4 columns max for readability
-  
-  // Calculate row and column for this index
-  const row = Math.floor(childIndex / columns);
-  const col = childIndex % columns;
-  
-  // Calculate optimal spacing to utilize available width
-  const totalItemsWidth = columns * itemWidth;
-  const totalSpacing = availableWidth - totalItemsWidth;
-  const horizontalSpacing = columns > 1 ? totalSpacing / (columns - 1) : itemMargin;
-  
-  // Calculate position based on grid with optimal spacing
-  return {
-    x: padding + 20 + (col * (itemWidth + horizontalSpacing)),
-    y: padding + 20 + (row * (itemHeight + itemMargin))
-  };
+  return { x, y };
 }
 
 /**
@@ -203,7 +251,7 @@ export function findChildNodes(parentId: string, allNodes: AWSNodeType[]): AWSNo
 /**
  * Calculate the required dimensions to fit all child nodes
  * @param childNodes Array of child nodes
- * @param padding Padding to add around children
+ * @param nodeType Type of the container node
  * @returns Required width and height
  */
 export function calculateContainerSize(
@@ -211,40 +259,64 @@ export function calculateContainerSize(
   nodeType: string
 ): { width: number, height: number } {
   if (childNodes.length === 0) {
-    return getDefaultDimensions(nodeType);
+    return {
+      width: NODE_DIMENSIONS.RESOURCE.DEFAULT_WIDTH,
+      height: NODE_DIMENSIONS.RESOURCE.DEFAULT_HEIGHT
+    };
   }
-  
-  // Default padding for container
-  const padding = getNodePadding(nodeType) * 2;
-  
-  // Find the boundaries of child nodes
-  let maxRight = 0;
-  let maxBottom = 0;
-  
+  const padding = getNodePadding(nodeType);
+  // Group children by type
+  const childrenByType: Record<string, AWSNodeType[]> = {};
   childNodes.forEach(node => {
-    const nodeWidth = (node.style?.width as number) || 
-      getDefaultNodeWidth(node.data.type);
-    const nodeHeight = (node.style?.height as number) || 
-      getDefaultNodeHeight(node.data.type);
-    
-    const nodeRight = node.position.x + nodeWidth;
-    const nodeBottom = node.position.y + nodeHeight;
-    
-    maxRight = Math.max(maxRight, nodeRight);
-    maxBottom = Math.max(maxBottom, nodeBottom);
+    if (node && node.data && node.data.type) {
+      const type = node.data.type;
+      if (!childrenByType[type]) {
+        childrenByType[type] = [];
+      }
+      childrenByType[type].push(node);
+    }
   });
-  
-  // Add info card height for container nodes
-  const infoCardHeight = nodeType === NODE_TYPES.VPC 
-    ? NODE_DIMENSIONS.VPC.INFO_CARD_HEIGHT 
-    : nodeType === NODE_TYPES.SUBNET 
-      ? NODE_DIMENSIONS.SUBNET.INFO_CARD_HEIGHT 
-      : 0;
-  
-  // Calculate dimensions with padding
+  const typeOrder = nodeType === NODE_TYPES.VPC
+    ? [NODE_TYPES.SUBNET, ...Object.keys(childrenByType).filter(type => type !== NODE_TYPES.SUBNET).sort()]
+    : Object.keys(childrenByType).sort();
+  let totalHeight = (nodeType === NODE_TYPES.VPC ? NODE_DIMENSIONS.VPC.INFO_CARD_HEIGHT : nodeType === NODE_TYPES.SUBNET ? NODE_DIMENSIONS.SUBNET.INFO_CARD_HEIGHT : 0) + padding;
+  let maxWidth = 0;
+  for (let t = 0; t < typeOrder.length; t++) {
+    const type = typeOrder[t];
+    const group = childrenByType[type] || [];
+    let maxColumns = 3;
+    if (type !== NODE_TYPES.SUBNET) {
+      maxColumns = Math.max(1, Math.floor((NODE_DIMENSIONS.VPC.DEFAULT_WIDTH - 2 * padding) / 250));
+    }
+    let rowHeights: number[] = [];
+    let maxColWidths: number[] = [];
+    let col = 0;
+    let maxRowHeight = 0;
+    for (let i = 0; i < group.length; i++) {
+      const node = group[i];
+      const width = (node.style?.width as number) || 200;
+      const height = (node.style?.height as number) || 100;
+      if (!maxColWidths[col] || width > maxColWidths[col]) maxColWidths[col] = width;
+      if (height > maxRowHeight) maxRowHeight = height;
+      col++;
+      if (col >= maxColumns) {
+        rowHeights.push(maxRowHeight);
+        maxRowHeight = 0;
+        col = 0;
+      }
+    }
+    if (col > 0) rowHeights.push(maxRowHeight);
+    // Calculate group width
+    const groupWidth = maxColWidths.reduce((a, b) => a + b, 0) + (maxColWidths.length - 1) * NODE_DIMENSIONS.RESOURCE.MARGIN;
+    if (groupWidth > maxWidth) maxWidth = groupWidth;
+    // Calculate group height
+    let groupHeight = rowHeights.reduce((a, b) => a + b, 0) + (rowHeights.length - 1) * NODE_DIMENSIONS.RESOURCE.MARGIN;
+    totalHeight += 30 + 40 + groupHeight; // header + spacing + group height
+  }
+  totalHeight += padding;
   return {
-    width: Math.max(getDefaultNodeWidth(nodeType), maxRight + padding),
-    height: Math.max(getDefaultNodeHeight(nodeType), maxBottom + padding + infoCardHeight)
+    width: Math.max(getDefaultNodeWidth(nodeType), maxWidth + 2 * padding),
+    height: Math.max(getDefaultNodeHeight(nodeType), totalHeight)
   };
 }
 
@@ -381,60 +453,194 @@ export const calculateVpcPositions = (vpcs: AWSNodeType[], dimensions = GLOBAL_L
   return vpcs;
 };
 
-// Update the main layout function to use grid layout for VPCs
-export const calculateLayout = (nodes: AWSNodeType[], edges: any[]): { nodes: AWSNodeType[], edges: any[] } => {
-  // Find all VPC nodes
-  const vpcs = nodes.filter(node => node.data.type === NODE_TYPES.VPC);
+// Initialize ELK layout engine
+const elk = new ELK();
+
+/**
+ * Calculate layout for nodes and edges
+ */
+export function calculateLayout(
+  nodes: AWSNode[],
+  edges: AWSEdge[]
+): { nodes: AWSNode[]; edges: AWSEdge[] } {
+  // First, apply hierarchical layout to get initial positions
+  const { nodes: hierarchicalNodes } = applyHierarchicalLayout(nodes);
   
-  if (vpcs.length === 0) {
+  // Apply ELK layout for more sophisticated positioning that respects parent-child relationships
+  return applyElkLayoutSync(hierarchicalNodes, edges);
+}
+
+/**
+ * Apply simple hierarchical layout
+ */
+function applyHierarchicalLayout(nodes: AWSNode[]): { nodes: AWSNode[] } {
+  // Group nodes by type
+  const typeGroups: Record<string, AWSNode[]> = {};
+  
+  nodes.forEach(node => {
+    const type = node.data.type;
+    if (!typeGroups[type]) {
+      typeGroups[type] = [];
+    }
+    typeGroups[type].push(node);
+  });
+  
+  // Layout variables
+  const startX = 100;
+  const startY = 100;
+  const typeSpacingY = LAYOUT_CONFIG.levelSpacing;
+  const nodeSpacingX = LAYOUT_CONFIG.nodeSpacing;
+  
+  // Order types for visual hierarchy
+  const typeOrder = [
+    'vpc', 'subnet', 'ec2', 'rds', 's3', 
+    'security_group', 'route_table', 
+    'internet_gateway', 'nat_gateway', 'network_acl',
+    'load_balancer', 'lambda', 'dynamodb', 
+    'sqs', 'sns', 'cloudwatch', 'api_gateway',
+    'ecs', 'eks', 'elastic_beanstalk', 'kms',
+    'iam_role', 'iam_user', 'iam_policy', 'generic'
+  ];
+  
+  // Position nodes by type
+  const positionedNodes = [...nodes];
+  let currentY = startY;
+  
+  typeOrder.forEach(type => {
+    const nodesOfType = typeGroups[type];
+    if (nodesOfType && nodesOfType.length > 0) {
+      const nodesPerRow = Math.min(5, nodesOfType.length);
+      const rows = Math.ceil(nodesOfType.length / nodesPerRow);
+      
+      nodesOfType.forEach((node, index) => {
+        const row = Math.floor(index / nodesPerRow);
+        const col = index % nodesPerRow;
+        
+        const nodeIndex = positionedNodes.findIndex(n => n.id === node.id);
+        if (nodeIndex !== -1) {
+          positionedNodes[nodeIndex] = {
+            ...node,
+            position: {
+              x: startX + (col * nodeSpacingX),
+              y: currentY + (row * 150)
+            }
+          };
+        }
+      });
+      
+      currentY += (rows * 150) + typeSpacingY;
+    }
+  });
+  
+  return { nodes: positionedNodes };
+}
+
+/**
+ * Apply ELK layout synchronously (using a prepared layout)
+ */
+function applyElkLayoutSync(
+  nodes: AWSNode[],
+  edges: AWSEdge[]
+): { nodes: AWSNode[]; edges: AWSEdge[] } {
+  try {
+    // First, identify all parent nodes
+    const parentNodeIds = new Set<string>();
+    nodes.forEach(node => {
+      if (node.parentNode) {
+        parentNodeIds.add(node.parentNode);
+      }
+    });
+
+    // --- NEW: Recursively update all container sizes before layout ---
+    // Find all container nodes (VPCs, subnets, etc.)
+    const containerTypes = [NODE_TYPES.VPC, NODE_TYPES.SUBNET];
+    const containerNodeIds = nodes.filter(node => containerTypes.includes(node.data.type)).map(node => node.id);
+    updateParentDimensions(nodes, containerNodeIds);
+    // --- END NEW ---
+
+    // For each parent node, position its children properly
+    parentNodeIds.forEach(parentId => {
+      const parentNode = nodes.find(node => node.id === parentId);
+      if (!parentNode) return;
+      
+      const childNodes = nodes.filter(node => node.parentNode === parentId);
+      if (childNodes.length === 0) return;
+      
+      // Layout children within parent
+      childNodes.forEach((childNode, index) => {
+        const position = positionChildNode(parentNode, index, childNodes.length, nodes);
+        childNode.position = position;
+      });
+      
+      // Update parent dimensions to fit children if needed
+      const requiredWidth = Math.max(
+        ...childNodes.map(child => 
+          child.position.x + (child.style?.width as number || 200) + 40
+        )
+      );
+      
+      const requiredHeight = Math.max(
+        ...childNodes.map(child => 
+          child.position.y + (child.style?.height as number || 100) + 40
+        )
+      );
+      
+      // Ensure minimum dimensions
+      const minimumWidth = parentNode.style?.width as number || 800;
+      const minimumHeight = parentNode.style?.height as number || 400;
+      
+      // Update parent dimensions if needed
+      parentNode.style = {
+        ...parentNode.style,
+        width: Math.max(minimumWidth, requiredWidth),
+        height: Math.max(minimumHeight, requiredHeight)
+      };
+    });
+    
+    // Now position the parent nodes themselves using a simplified layout
+    const parentNodes = nodes.filter(node => parentNodeIds.has(node.id));
+    let y = 100;
+    
+    // Group parents by their type
+    const groupedParents: Record<string, AWSNode[]> = {};
+    
+    parentNodes.forEach(node => {
+      const type = node.data.type;
+      if (!groupedParents[type]) {
+        groupedParents[type] = [];
+      }
+      groupedParents[type].push(node);
+    });
+    
+    // Position each group
+    Object.values(groupedParents).forEach(parentGroup => {
+      let x = 100;
+      const spacing = 100;
+      
+      parentGroup.forEach(parent => {
+        parent.position = { x, y };
+        x += (parent.style?.width as number || 800) + spacing;
+      });
+      
+      // Move down for next group
+      y += (parentGroup[0]?.style?.height as number || 400) + 200;
+    });
+    
+    return { nodes, edges };
+  } catch (error) {
+    console.error('Layout error:', error);
     return { nodes, edges };
   }
-  
-  // Calculate positions for VPCs in a grid layout with explicit positions
-  const positionedVpcs = calculateVpcPositions(vpcs);
-  
-  // Create a map for quick VPC ID lookup
-  const vpcMap = new Map();
-  positionedVpcs.forEach(vpc => {
-    vpcMap.set(vpc.id, vpc);
-  });
-  
-  // Create a new array with the updated nodes
-  const updatedNodes = nodes.map(node => {
-    // For VPC nodes, use their pre-calculated positions
-    if (node.data.type === NODE_TYPES.VPC) {
-      const positionedVpc = vpcMap.get(node.id);
-      if (positionedVpc) {
-        return {
-          ...node,
-          position: { ...positionedVpc.position },
-          parentNode: undefined, // VPCs have no parent
-          extent: undefined, // VPCs are not restricted to an extent
-          // Force dimensions to be explicit
-          style: {
-            ...node.style,
-            width: NODE_DIMENSIONS.VPC.DEFAULT_WIDTH,
-            height: NODE_DIMENSIONS.VPC.DEFAULT_HEIGHT
-          },
-          draggable: true // Allow VPCs to be individually dragged
-        };
-      }
-    }
-    
-    // For non-VPC nodes, maintain their relationship with parent VPCs
-    return node;
-  });
-  
-  // Process the nodes to ensure parent-child relationships are maintained for subnet nodes
-  const parentIds = Array.from(new Set(updatedNodes
-    .filter(node => node.parentNode && node.data.type !== NODE_TYPES.VPC)
-    .map(node => node.parentNode as string)));
-  
-  // Return the updated nodes and edges
-  const finalNodes = updateParentDimensions(updatedNodes, parentIds);
-  
-  return {
-    nodes: finalNodes,
-    edges
-  };
-}; 
+}
+
+/**
+ * Sync function for calculating layout
+ * (Used when async ELK is not needed or available)
+ */
+export function calculateLayoutSync(
+  nodes: AWSNode[],
+  edges: AWSEdge[]
+): { nodes: AWSNode[]; edges: AWSEdge[] } {
+  const { nodes: hierarchicalNodes } = applyHierarchicalLayout(nodes);
+  return { nodes: hierarchicalNodes, edges };
+} 

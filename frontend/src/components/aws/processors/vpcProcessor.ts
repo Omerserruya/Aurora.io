@@ -1,16 +1,20 @@
-import { AWSNode as AWSNodeType } from '../awsNodes';
+import { AWSNode } from '../awsNodes';
 import { AWSEdge } from '../awsEdges';
-import { ConversionResult } from '../types';
+import { ConversionResult, RelationshipType } from '../types';
 import { createVpcNode, createResourceNode } from '../utils/nodeFactory';
 import { 
   ResourceProcessor, 
   getResourceId,
   updateContainerDimensions,
-  positionNodeInParent
+  positionNodeInParent,
+  createResourceRelationship,
+  createGlobalResourcesContainer,
+  createGroupHeaders
 } from './baseProcessor';
 import SubnetProcessor from './subnetProcessor';
 import InternetGatewayProcessor from './internetGatewayProcessor';
 import SecurityGroupProcessor from './securityGroupProcessor';
+import { NODE_TYPES } from '../constants';
 
 /**
  * Processor for AWS VPC resources
@@ -44,15 +48,24 @@ export default class VpcProcessor implements ResourceProcessor {
       // Create VPC node ID
       const vpcId = getResourceId('vpc', vpc.vpcId, generateNodeId);
       
-      // Create VPC node with default position (0,0) - will be positioned by layoutEngine
-      const vpcNode = createVpcNode(
-        vpcId,
-        vpc.name || `VPC ${vpc.vpcId || vpcIndex + 1}`,
-        vpc.vpcId || '',
-        vpc.cidrBlock || '',
-        0,  // X position - to be set by layout engine
-        0   // Y position - to be set by layout engine
-      );
+      // Create VPC node
+      const vpcNode: AWSNode = {
+        id: vpcId,
+        type: NODE_TYPES.VPC,
+        position: { x: 0, y: 0 }, // Will be positioned by layout engine
+        data: {
+          label: vpc.vpcId || 'VPC',
+          type: NODE_TYPES.VPC,
+          resourceId: vpcId,
+          VpcId: vpc.vpcId || '',
+          CidrBlock: vpc.cidrBlock || '',
+          IsDefault: vpc.isDefault || false
+        },
+        style: {
+          width: 1200,
+          height: 1000
+        }
+      };
       
       // Add VPC node to results
       nodes.push(vpcNode);
@@ -133,6 +146,9 @@ export default class VpcProcessor implements ResourceProcessor {
           generateEdgeId
         );
       }
+      
+      // Create group headers for all resource types
+      createGroupHeaders(result, generateNodeId, vpcId, nodes);
     });
     
     // Update VPC dimensions after all children are added
@@ -189,7 +205,7 @@ export default class VpcProcessor implements ResourceProcessor {
         target: vpcId,
         type: 'smoothstep',
         data: {
-          type: 'natgw-to-vpc',
+          type: RelationshipType.NATGW_TO_VPC,
           description: 'NAT Gateway is in VPC'
         }
       });
@@ -241,7 +257,7 @@ export default class VpcProcessor implements ResourceProcessor {
         target: vpcId,
         type: 'smoothstep',
         data: {
-          type: 'rt-to-vpc',
+          type: RelationshipType.NATGW_TO_VPC,
           description: 'Route Table is in VPC'
         }
       });
@@ -293,7 +309,7 @@ export default class VpcProcessor implements ResourceProcessor {
         target: vpcId,
         type: 'smoothstep',
         data: {
-          type: 'nacl-to-vpc',
+          type: RelationshipType.NATGW_TO_VPC,
           description: 'Network ACL is in VPC'
         }
       });
@@ -347,7 +363,7 @@ export default class VpcProcessor implements ResourceProcessor {
         target: vpcId,
         type: 'smoothstep',
         data: {
-          type: 'lb-to-vpc',
+          type: RelationshipType.SUBNET_TO_LB,
           description: 'Load Balancer is deployed in VPC'
         }
       });

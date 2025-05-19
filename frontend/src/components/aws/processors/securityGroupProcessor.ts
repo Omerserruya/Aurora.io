@@ -1,4 +1,4 @@
-import { ConversionResult } from '../types';
+import { ConversionResult, RelationshipType } from '../types';
 import { createSecurityGroupNode } from '../utils/nodeFactory';
 import { createSecurityGroupToResourceEdge } from '../utils/edgeFactory';
 import { 
@@ -105,7 +105,7 @@ export default class SecurityGroupProcessor implements ResourceProcessor {
           target: targetNode.id,
           type: 'smoothstep',
           data: {
-            type: 'sg-to-sg',
+            type: RelationshipType.SG_TO_SG,
             description: 'Security group reference'
           }
         });
