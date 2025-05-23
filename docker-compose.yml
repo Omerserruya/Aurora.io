@@ -96,7 +96,7 @@ services:
     environment:
       - MONGO_INITDB_DATABASE=aurora
     volumes:
-      - mongodb_data:/data/db
+      - /opt/services/mongodb:/data/db
     ports:
       - "27017:27017"
     networks:
@@ -112,17 +112,17 @@ services:
   neo4j:
     image: neo4j:latest
     environment:
-      - NEO4J_AUTH=neo4j/aurora123
+      - NEO4J_AUTH=neo4j/aurora1234
       - NEO4J_apoc_export_file_enabled=true
       - NEO4J_apoc_import_file_enabled=true
       - NEO4J_apoc_import_file_use__neo4j__config=true
       - NEO4J_PLUGINS=["apoc"]
       - NEO4J_dbms_logs_debug_level=INFO
     volumes:
-      - neo4j_data:/data
-      - neo4j_logs:/logs
-      - neo4j_import:/var/lib/neo4j/import
-      - neo4j_plugins:/plugins
+      - /opt/services/neo4j/data:/data
+      - /opt/services/neo4j/logs:/logs
+      - /opt/services/neo4j/import:/var/lib/neo4j/import
+      - /opt/services/neo4j/plugins:/plugins
     ports:
       - "7474:7474"
       - "7687:7687"
@@ -139,9 +139,11 @@ services:
     image: nginx:alpine
     ports:
       - "80:80"  # HTTP port for local development
+      - "443:443"
     volumes:
+      - /etc/aurora/ssl:/etc/ssl
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./nginx/conf.d/default.conf:/etc/nginx/conf.d/default.conf:ro
       - ./userMgmntService/uploads:/app/uploads:ro
       - ./frontend/build:/usr/share/nginx/html:ro  # Serve React build files
     depends_on:
@@ -297,14 +299,6 @@ services:
       start_period: 30s
     networks:
       - default
-
-volumes:
-  frontend-build:   # Named volume for frontend build output
-  mongodb_data:     # Persistent storage for MongoDB
-  neo4j_data:       # Persistent storage for Neo4j data
-  neo4j_logs:       # Persistent storage for Neo4j logs
-  neo4j_import:     # Directory for Neo4j imports
-  neo4j_plugins:    # Directory for Neo4j plugins
 
 networks:
   default:
