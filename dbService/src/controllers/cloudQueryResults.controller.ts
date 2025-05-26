@@ -63,6 +63,17 @@ interface TerraformInfrastructure {
         subnet_name: string;
         tags: Record<string, string>;
     }[];
+    securityGroupRules: {
+        securityGroup: {
+            groupId: string;
+            properties: any;
+            rules: {
+                ruleId: string;
+                properties: any;
+                ruleType: string;
+            }[];
+        };
+    }[];
 }
 
 interface UserGroupPair {
@@ -169,6 +180,8 @@ export const processCloudQueryResults = async (req: Request, res: Response) => {
 
         // Get a new session
         session = Neo4jService.getSession();
+
+        console.log('Session created, about to query VPCs');
 
         // Start a transaction
         const tx = session.beginTransaction();
@@ -638,7 +651,7 @@ export const getInfrastructureData = async (req: Request, res: Response) => {
         );
 
         const infrastructure: CloudInfrastructure = {
-            vpcs: result.records.map(record => ({
+            vpcs: result.records.map((record: any) => ({
                 vpcId: record.get('v').properties.vpcId,
                 properties: record.get('v').properties,
                 subnets: record.get('subnets').map((subnet: any) => ({
@@ -676,7 +689,7 @@ export const getTerraformInfrastructureData = async (req: Request, res: Response
     
     try {
         const { userId, connectionId } = req.params;
-
+        
         // Validate required fields
         if (!userId || !connectionId) {
             return res.status(400).json({ error: 'Missing required fields' });
@@ -685,14 +698,17 @@ export const getTerraformInfrastructureData = async (req: Request, res: Response
         // Get a new session
         session = Neo4jService.getSession();
 
-        // Query to get all VPCs with their subnets, instances, and AMIs
+        // Single comprehensive query to get all VPCs with their related resources including SecurityGroups
         const result = await session.run(
             `MATCH (v:VPC {userId: $userId, connectionId: $connectionId})
-             OPTIONAL MATCH (v)-[:CONTAINS]->(s:Subnet)
-             OPTIONAL MATCH (s)-[:BELONGS_TO]->(i:Instance)
-             OPTIONAL MATCH (i)-[:USES]->(a:AMI)
-             RETURN v, collect(DISTINCT s) as subnets, collect(DISTINCT i) as instances, 
-                    collect(DISTINCT a) as amis`,
+             OPTIONAL MATCH (v)-[:CONTAINS]->(s:Subnet {userId: $userId, connectionId: $connectionId})
+             OPTIONAL MATCH (s)<-[:BELONGS_TO]-(i:Instance {userId: $userId, connectionId: $connectionId})
+             OPTIONAL MATCH (i)-[:USES]->(a:AMI {userId: $userId, connectionId: $connectionId})
+             OPTIONAL MATCH (v)-[:HAS]->(sg:SecurityGroup {userId: $userId, connectionId: $connectionId})
+             OPTIONAL MATCH (sg)-[:HAS_RULE {type: 'inbound'}]->(inRule:SecurityGroupRule {userId: $userId, connectionId: $connectionId})
+             OPTIONAL MATCH (sg)-[:HAS_RULE {type: 'outbound'}]->(outRule:SecurityGroupRule {userId: $userId, connectionId: $connectionId})
+             WITH v, s, i, a, sg, inRule, outRule
+             RETURN v, s, i, a, sg, inRule, outRule`,
             { userId, connectionId }
         );
 
@@ -700,60 +716,118 @@ export const getTerraformInfrastructureData = async (req: Request, res: Response
             vpcs: [],
             subnets: [],
             amis: [],
-            instances: []
+            instances: [],
+            securityGroupRules: []
         };
 
-        // Process the results
-        result.records.forEach(record => {
+        // Process the results using Maps to avoid duplicates
+        const vpcsMap = new Map();
+        const subnetsMap = new Map();
+        const amisMap = new Map();
+        const instancesMap = new Map();
+        const securityGroupsMap = new Map();
+
+        result.records.forEach((record: any) => {
             const vpc = record.get('v');
-            const subnets = record.get('subnets');
-            const instances = record.get('instances');
-            const amis = record.get('amis');
+            const subnet = record.get('s');
+            const instance = record.get('i');
+            const ami = record.get('a');
+            const securityGroup = record.get('sg');
+            const inRule = record.get('inRule');
+            const outRule = record.get('outRule');
 
             // Process VPC
-            if (vpc) {
-                infrastructure.vpcs.push({
+            if (vpc && !vpcsMap.has(vpc.properties.vpcId)) {
+                vpcsMap.set(vpc.properties.vpcId, {
                     name: vpc.properties.Name || vpc.properties.vpcId,
-                    cidr_block: vpc.properties.CidrBlock
+                    cidr_block: vpc.properties.CidrBlock,
+                    vpcId: vpc.properties.vpcId
                 });
             }
 
-            // Process Subnets
-            subnets.forEach((subnet: any) => {
-                if (subnet) {
-                    infrastructure.subnets.push({
-                        name: subnet.properties.Name || subnet.properties.subnetId,
-                        cidr_block: subnet.properties.CidrBlock,
-                        vpc_name: vpc.properties.Name || vpc.properties.vpcId
-                    });
-                }
-            });
+            // Process Subnet
+            if (subnet && !subnetsMap.has(subnet.properties.subnetId)) {
+                subnetsMap.set(subnet.properties.subnetId, {
+                    name: subnet.properties.Name || subnet.properties.subnetId,
+                    cidr_block: subnet.properties.CidrBlock,
+                    vpc_name: vpc ? (vpc.properties.Name || vpc.properties.vpcId) : '',
+                    subnetId: subnet.properties.subnetId
+                });
+            }
 
-            // Process AMIs
-            amis.forEach((ami: any) => {
-                if (ami) {
-                    infrastructure.amis.push({
-                        name: ami.properties.Name || ami.properties.imageId,
-                        ami_id: ami.properties.imageId,
-                        tags: ami.properties.Tags || {}
-                    });
-                }
-            });
+            // Process AMI
+            if (ami && !amisMap.has(ami.properties.imageId)) {
+                amisMap.set(ami.properties.imageId, {
+                    name: ami.properties.Name || ami.properties.imageId,
+                    ami_id: ami.properties.imageId,
+                    tags: ami.properties.Tags || {}
+                });
+            }
 
-            // Process Instances
-            instances.forEach((instance: any) => {
-                if (instance) {
-                    const subnet = subnets.find((s: any) => s.properties.subnetId === instance.properties.subnetId);
-                    infrastructure.instances.push({
-                        name: instance.properties.Name || instance.properties.instanceId,
-                        ami_id: instance.properties.imageId,
-                        instance_type: instance.properties.instanceType,
-                        subnet_name: subnet ? (subnet.properties.Name || subnet.properties.subnetId) : '',
-                        tags: instance.properties.Tags || {}
+            // Process Instance
+            if (instance && !instancesMap.has(instance.properties.instanceId)) {
+                const relatedSubnet = subnet || subnetsMap.get(instance.properties.subnetId);
+                instancesMap.set(instance.properties.instanceId, {
+                    name: instance.properties.Name || instance.properties.instanceId,
+                    ami_id: instance.properties.imageId,
+                    instance_type: instance.properties.instanceType,
+                    subnet_name: relatedSubnet ? (relatedSubnet.properties?.Name || relatedSubnet.properties?.subnetId || relatedSubnet.name) : '',
+                    tags: instance.properties.Tags || {}
+                });
+            }
+
+            // Process SecurityGroup and Rules
+            if (securityGroup) {
+                const groupId = securityGroup.properties.groupId;
+                
+                if (!securityGroupsMap.has(groupId)) {
+                    securityGroupsMap.set(groupId, {
+                        securityGroup: {
+                            groupId: groupId,
+                            properties: securityGroup.properties,
+                            rules: []
+                        }
                     });
                 }
-            });
+
+                const sgData = securityGroupsMap.get(groupId);
+
+                // Process inbound rules
+                if (inRule) {
+                    const ruleId = `${groupId}-inbound-${inRule.properties.ipProtocol}-${inRule.properties.fromPort}-${inRule.properties.toPort}`;
+                    const existingRule = sgData.securityGroup.rules.find((r: any) => r.ruleId === ruleId);
+                    
+                    if (!existingRule) {
+                        sgData.securityGroup.rules.push({
+                            ruleId: ruleId,
+                            properties: inRule.properties,
+                            ruleType: 'inbound'
+                        });
+                    }
+                }
+
+                // Process outbound rules
+                if (outRule) {
+                    const ruleId = `${groupId}-outbound-${outRule.properties.ipProtocol}-${outRule.properties.fromPort}-${outRule.properties.toPort}`;
+                    const existingRule = sgData.securityGroup.rules.find((r: any) => r.ruleId === ruleId);
+                    
+                    if (!existingRule) {
+                        sgData.securityGroup.rules.push({
+                            ruleId: ruleId,
+                            properties: outRule.properties,
+                            ruleType: 'outbound'
+                        });
+                    }
+                }
+            }
         });
+
+        // Convert Maps to arrays
+        infrastructure.vpcs = Array.from(vpcsMap.values());
+        infrastructure.subnets = Array.from(subnetsMap.values());
+        infrastructure.amis = Array.from(amisMap.values());
+        infrastructure.instances = Array.from(instancesMap.values());
+        infrastructure.securityGroupRules = Array.from(securityGroupsMap.values());
 
         res.status(200).json(infrastructure);
     } catch (error) {
@@ -808,7 +882,7 @@ export const getInfrastructureDataWithUserId = async (req: Request, res: Respons
         const networkAcls = new Map();
         const loadBalancers = new Map();
         
-        result.records.forEach(record => {
+        result.records.forEach((record: any) => {
             const vpc = record.get('v');
             const subnet = record.get('s');
             const instance = record.get('i');
@@ -1036,7 +1110,7 @@ export const getInfrastructureDataWithUserId = async (req: Request, res: Respons
             { userId, connectionId }
         );
         
-        const buckets = bucketResult.records.map(record => ({
+        const buckets = bucketResult.records.map((record: any) => ({
             name: record.get('b').properties.name,
             properties: record.get('b').properties
         }));

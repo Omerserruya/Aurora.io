@@ -12,6 +12,7 @@ import StorageIcon from '@mui/icons-material/Storage';
 import CloudIcon from '@mui/icons-material/Cloud';
 import AccountTreeIcon from '@mui/icons-material/AccountTree';
 import LanIcon from '@mui/icons-material/Lan';
+import SecurityIcon from '@mui/icons-material/Security';
 
 const Avatar = styled(MuiAvatar)(({ theme }) => ({
   width: 28,
@@ -42,9 +43,13 @@ const resources = {
   "subnets":{
     name: "Subnets",
     icon: <LanIcon />,
+  },
+  "securityGroupRules":{
+    name: "Security Groups",
+    icon: <SecurityIcon />,
   }
 };
-export type resourcesType = "amis" | "instances" | "vpcs" | "subnets";
+export type resourcesType = "amis" | "instances" | "vpcs" | "subnets" | "securityGroupRules";
 interface ResourceSelectorProps {
   onResourceChange: (resource: string) => void;
   resourcesView: resourcesType[]
