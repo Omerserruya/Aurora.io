@@ -74,6 +74,50 @@ interface TerraformInfrastructure {
             }[];
         };
     }[];
+    s3Buckets: {
+        name: string;
+        properties: any;
+    }[];
+    routeTables: {
+        routeTableId: string;
+        vpcId: string;
+        routes: {
+            destinationCidrBlock: string;
+            gatewayId: string;
+            origin: string;
+            state: string;
+        }[];
+        associations: {
+            subnetId: string;
+            main: boolean;
+            state: string;
+        }[];
+    }[];
+    internetGateways: {
+        internetGatewayId: string;
+        attachments: {
+            vpcId: string;
+            state: string;
+        }[];
+    }[];
+    networkAcls: {
+        networkAclId: string;
+        vpcId: string;
+        entries: {
+            cidrBlock: string;
+            protocol: string;
+            ruleAction: string;
+            ruleNumber: number;
+            egress: string;
+        }[];
+    }[];
+    loadBalancers: {
+        loadBalancerArn: string;
+        loadBalancerName: string;
+        vpcId: string;
+        type: string;
+        scheme: string;
+    }[];
 }
 
 interface UserGroupPair {
@@ -707,8 +751,14 @@ export const getTerraformInfrastructureData = async (req: Request, res: Response
              OPTIONAL MATCH (v)-[:HAS]->(sg:SecurityGroup {userId: $userId, connectionId: $connectionId})
              OPTIONAL MATCH (sg)-[:HAS_RULE {type: 'inbound'}]->(inRule:SecurityGroupRule {userId: $userId, connectionId: $connectionId})
              OPTIONAL MATCH (sg)-[:HAS_RULE {type: 'outbound'}]->(outRule:SecurityGroupRule {userId: $userId, connectionId: $connectionId})
-             WITH v, s, i, a, sg, inRule, outRule
-             RETURN v, s, i, a, sg, inRule, outRule`,
+             OPTIONAL MATCH (v)-[:HAS]->(rt:RouteTable {userId: $userId, connectionId: $connectionId})
+             OPTIONAL MATCH (rt)-[:HAS_ROUTE]->(route:Route {userId: $userId, connectionId: $connectionId})
+             OPTIONAL MATCH (v)<-[:ATTACHED_TO]-(igw:InternetGateway {userId: $userId, connectionId: $connectionId})
+             OPTIONAL MATCH (v)-[:HAS]->(acl:NetworkAcl {userId: $userId, connectionId: $connectionId})
+             OPTIONAL MATCH (acl)-[:HAS_ENTRY]->(entry:NetworkAclEntry {userId: $userId, connectionId: $connectionId})
+             OPTIONAL MATCH (v)<-[:DEPLOYED_IN]-(lb:LoadBalancer {userId: $userId, connectionId: $connectionId})
+             WITH v, s, i, a, sg, inRule, outRule, rt, route, igw, acl, entry, lb
+             RETURN v, s, i, a, sg, inRule, outRule, rt, route, igw, acl, entry, lb`,
             { userId, connectionId }
         );
 
@@ -717,7 +767,12 @@ export const getTerraformInfrastructureData = async (req: Request, res: Response
             subnets: [],
             amis: [],
             instances: [],
-            securityGroupRules: []
+            securityGroupRules: [],
+            s3Buckets: [],
+            routeTables: [],
+            internetGateways: [],
+            networkAcls: [],
+            loadBalancers: []
         };
 
         // Process the results using Maps to avoid duplicates
@@ -726,6 +781,10 @@ export const getTerraformInfrastructureData = async (req: Request, res: Response
         const amisMap = new Map();
         const instancesMap = new Map();
         const securityGroupsMap = new Map();
+        const routeTablesMap = new Map();
+        const internetGatewaysMap = new Map();
+        const networkAclsMap = new Map();
+        const loadBalancersMap = new Map();
 
         result.records.forEach((record: any) => {
             const vpc = record.get('v');
@@ -735,6 +794,12 @@ export const getTerraformInfrastructureData = async (req: Request, res: Response
             const securityGroup = record.get('sg');
             const inRule = record.get('inRule');
             const outRule = record.get('outRule');
+            const routeTable = record.get('rt');
+            const route = record.get('route');
+            const internetGateway = record.get('igw');
+            const networkAcl = record.get('acl');
+            const aclEntry = record.get('entry');
+            const loadBalancer = record.get('lb');
 
             // Process VPC
             if (vpc && !vpcsMap.has(vpc.properties.vpcId)) {
@@ -820,6 +885,108 @@ export const getTerraformInfrastructureData = async (req: Request, res: Response
                     }
                 }
             }
+
+            // Process Route Tables
+            if (routeTable && !routeTablesMap.has(routeTable.properties.routeTableId)) {
+                const rtData = {
+                    routeTableId: routeTable.properties.routeTableId,
+                    vpcId: routeTable.properties.vpcId,
+                    routes: [],
+                    associations: []
+                };
+                routeTablesMap.set(routeTable.properties.routeTableId, rtData);
+            }
+
+            // Process Routes
+            if (route && routeTable) {
+                const rtData = routeTablesMap.get(routeTable.properties.routeTableId);
+                if (rtData) {
+                    const existingRoute = rtData.routes.find((r: any) => 
+                        r.destinationCidrBlock === route.properties.destinationCidrBlock &&
+                        r.gatewayId === route.properties.gatewayId
+                    );
+                    
+                    if (!existingRoute) {
+                        rtData.routes.push({
+                            destinationCidrBlock: route.properties.destinationCidrBlock,
+                            gatewayId: route.properties.gatewayId,
+                            origin: route.properties.origin,
+                            state: route.properties.state
+                        });
+                    }
+                }
+            }
+
+            // Process Internet Gateways
+            if (internetGateway && !internetGatewaysMap.has(internetGateway.properties.internetGatewayId)) {
+                internetGatewaysMap.set(internetGateway.properties.internetGatewayId, {
+                    internetGatewayId: internetGateway.properties.internetGatewayId,
+                    attachments: vpc ? [{
+                        vpcId: vpc.properties.vpcId,
+                        state: 'attached'
+                    }] : []
+                });
+            }
+
+            // Process Network ACLs
+            if (networkAcl && !networkAclsMap.has(networkAcl.properties.networkAclId)) {
+                const aclData = {
+                    networkAclId: networkAcl.properties.networkAclId,
+                    vpcId: networkAcl.properties.vpcId,
+                    entries: []
+                };
+                networkAclsMap.set(networkAcl.properties.networkAclId, aclData);
+            }
+
+            // Process Network ACL Entries
+            if (aclEntry && networkAcl) {
+                const aclData = networkAclsMap.get(networkAcl.properties.networkAclId);
+                if (aclData) {
+                    const existingEntry = aclData.entries.find((e: any) => 
+                        e.ruleNumber === aclEntry.properties.ruleNumber &&
+                        e.egress === aclEntry.properties.egress
+                    );
+                    
+                    if (!existingEntry) {
+                        aclData.entries.push({
+                            cidrBlock: aclEntry.properties.cidrBlock,
+                            protocol: aclEntry.properties.protocol,
+                            ruleAction: aclEntry.properties.ruleAction,
+                            ruleNumber: aclEntry.properties.ruleNumber,
+                            egress: aclEntry.properties.egress
+                        });
+                    }
+                }
+            }
+
+            // Process Load Balancers
+            if (loadBalancer && !loadBalancersMap.has(loadBalancer.properties.loadBalancerArn)) {
+                loadBalancersMap.set(loadBalancer.properties.loadBalancerArn, {
+                    loadBalancerArn: loadBalancer.properties.loadBalancerArn,
+                    loadBalancerName: loadBalancer.properties.loadBalancerName,
+                    vpcId: vpc ? vpc.properties.vpcId : '',
+                    type: loadBalancer.properties.type,
+                    scheme: loadBalancer.properties.scheme
+                });
+            }
+        });
+
+        // Get S3 buckets separately since they're not VPC-related
+        const bucketResult = await session.run(
+            `MATCH (b:Bucket {userId: $userId, connectionId: $connectionId})
+             RETURN b`,
+            { userId, connectionId }
+        );
+
+        const s3BucketsMap = new Map();
+        bucketResult.records.forEach((record: any) => {
+            const bucket = record.get('b');
+            if (bucket && !s3BucketsMap.has(bucket.properties.name)) {
+                s3BucketsMap.set(bucket.properties.name, {
+                    name: bucket.properties.name,
+                    properties: bucket.properties
+                });
+            }
         });
 
         // Convert Maps to arrays
@@ -828,6 +995,11 @@ export const getTerraformInfrastructureData = async (req: Request, res: Response
         infrastructure.amis = Array.from(amisMap.values());
         infrastructure.instances = Array.from(instancesMap.values());
         infrastructure.securityGroupRules = Array.from(securityGroupsMap.values());
+        infrastructure.s3Buckets = Array.from(s3BucketsMap.values());
+        infrastructure.routeTables = Array.from(routeTablesMap.values());
+        infrastructure.internetGateways = Array.from(internetGatewaysMap.values());
+        infrastructure.networkAcls = Array.from(networkAclsMap.values());
+        infrastructure.loadBalancers = Array.from(loadBalancersMap.values());
 
         res.status(200).json(infrastructure);
     } catch (error) {

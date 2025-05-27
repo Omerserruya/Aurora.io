@@ -13,6 +13,11 @@ import CloudIcon from '@mui/icons-material/Cloud';
 import AccountTreeIcon from '@mui/icons-material/AccountTree';
 import LanIcon from '@mui/icons-material/Lan';
 import SecurityIcon from '@mui/icons-material/Security';
+import BucketIcon from '@mui/icons-material/Inventory';
+import RouterIcon from '@mui/icons-material/Router';
+import PublicIcon from '@mui/icons-material/Public';
+import ShieldIcon from '@mui/icons-material/Shield';
+import LoadBalancerIcon from '@mui/icons-material/Balance';
 
 const Avatar = styled(MuiAvatar)(({ theme }) => ({
   width: 28,
@@ -47,9 +52,29 @@ const resources = {
   "securityGroupRules":{
     name: "Security Groups",
     icon: <SecurityIcon />,
+  },
+  "s3Buckets":{
+    name: "S3 Buckets",
+    icon: <BucketIcon />,
+  },
+  "routeTables":{
+    name: "Route Tables",
+    icon: <RouterIcon />,
+  },
+  "internetGateways":{
+    name: "Internet Gateways",
+    icon: <PublicIcon />,
+  },
+  "networkAcls":{
+    name: "Network ACLs",
+    icon: <ShieldIcon />,
+  },
+  "loadBalancers":{
+    name: "Load Balancers",
+    icon: <LoadBalancerIcon />,
   }
 };
-export type resourcesType = "amis" | "instances" | "vpcs" | "subnets" | "securityGroupRules";
+export type resourcesType = "amis" | "instances" | "vpcs" | "subnets" | "securityGroupRules" | "s3Buckets" | "routeTables" | "internetGateways" | "networkAcls" | "loadBalancers";
 interface ResourceSelectorProps {
   onResourceChange: (resource: string) => void;
   resourcesView: resourcesType[]
