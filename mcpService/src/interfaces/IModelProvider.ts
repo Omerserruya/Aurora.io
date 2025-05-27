@@ -15,6 +15,6 @@ export interface ModelInfo {
 
 export interface IModelProvider {
   name: string;
-  generateResponse(prompt: string, context: string, options?: ModelOptions): Promise<string>;
+  generateResponse(prompt: string, context: string, options?: ModelOptions, chatHistory?: string[] ): Promise<string>;
   getModelInfo(): ModelInfo;
 } 

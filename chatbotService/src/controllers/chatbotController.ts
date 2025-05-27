@@ -13,7 +13,7 @@ export const chatbotController = {
       const { userId, connectionId } = req.params;
       
       // Extract prompt from request body
-      const { prompt } = req.body;
+      const { prompt , options , chatHistory } = req.body;
       
       if (!prompt) {
         console.log('Missing prompt in request');
@@ -38,7 +38,7 @@ export const chatbotController = {
       
       try {
         // Process the query using MCP service
-        const mcpResponse = await mcpService.processQuery(prompt, userId, connectionId);
+        const mcpResponse = await mcpService.processQuery(prompt, userId, connectionId,options, chatHistory);
         
         // Log the response for debugging
         console.log('MCP Response:', mcpResponse);

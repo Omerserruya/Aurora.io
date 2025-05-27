@@ -22,8 +22,8 @@ class SocketService {
           reconnection: true,
           reconnectionAttempts: 5,
           reconnectionDelay: 1000,
-          timeout: 10000,
-          transports: ['websocket', 'polling'] // Prefer WebSocket, fallback to polling
+          timeout: 120000, // 120 seconds
+          transports: ['websocket', 'polling']
         });
         
         // Connection event handlers
@@ -114,7 +114,7 @@ class SocketService {
   }
   
   // Send a chat message
-  sendMessage(message: { prompt: string; userId: string; connectionId: string; options?: any }) {
+  sendMessage(message: { prompt: string; userId: string; connectionId: string; options?: any,chatHistory?: string[] }) {
     if (!message.prompt || !message.userId || !message.connectionId) {
       console.error('Cannot send message: missing required fields');
       return false;

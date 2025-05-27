@@ -232,65 +232,74 @@ const AIChatButton: React.FC<AIChatButtonProps> = ({ isInline = false, isOpen: p
     return () => window.removeEventListener('open-ai-chat', handler as EventListener);
   }, [onToggle, chatIsOpen]);
 
-  const handleSendMessage = async () => {
-    if (!inputMessage.trim() || !user || !account) return;
+const handleSendMessage = async () => {
+  if (!inputMessage.trim() || !user || !account) return;
 
-    setIsLoading(true);
-    const userMessage: Message = {
-      text: inputMessage,
-      isUser: true,
+  setIsLoading(true);
+  const userMessage: Message = {
+    text: inputMessage,
+    isUser: true,
+    timestamp: new Date()
+  };
+
+  // Build updated messages array including the new user message
+  const updatedMessages = [...messages, userMessage];
+  // Format chat history for Gemini
+  const chatHistory = updatedMessages.map(
+    (m, i) => `${i + 1}. ${m.isUser ? 'User' : 'Aurora'}: ${m.text}`
+  );
+  console.log('Sending chatHistory:', chatHistory);
+
+  setMessages(updatedMessages);
+  setInputMessage('');
+
+  if (socketConnected) {
+    try {
+      socketService.sendMessage({
+        prompt: inputMessage,
+        userId: user._id,
+        connectionId: account._id,
+        options: {
+          temperature: 0.7,
+          maxTokens: 150
+        },
+        chatHistory:chatHistory
+      });
+    } catch (error) {
+      console.error('Socket error:', error);
+      sendMessageHttp(inputMessage, chatHistory);
+    }
+  } else {
+    sendMessageHttp(inputMessage, chatHistory);
+  }
+};
+
+  const sendMessageHttp = async (messageText: string, chatHistory: string[]) => {
+  try {
+    const response = await mcpService.sendQuery(
+      messageText,
+      user!._id,
+      account!._id,
+      {
+        temperature: 0.7,
+        maxTokens: 150
+      },
+      chatHistory
+    );
+
+    const aiMessage: Message = {
+      text: response.response,
+      isUser: false,
       timestamp: new Date()
     };
 
-    setMessages(prev => [...prev, userMessage]);
-    const messageText = inputMessage;
-    setInputMessage('');
-
-    if (socketConnected) {
-      try {
-        socketService.sendMessage({
-          prompt: messageText,
-          userId: user._id,
-          connectionId: account._id,
-          options: {
-            temperature: 0.7,
-            maxTokens: 150
-          }
-        });
-      } catch (error) {
-        console.error('Socket error:', error);
-        sendMessageHttp(messageText);
-      }
-    } else {
-      sendMessageHttp(messageText);
-    }
-  };
-
-  const sendMessageHttp = async (messageText: string) => {
-    try {
-      const response = await mcpService.sendQuery(
-        messageText,
-        user!._id,
-        account!._id,
-        {
-          temperature: 0.7,
-          maxTokens: 150
-        }
-      );
-
-      const aiMessage: Message = {
-        text: response.response,
-        isUser: false,
-        timestamp: new Date()
-      };
-
-      setMessages(prev => [...prev, aiMessage]);
-    } catch (error) {
-      showError(error instanceof Error ? error.message : 'Failed to send message');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    setMessages(prev => [...prev, aiMessage]);
+  } catch (error) {
+    showError(error instanceof Error ? error.message : 'Failed to send message');
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   const formatTime = (date: Date) => {
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -361,13 +370,15 @@ const AIChatButton: React.FC<AIChatButtonProps> = ({ isInline = false, isOpen: p
                       : '0 2px 8px rgba(0, 0, 0, 0.05)',
                   }}
                 >
-                  <Typography variant="body2">
-                    {message.isUser ? (
-                      message.text
-                    ) : (
+                  {message.isUser ? (
+                    <Typography variant="body2">
+                      {message.text}
+                    </Typography>
+                  ) : (
+                    <Box>
                       <ReactMarkdown
                         components={{
-                          p: ({ children }) => <Typography variant="body2" component="p" color="inherit">{children}</Typography>,
+                          p: ({ children }) => <Typography variant="body2" component="div" sx={{ mb: 1 }}>{children}</Typography>,
                           h1: ({ children }) => <Typography variant="h1" component="h1" color="inherit">{children}</Typography>,
                           h2: ({ children }) => <Typography variant="h2" component="h2" color="inherit">{children}</Typography>,
                           h3: ({ children }) => <Typography variant="h3" component="h3" color="inherit">{children}</Typography>,
@@ -443,8 +454,8 @@ const AIChatButton: React.FC<AIChatButtonProps> = ({ isInline = false, isOpen: p
                       >
                         {message.text}
                       </ReactMarkdown>
-                    )}
-                  </Typography>
+                    </Box>
+                  )}
                   {message.error && (
                     <Typography
                       variant="caption"
