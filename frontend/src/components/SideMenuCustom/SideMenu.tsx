@@ -46,7 +46,7 @@ export default function SideMenu() {
     <Drawer
       variant="permanent"
       sx={{
-        display: { xs: 'none', md: 'block' },
+        display: 'block',
         '& .MuiDrawer-paper': {
           backgroundColor: 'background.paper',
           borderRight: '1px solid',
