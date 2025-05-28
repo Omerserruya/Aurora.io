@@ -76,8 +76,6 @@ const Resizer = styled('div')({
 
 export default function Users() {
   const [users, setUsers] = useState<User[]>([]);
-  const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -87,7 +85,6 @@ export default function Users() {
   // Column definitions with initial widths
   const [columns, setColumns] = useState<Column[]>([
     { id: 'username', label: 'User Name', width: 150 },
-    { id: 'fullName', label: 'Full Name', width: 180 },
     { id: 'email', label: 'Email', width: 220 },
     { id: 'role', label: 'Role', width: 120 },
     { id: 'authProvider', label: 'Auth Provider', width: 120 },
@@ -120,7 +117,6 @@ export default function Users() {
       const data = await response.json();
       console.log('Fetched users data:', data); // Debug log
       setUsers(data);
-      setFilteredUsers(data);
       return data;
     } catch (error) {
       console.error('Error fetching users:', error);
@@ -148,7 +144,6 @@ export default function Users() {
         setLoading(true);
         const data = await fetchUsers();
         setUsers(data);
-        setFilteredUsers(data);
       } catch (error) {
         console.error('Failed to fetch users:', error);
       } finally {
@@ -158,26 +153,6 @@ export default function Users() {
 
     loadUsers();
   }, []);
-
-  // Filter users when search term changes
-  useEffect(() => {
-    if (!searchTerm.trim()) {
-      setFilteredUsers(users);
-      return;
-    }
-
-    const lowerCaseSearch = searchTerm.toLowerCase();
-    const filtered = users.filter(user => 
-      user.username.toLowerCase().includes(lowerCaseSearch) ||
-      user.email.toLowerCase().includes(lowerCaseSearch) ||
-      user.fullName.toLowerCase().includes(lowerCaseSearch) ||
-      user.role.toLowerCase().includes(lowerCaseSearch) ||
-      user.authProvider.toLowerCase().includes(lowerCaseSearch)
-    );
-    
-    setFilteredUsers(filtered);
-    setPage(0); // Reset to first page when searching
-  }, [searchTerm, users]);
 
   const handleChangePage = (_event: unknown, newPage: number) => {
     setPage(newPage);
@@ -197,10 +172,6 @@ export default function Users() {
     navigate('/admin/users/create');
   };
 
-  const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchTerm(event.target.value);
-  };
-
   const handleDeleteUser = async (userId: string) => {
     if (window.confirm('Are you sure you want to delete this user?')) {
       try {
@@ -208,26 +179,11 @@ export default function Users() {
         // Refresh the user list after deletion
         const updatedUsers = await fetchUsers();
         setUsers(updatedUsers);
-        setFilteredUsers(applySearch(updatedUsers, searchTerm));
       } catch (error) {
         console.error('Failed to delete user:', error);
         alert('Failed to delete user. Please try again.');
       }
     }
-  };
-
-  // Helper function to apply search filter
-  const applySearch = (userList: User[], term: string) => {
-    if (!term.trim()) return userList;
-    
-    const lowerCaseSearch = term.toLowerCase();
-    return userList.filter(user => 
-      user.username.toLowerCase().includes(lowerCaseSearch) ||
-      user.email.toLowerCase().includes(lowerCaseSearch) ||
-      user.fullName.toLowerCase().includes(lowerCaseSearch) ||
-      user.role.toLowerCase().includes(lowerCaseSearch) ||
-      user.authProvider.toLowerCase().includes(lowerCaseSearch)
-    );
   };
 
   const getAuthProviderColor = (provider: string) => {
@@ -286,12 +242,11 @@ export default function Users() {
   const renderCellContent = (user: User, columnId: keyof User | 'actions') => {
     if (columnId === 'actions') {
       return (
-        <>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <IconButton 
             size="small" 
             onClick={() => handleEditUser(user._id)}
             aria-label="edit"
-            sx={{ mr: 1 }}
           >
             <EditIcon fontSize="small" />
           </IconButton>
@@ -303,7 +258,7 @@ export default function Users() {
           >
             <DeleteIcon fontSize="small" />
           </IconButton>
-        </>
+        </Box>
       );
     } else if (columnId === 'username') {
       return (
@@ -350,24 +305,6 @@ export default function Users() {
       </Box>
       
       <Divider sx={{ mb: 3 }} />
-
-      <Box sx={{ mb: 2 }}>
-        <TextField
-          fullWidth
-          placeholder="Search users by name, email, role, or organization..."
-          variant="outlined"
-          value={searchTerm}
-          onChange={handleSearchChange}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon />
-              </InputAdornment>
-            ),
-          }}
-          size="small"
-        />
-      </Box>
       
       {loading ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
@@ -409,14 +346,14 @@ export default function Users() {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {filteredUsers.length === 0 ? (
+                {users.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={columns.length} align="center">
-                      {searchTerm ? 'No users matching search criteria' : 'No users found'}
+                      No users found
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredUsers
+                  users
                     .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
                     .map((user) => (
                       <TableRow 
@@ -456,7 +393,7 @@ export default function Users() {
             }}
             rowsPerPageOptions={[5, 10, 25, 50]}
             component="div"
-            count={filteredUsers.length}
+            count={users.length}
             rowsPerPage={rowsPerPage}
             page={page}
             onPageChange={handleChangePage}

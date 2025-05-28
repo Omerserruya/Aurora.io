@@ -25,7 +25,6 @@ import NavigateNextIcon from '@mui/icons-material/NavigateNext';
 // User type definition
 interface User {
   _id: string;
-  fullName: string;
   email: string;
   role: string;
   authProvider: 'google' | 'github' | 'local';
@@ -34,9 +33,9 @@ interface User {
 }
 
 interface FormErrors {
-  fullName?: string;
   email?: string;
   role?: string;
+  username?: string;
 }
 
 export default function EditUser() {
@@ -63,6 +62,23 @@ export default function EditUser() {
 
     if (!response.ok) {
       throw new Error('Failed to fetch user');
+    }
+
+    return await response.json();
+  };
+
+  const createUser = async (userData: Partial<User>): Promise<User> => {
+    const response = await fetch('/api/users/', {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(userData),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to create user');
     }
 
     return await response.json();
@@ -101,7 +117,19 @@ export default function EditUser() {
 
   useEffect(() => {
     const loadUser = async () => {
-      if (!userId) return;
+      if (!userId) {
+        // Create mode - initialize empty user
+        setUser({
+          _id: '',
+          username: '',
+          email: '',
+          role: 'user',
+          authProvider: 'local',
+          lastLogin: '',
+        });
+        setLoading(false);
+        return;
+      }
       
       try {
         setLoading(true);
@@ -156,8 +184,8 @@ export default function EditUser() {
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {};
     
-    if (!user?.fullName?.trim()) {
-      newErrors.fullName = 'Name is required';
+    if (!user?.username?.trim()) {
+      newErrors.username = 'Username is required';
     }
     
     if (!user?.email?.trim()) {
@@ -177,7 +205,7 @@ export default function EditUser() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!user || !userId) return;
+    if (!user) return;
     
     if (!validateForm()) {
       return;
@@ -188,16 +216,28 @@ export default function EditUser() {
       setSaveError(null);
       setSaveSuccess(false);
       
-      await updateUser(userId, user);
-      setSaveSuccess(true);
-      
-      // Reset success message after 3 seconds
-      setTimeout(() => {
-        setSaveSuccess(false);
-      }, 3000);
+      if (userId) {
+        // Edit mode
+        await updateUser(userId, user);
+        setSaveSuccess(true);
+        
+        // Reset success message after 3 seconds
+        setTimeout(() => {
+          setSaveSuccess(false);
+        }, 3000);
+      } else {
+        // Create mode
+        await createUser(user);
+        setSaveSuccess(true);
+        
+        // Navigate back to users list after successful creation
+        setTimeout(() => {
+          navigate('/admin/users');
+        }, 1500);
+      }
     } catch (error) {
-      console.error('Failed to update user:', error);
-      setSaveError('Failed to save user. Please try again.');
+      console.error('Failed to save user:', error);
+      setSaveError(userId ? 'Failed to update user. Please try again.' : 'Failed to create user. Please try again.');
     } finally {
       setSaving(false);
     }
@@ -255,17 +295,19 @@ export default function EditUser() {
     );
   }
 
+  const isCreateMode = !userId;
+
   return (
     <Box sx={{ width: '100%', mx: 'auto', px: 2 }}>
       <Typography variant="h4" component="h1" gutterBottom>
-        Edit User: {user.fullName}
+        {isCreateMode ? 'Create New User' : `Edit User: ${user.username}`}
       </Typography>
       
       {/* Alerts Section */}
       <Box sx={{ mb: 4 }}>
         {saveSuccess && (
           <Alert severity="success" sx={{ mb: 2 }}>
-            User updated successfully!
+            {isCreateMode ? 'User created successfully!' : 'User updated successfully!'}
           </Alert>
         )}
         
@@ -300,12 +342,12 @@ export default function EditUser() {
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
-                label="Full Name"
-                name="fullName"
-                value={user.fullName}
+                label="Username"
+                name="username"
+                value={user.username}
                 onChange={handleInputChange}
-                error={!!errors.fullName}
-                helperText={errors.fullName}
+                error={!!errors.username}
+                helperText={errors.username}
                 required
               />
             </Grid>
@@ -343,20 +385,28 @@ export default function EditUser() {
             </Grid>
 
             <Grid item xs={12} md={6}>
-              <FormControl fullWidth>
-                <InputLabel id="auth-provider-label">Auth Provider</InputLabel>
-                <Select
-                  labelId="auth-provider-label"
-                  name="authProvider"
-                  value={user.authProvider}
-                  label="Auth Provider"
-                  onChange={handleSelectChange}
-                >
-                  <MenuItem value="local">Local</MenuItem>
-                  <MenuItem value="google">Google</MenuItem>
-                  <MenuItem value="github">GitHub</MenuItem>
-                </Select>
-              </FormControl>
+              {isCreateMode ? (
+                <FormControl fullWidth>
+                  <InputLabel id="auth-provider-label">Auth Provider</InputLabel>
+                  <TextField
+                    fullWidth
+                    name="authProvider"
+                    value={user.authProvider}
+                    label="Auth Provider"
+                    disabled
+                  >
+                  </TextField>
+                </FormControl>
+              ) : (
+                  <TextField
+                    fullWidth
+                    name="authProvider"
+                    value={user.authProvider}
+                    label="Auth Provider"
+                    disabled
+                  >
+                  </TextField>
+              )}
             </Grid>
           </Grid>
           
@@ -373,64 +423,68 @@ export default function EditUser() {
               disabled={saving}
               startIcon={saving ? <CircularProgress size={20} /> : null}
             >
-              {saving ? 'Saving...' : 'Save Changes'}
+              {saving ? (isCreateMode ? 'Creating...' : 'Saving...') : (isCreateMode ? 'Create User' : 'Save Changes')}
             </Button>
           </Box>
         </form>
       </Box>
       
-      {/* Security Section */}
-      <Box sx={{ mb: 6 }}>
-        <Typography variant="h5" component="h2" fontWeight="500" gutterBottom>
-          Security Options
-        </Typography>
-        <Divider sx={{ mb: 3 }} />
-        
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <Button
-            variant="outlined"
-            color="warning"
-            startIcon={<LockResetIcon />}
-            onClick={handleResetPassword}
-            disabled={resettingPassword}
-          >
-            {resettingPassword ? 'Resetting...' : 'Reset Password'}
-          </Button>
-          <Typography variant="body2" color="text.secondary">
-            This will send an email to the user with instructions to reset their password.
+      {/* Security Section - only show for edit mode */}
+      {!isCreateMode && (
+        <Box sx={{ mb: 6 }}>
+          <Typography variant="h5" component="h2" fontWeight="500" gutterBottom>
+            Security Options
           </Typography>
+          <Divider sx={{ mb: 3 }} />
+          
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Button
+              variant="outlined"
+              color="warning"
+              startIcon={<LockResetIcon />}
+              onClick={handleResetPassword}
+              disabled={resettingPassword}
+            >
+              {resettingPassword ? 'Resetting...' : 'Reset Password'}
+            </Button>
+            <Typography variant="body2" color="text.secondary">
+              This will send an email to the user with instructions to reset their password.
+            </Typography>
+          </Box>
         </Box>
-      </Box>
+      )}
       
-      {/* Additional Section - could add more sections here if needed */}
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="h5" component="h2" fontWeight="500" gutterBottom>
-          Activity Information
-        </Typography>
-        <Divider sx={{ mb: 3 }} />
-        
-        <Grid container spacing={3}>
-          <Grid item xs={12} md={6}>
-            <Typography variant="subtitle2" color="text.secondary">
-              Last Login
-            </Typography>
-            <Typography variant="body1">
-              {user.lastLogin ? new Date(user.lastLogin).toLocaleString() : 'Never'}
-            </Typography>
+      {/* Additional Section - Activity Information - only show for edit mode */}
+      {!isCreateMode && (
+        <Box sx={{ mb: 4 }}>
+          <Typography variant="h5" component="h2" fontWeight="500" gutterBottom>
+            Activity Information
+          </Typography>
+          <Divider sx={{ mb: 3 }} />
+          
+          <Grid container spacing={3}>
+            <Grid item xs={12} md={6}>
+              <Typography variant="subtitle2" color="text.secondary">
+                Last Login
+              </Typography>
+              <Typography variant="body1">
+                {user.lastLogin ? new Date(user.lastLogin).toLocaleString() : 'Never'}
+              </Typography>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <Typography variant="subtitle2" color="text.secondary">
+                Auth Provider
+              </Typography>
+              <Typography variant="body1" sx={{
+                color: user.authProvider === 'local' ? 'success.main' : 
+                       user.authProvider === 'google' ? 'error.main' : 'info.main'
+              }}>
+                {user.authProvider ? user.authProvider.charAt(0).toUpperCase() + user.authProvider.slice(1) : 'Unknown'}
+              </Typography>
+            </Grid>
           </Grid>
-          <Grid item xs={12} md={6}>
-            <Typography variant="subtitle2" color="text.secondary">
-              Auth Provider
-            </Typography>
-            <Typography variant="body1" sx={{
-              color: user.authProvider === 'local' ? 'success.main' : 
-                     user.authProvider === 'google' ? 'error.main' : 'info.main'
-            }}>
-              {user.authProvider ? user.authProvider.charAt(0).toUpperCase() + user.authProvider.slice(1) : 'Unknown'}
-            </Typography>
-          </Grid>
-        </Grid>
-      </Box>
+        </Box>
+      )}
     </Box>
   );
 } 

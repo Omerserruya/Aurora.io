@@ -157,7 +157,7 @@ const getUserById = async (req: Request, res: Response) => {
 // Function to update a user (self or admin access)
 const updateUser = async (req: Request, res: Response) => {
   const { id } = req.params;
-  const { username, email, password, avatarUrl, googleId, githubId } = req.body;
+  const { username, email, password, role, avatarUrl, googleId, githubId } = req.body;
   
   try {
     // Find the user by ID
@@ -192,6 +192,10 @@ const updateUser = async (req: Request, res: Response) => {
       if (googleId) updateData.googleId = googleId;
       if (githubId) updateData.githubId = githubId;
     }
+
+    if (role) {
+      updateData.role = role;
+    }
     
     // Update the user with the new data
     const updatedUser = await userModel.findByIdAndUpdate(
@@ -215,28 +219,30 @@ const updateUser = async (req: Request, res: Response) => {
 
 // Function to delete a user (self or admin access)
 const deleteUser = async (req: Request, res: Response) => {
-  const { id } = req.params;
-  const userId = req.params.userId;
+  const { id: userToDeleteId, userId: adminUserId } = req.params;
+  console.log('Deleting user with ID:', userToDeleteId, adminUserId);
+
   try {
-    const user = await userModel.findById(userId);
-    if (!mongoose.Types.ObjectId.isValid(id)) {
+    const adminUser = await userModel.findById(adminUserId);
+    if (!mongoose.Types.ObjectId.isValid(adminUserId)) {
       res.status(400).json({ message: "Invalid user ID format" });
       return;
     }
 
-    const userToDelete = await userModel.findById(id);
+    const userToDelete = await userModel.findById(userToDeleteId);
     if (!userToDelete) {
       res.status(404).json({ message: "User not found" });
       return;
     }
     // Check if the user has admin privileges
-    if (user?.role !== "admin" && userId !== id) {
+    console.log('user:', adminUser);
+    if (adminUser?.role !== "admin") {
       res.status(403).json({ message: "Access denied" });
       return;
     }
-
-    await userModel.findByIdAndDelete(id);
-    res.status(200).send(); // No content
+    await userToDelete.deleteOne();
+    console.log('User deleted successfully:', userToDeleteId);
+    res.status(200).send();
   } catch (error: any) {
     res.status(500).json({ message: "Error deleting user", error: error.message });
   }
