@@ -309,13 +309,9 @@ function Visualization() {
         p: 0, 
         height: 'calc(100vh - 48px)', // Further adjusted for reduced Header height (40px + 8px padding)
         width: '100%', 
-        position: 'absolute',
-        left: 0,
-        top: 48, // Position exactly below header (adjusted to match exact header height)
         display: 'flex', 
         flexDirection: 'column',
         bgcolor: 'background.paper', // Match application's paper background
-        zIndex: 10,
         overflow: 'hidden' // Prevent scrolling
       }}
     >
@@ -327,7 +323,8 @@ function Visualization() {
         m: 0, // No margin
         height: 'auto', // Only take height needed
         minHeight: 0, // Reduce minimum height
-        lineHeight: 1 // Reduce line height to compact further
+        lineHeight: 1, // Reduce line height to compact further
+        position: 'relative' // Add relative positioning for absolute children
       }}>
         <Tabs 
           value={tabValue} 
@@ -351,50 +348,50 @@ function Visualization() {
           <Tab label="Classic Visualization" id="aws-visualization-tab-0" />
           <Tab label="Cloud Diagram" id="aws-visualization-tab-1" />
         </Tabs>
-      </Box>
-      
-      <Box sx={{ 
-        position: 'absolute', 
-        top: 2, // Position at very top
-        right: 16, 
-        zIndex: 100,
-        display: 'flex',
-        gap: 1,
-        bgcolor: 'background.paper',
-        borderRadius: 1,
-        padding: 0.5,
-        boxShadow: 2 // Improved shadow
-      }}>
-        <Tooltip title="Refresh data">
-          <IconButton 
-            onClick={fetchData}
-            disabled={loading}
-            size="small"
-            sx={{ 
-              color: 'primary.main',
-              '&:hover': {
-                bgcolor: 'rgba(25, 118, 210, 0.08)'
-              }
-            }}
-          >
-            <RefreshIcon />
-          </IconButton>
-        </Tooltip>
-        <Tooltip title="Sync with AWS">
-          <IconButton 
-            onClick={handleSync}
-            disabled={syncing}
-            size="small"
-            color="primary"
-            sx={{ 
-              '&:hover': {
-                bgcolor: 'rgba(25, 118, 210, 0.08)'
-              }
-            }}
-          >
-            <SyncIcon />
-          </IconButton>
-        </Tooltip>
+
+        {/* Action buttons */}
+        <Box sx={{ 
+          position: 'absolute', 
+          top: 2,
+          right: 16, 
+          display: 'flex',
+          gap: 1,
+          bgcolor: 'background.paper',
+          borderRadius: 1,
+          padding: 0.5,
+          boxShadow: 2
+        }}>
+          <Tooltip title="Refresh data">
+            <IconButton 
+              onClick={fetchData}
+              disabled={loading}
+              size="small"
+              sx={{ 
+                color: 'primary.main',
+                '&:hover': {
+                  bgcolor: 'rgba(25, 118, 210, 0.08)'
+                }
+              }}
+            >
+              <RefreshIcon />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Sync with AWS">
+            <IconButton 
+              onClick={handleSync}
+              disabled={syncing}
+              size="small"
+              color="primary"
+              sx={{ 
+                '&:hover': {
+                  bgcolor: 'rgba(25, 118, 210, 0.08)'
+                }
+              }}
+            >
+              <SyncIcon />
+            </IconButton>
+          </Tooltip>
+        </Box>
       </Box>
       
       {/* Status message */}
@@ -403,11 +400,10 @@ function Visualization() {
           severity="info" 
           sx={{ 
             position: 'absolute', 
-            top: 48, // Adjusted to match header height
+            top: 48,
             right: 16, 
-            zIndex: 100,
             maxWidth: '300px',
-            boxShadow: 2 // Better shadow
+            boxShadow: 2
           }}
         >
           {syncStatus}
@@ -421,7 +417,6 @@ function Visualization() {
           top: '50%', 
           left: '50%', 
           transform: 'translate(-50%, -50%)',
-          zIndex: 200,
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
