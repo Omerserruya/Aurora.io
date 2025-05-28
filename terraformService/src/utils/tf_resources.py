@@ -103,9 +103,9 @@ resource "aws_security_group" "{resource_name}" {{
 
 """
         
-        # Process inbound rules
-        inbound_rules = [rule for rule in sg['rules'] if rule['ruleType'] == 'inbound']
-        for rule in inbound_rules:
+        # Process ingress rules
+        ingress_rules = [rule for rule in sg['rules'] if rule['ruleType'] == 'ingress']
+        for rule in ingress_rules:
             rule_props = rule['properties']
             protocol = rule_props.get('ipProtocol', 'tcp')
             from_port = rule_props.get('fromPort')
@@ -153,9 +153,9 @@ resource "aws_security_group" "{resource_name}" {{
             
             sg_content += "  }\n\n"
         
-        # Process outbound rules
-        outbound_rules = [rule for rule in sg['rules'] if rule['ruleType'] == 'outbound']
-        for rule in outbound_rules:
+        # Process egress rules
+        egress_rules = [rule for rule in sg['rules'] if rule['ruleType'] == 'egress']
+        for rule in egress_rules:
             rule_props = rule['properties']
             protocol = rule_props.get('ipProtocol', 'tcp')
             from_port = rule_props.get('fromPort')

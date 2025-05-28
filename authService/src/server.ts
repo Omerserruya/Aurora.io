@@ -14,7 +14,7 @@ import passport from '../passport-config';  // Keep passport for initialization
 
 const app = express();
 const corsOptions = {
-  origin: process.env.ENV_ENV || '*',  // Allow dev origins if ENV_URL is not set
+  origin: process.env.ENV_URL || '*',  // Allow dev origins if ENV_URL is not set
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE"],
 };

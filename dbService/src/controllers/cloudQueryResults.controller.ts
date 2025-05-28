@@ -859,28 +859,28 @@ export const getTerraformInfrastructureData = async (req: Request, res: Response
 
                 // Process inbound rules
                 if (inRule) {
-                    const ruleId = `${groupId}-inbound-${inRule.properties.ipProtocol}-${inRule.properties.fromPort}-${inRule.properties.toPort}`;
+                    const ruleId = `${groupId}-ingress-${inRule.properties.ipProtocol}-${inRule.properties.fromPort}-${inRule.properties.toPort}`;
                     const existingRule = sgData.securityGroup.rules.find((r: any) => r.ruleId === ruleId);
                     
                     if (!existingRule) {
                         sgData.securityGroup.rules.push({
                             ruleId: ruleId,
                             properties: inRule.properties,
-                            ruleType: 'inbound'
+                            ruleType: 'ingress'
                         });
                     }
                 }
 
                 // Process outbound rules
                 if (outRule) {
-                    const ruleId = `${groupId}-outbound-${outRule.properties.ipProtocol}-${outRule.properties.fromPort}-${outRule.properties.toPort}`;
+                    const ruleId = `${groupId}-egress-${outRule.properties.ipProtocol}-${outRule.properties.fromPort}-${outRule.properties.toPort}`;
                     const existingRule = sgData.securityGroup.rules.find((r: any) => r.ruleId === ruleId);
                     
                     if (!existingRule) {
                         sgData.securityGroup.rules.push({
                             ruleId: ruleId,
                             properties: outRule.properties,
-                            ruleType: 'outbound'
+                            ruleType: 'egress'
                         });
                     }
                 }
