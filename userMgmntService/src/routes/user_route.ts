@@ -242,9 +242,9 @@ const upload = multer({
  *         description: Server error
  */
 usersRoute.post(
-  '/:id/avatar', 
-  authentification, 
-  upload.single('avatar'), 
+  '/:id/avatar',
+  authentification,
+  upload.single('avatar'),
   userController.uploadAvatar
 );
 

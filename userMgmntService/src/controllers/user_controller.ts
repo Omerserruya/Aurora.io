@@ -249,13 +249,9 @@ const uploadAvatar = async (req: Request, res: Response) => {
   try {
     // Check if user exists
     const user = await userModel.findById(id);
+    console.debug('Uploading avatar for user:', user);
     if (!user) {
       return res.status(404).json({ message: "User not found" });
-    }
-    
-    // Check if this is the current user
-    if (req.params.userId !== id) {
-      return res.status(403).json({ message: "Access denied" });
     }
     
     // Handle file upload
@@ -266,7 +262,8 @@ const uploadAvatar = async (req: Request, res: Response) => {
     // If a previous avatar exists, delete it
     if (user.avatarUrl) {
       try {
-        const previousPath = path.join(__dirname, '../../../Backend/uploads/users', path.basename(user.avatarUrl));
+        const uploadsDir = process.env.PROFILE_UPLOAD_PATH || '/app/uploads/users';
+        const previousPath = path.join(uploadsDir, path.basename(user.avatarUrl));
         if (fs.existsSync(previousPath)) {
           fs.unlinkSync(previousPath);
         }

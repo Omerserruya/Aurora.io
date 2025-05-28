@@ -326,6 +326,18 @@ export default function Profile() {
           </Box>
           <Divider sx={{ mb: 3 }} />
           
+          {isEditing && user.authProvider === 'local' && (
+            <Box sx={{ mb: 3, display: 'flex', justifyContent: 'flex-end' }}>
+              <Button
+                variant="outlined"
+                startIcon={<LockIcon />}
+                onClick={() => setResetPasswordDialogOpen(true)}
+              >
+                Reset Password
+              </Button>
+            </Box>
+          )}
+          
           <Grid container spacing={3}>
             {/* Profile Picture at the top */}
             <Grid item xs={12} sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
@@ -337,18 +349,20 @@ export default function Profile() {
                   showUsername={false}
                   userFromProps={true}
                 />
-                <IconButton
-                  size="small"
-                  sx={{
-                    position: 'absolute',
-                    bottom: 0,
-                    right: 0,
-                    backgroundColor: 'background.paper'
-                  }}
-                  onClick={handlePhotoDialogOpen}
-                >
-                  <PhotoCamera fontSize="small" />
-                </IconButton>
+                {isEditing && (
+                  <IconButton
+                    size="small"
+                    sx={{
+                      position: 'absolute',
+                      bottom: 0,
+                      right: 0,
+                      backgroundColor: 'background.paper'
+                    }}
+                    onClick={handlePhotoDialogOpen}
+                  >
+                    <PhotoCamera fontSize="small" />
+                  </IconButton>
+                )}
               </Box>
             </Grid>
 
@@ -399,18 +413,6 @@ export default function Profile() {
                 disabled
               />
             </Grid>
-
-            {user.authProvider === 'local' && (
-              <Grid item xs={12}>
-                <Button
-                  variant="outlined"
-                  startIcon={<LockIcon />}
-                  onClick={() => setResetPasswordDialogOpen(true)}
-                >
-                  Reset Password
-                </Button>
-              </Grid>
-            )}
           </Grid>
         </form>
       </Box>
