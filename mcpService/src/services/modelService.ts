@@ -26,7 +26,9 @@ class ModelService {
     prompt: string, 
     context: string, 
     options: ModelOptions = {},
-    chatHistory: string[] = []
+    chatHistory: string[] = [],
+    imageData?: string,
+    imageType?: string
   ): Promise<string> {
     // We're only using Gemini in this implementation
     const providerName = 'gemini';
@@ -37,7 +39,7 @@ class ModelService {
     }
     
     logger.info(`Generating response using ${providerName} provider`);
-    return provider.generateResponse(prompt, context, options,chatHistory);
+    return provider.generateResponse(prompt, context, options,chatHistory, imageData, imageType);
   }
   
   public getAvailableProviders(): string[] {

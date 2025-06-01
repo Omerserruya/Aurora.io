@@ -114,7 +114,7 @@ class SocketService {
   }
   
   // Send a chat message
-  sendMessage(message: { prompt: string; userId: string; connectionId: string; options?: any,chatHistory?: string[] }) {
+  sendMessage(message: { prompt: string; userId: string; connectionId: string; options?: any,chatHistory?: string[] ,imageData?: string, imageType?: string }) {
     if (!message.prompt || !message.userId || !message.connectionId) {
       console.error('Cannot send message: missing required fields');
       return false;

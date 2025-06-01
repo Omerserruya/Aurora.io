@@ -17,7 +17,7 @@ class MCPService {
   /**
    * Process a user query through the MCP service
    */
-  public async processQuery(prompt: string, userId: string, connectionId: string, options = {},chatHistory: string[] = []
+  public async processQuery(prompt: string, userId: string, connectionId: string, options = {},chatHistory: string[] = [] , imageData?: string, imageType?: string
   ): Promise<MCPResponse> {
     // Log incoming request
     
@@ -28,7 +28,9 @@ class MCPService {
         userId,
         connectionId,
         options,
-        chatHistory
+        chatHistory,
+        imageData,
+        imageType
       };
       
       const response = await axios.post(`${this.mcpServiceUrl}/api/mcp/query`, payload, {

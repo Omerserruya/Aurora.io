@@ -7,7 +7,6 @@ class GeminiProvider implements IModelProvider {
   public name = 'gemini';
   private genAI: GoogleGenerativeAI;
   private model: any;
-  private chatHistory: string[] = [];
   
   constructor() {
     if (!environment.geminiApiKey) {
@@ -33,19 +32,41 @@ class GeminiProvider implements IModelProvider {
     prompt: string, 
     context: string, 
     options?: ModelOptions,
-    chatHistory: string[] = []
+    chatHistory: string[] = [],
+    imageData?: string,
+    imageType?: string
   ): Promise<string> {
     try {
       logger.info(`Generating response with Gemini for: ${prompt.substring(0, 50)}...`);
       logger.info('Gemini chatHistory:', chatHistory);
+      const imageInstructions = imageData && imageType ? `
+<image_analysis>
+IMPORTANT: An image has been provided. You MUST analyze it in detail.
+- You MUST always acknowledge and describe what is in the image.
+- You MUST focus your analysis on any cloud-related content, such as:
+  - AWS architecture
+  - Dashboards and metrics
+  - Cost breakdowns
+  - Security configurations
+  - Infrastructure diagrams
+  - Monitoring/logs
+- You MUST use the provided context to enhance your analysis.
+If the image is NOT related to cloud infrastructure:
+- You MUST briefly state that your role is to support cloud-related topics and that this image falls outside that scope.
+- DO NOT ask whether it is relevant.
+NEVER skip or ignore an image. You MUST analyze whatever is shown.
+</image_analysis>
+` : '';
       const systemPrompt = `
 <system>
 You are Aurora, an expert AWS cloud architecture assistant that works on Aurora.io which is the greatest cloud architect company in the galaxy.
 You have deep knowledge of cloud infrastructure, security best practices, and optimization strategies. You analyze AWS environments and provide concise, technically accurate answers.
 You are a helpful assistant that provides information based on the user's cloud environment data.
+
 </system>
 
 <instructions>
+${imageInstructions}
 - *IMPORTANT*: ALWAYS end EVERY response end with a friendly note encouraging the user to ask more questions (e.g., "Feel free to ask if you have more questions about your AWS environment!").
 - Use the <chat_history> section to maintain context and continuity when the user's question refers to previous topics, follow-ups, or earlier parts of the conversation.
 - If the user's question is clearly about a new or unrelated topic, prioritize the current <context> and prompt, but still review <chat_history> for any relevant background.
@@ -110,7 +131,27 @@ ${prompt}
       if (options?.topP !== undefined) generationConfig.topP = options.topP;
       if (options?.topK !== undefined) generationConfig.topK = options.topK;
       
-      const result = await this.model.generateContent(systemPrompt, { generationConfig });
+      const parts: any[] = [];
+
+      if (imageData && imageType) {
+        parts.push({
+          inline_data: {
+            mime_type: imageType,
+            data: imageData
+          }
+        });
+      }
+
+      parts.push({ text: systemPrompt });
+
+      const contents: any[] = [
+        {
+          role: "user",
+          parts
+        }
+      ];
+
+      const result = await this.model.generateContent({ contents }, { generationConfig });
       const response = result.response;
       const text = response.text();
       

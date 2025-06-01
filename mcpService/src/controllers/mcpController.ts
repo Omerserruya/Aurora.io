@@ -13,7 +13,7 @@ export const mcpController = {
     try {
       logger.info(`[${requestId}] Processing request`);
       
-      const { prompt, userId, connectionId, options = {},chatHistory = [] } = req.body;
+      const { prompt, userId, connectionId, options = {},chatHistory = [], imageData = '' ,imageType = '' } = req.body;
       
       if (!prompt || !userId) {
         res.status(400).json({ error: 'Missing required parameters' });
@@ -46,7 +46,9 @@ export const mcpController = {
         prompt, 
         context.text, 
         { ...options, format: 'text' }, // Specify text format for chat
-        chatHistory 
+        chatHistory,
+        imageData,
+        imageType
       );
       
       // Capture metrics

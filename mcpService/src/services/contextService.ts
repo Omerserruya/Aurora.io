@@ -16,40 +16,40 @@ class ContextService {
     // The order of adapter registration is critical as it determines evaluation priority.
     // Adapters are evaluated in the order they are registered:
     
-    // 1. FeedbackAdapter - Highest priority
-    // Immediately captures user appreciation or complaints, ensuring we always
-    // acknowledge the user's sentiment before any other processing.
+    // 1. CloudDataAdapter - Highest priority
+    // This adapter handles all AWS/cloud-related queries and should be checked first
+    // to ensure we get the user's actual cloud environment data when available.
+    this.registerAdapter(new CloudDataAdapter());
+    
+    // 2. FeedbackAdapter - User sentiment
+    // Captures user appreciation or complaints, ensuring we acknowledge
+    // the user's sentiment after checking for cloud data.
     this.registerAdapter(new FeedbackAdapter());
     
-    // 2. WelcomeAdapter - New user onboarding
+    // 3. WelcomeAdapter - New user onboarding
     // Must come early to ensure first-time users get appropriate introduction
     // before any technical responses.
     this.registerAdapter(new WelcomeAdapter());
     
-    // 3. HelpAdapter - Direct assistance requests
+    // 4. HelpAdapter - Direct assistance requests
     // Prioritized to handle explicit requests for help or guidance,
     // ensuring users can always get assistance when specifically asked for.
     this.registerAdapter(new HelpAdapter());
     
-    // 4. ImprovementAdapter - Targeted recommendations
+    // 5. ImprovementAdapter - Targeted recommendations
     // Handles requests for advice on improving AWS environment,
     // comes before troubleshooting since improvements are usually proactive.
     this.registerAdapter(new ImprovementAdapter());
     
-    // 5. TroubleshootingAdapter - Problem solving
+    // 6. TroubleshootingAdapter - Problem solving
     // For handling specific issues or errors the user is experiencing,
     // giving specific steps rather than general info.
     this.registerAdapter(new TroubleshootingAdapter());
     
-    // 6. GeneralPromptAdapter - Generic greetings
-    // Lower priority as it handles general conversation starters
+    // 7. GeneralPromptAdapter - Generic greetings
+    // Lowest priority as it handles general conversation starters
     // that don't fit specialized categories above.
     this.registerAdapter(new GeneralPromptAdapter());
-    
-    // 7. CloudDataAdapter - Technical AWS queries
-    // Lowest priority, only triggered when the query contains technical AWS terms.
-    // This is our fallback for specific cloud-related technical inquiries.
-    this.registerAdapter(new CloudDataAdapter());
     
     logger.info(`ContextService initialized with ${this.adapters.length} data adapters`);
   }
