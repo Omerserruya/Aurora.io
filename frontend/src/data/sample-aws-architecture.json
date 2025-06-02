@@ -1,0 +1,993 @@
+{
+  "vpcs": [
+    {
+      "vpcId": "vpc-0a1b2c3d4e",
+      "properties": {
+        "CidrBlock": "10.0.0.0/16",
+        "State": "available",
+        "IsDefault": false,
+        "InstanceTenancy": "default",
+        "InternetGateways": [
+          {
+            "InternetGatewayId": "igw-0a1b2c3d4e",
+            "Attachments": [
+              {
+                "VpcId": "vpc-0a1b2c3d4e",
+                "State": "available"
+              }
+            ]
+          }
+        ],
+        "RouteTables": [
+          {
+            "RouteTableId": "rtb-0a1b2c3d4e",
+            "VpcId": "vpc-0a1b2c3d4e",
+            "Routes": [
+              {
+                "DestinationCidrBlock": "10.0.0.0/16",
+                "GatewayId": "local",
+                "State": "active",
+                "Origin": "CreateRouteTable"
+              },
+              {
+                "DestinationCidrBlock": "0.0.0.0/0",
+                "GatewayId": "igw-0a1b2c3d4e",
+                "State": "active",
+                "Origin": "CreateRoute"
+              }
+            ],
+            "Associations": [
+              {
+                "RouteTableAssociationId": "rtbassoc-0a1b2c3d4e",
+                "RouteTableId": "rtb-0a1b2c3d4e",
+                "SubnetId": "subnet-0a1b2c3d4e-public1",
+                "Main": false
+              },
+              {
+                "RouteTableAssociationId": "rtbassoc-1f2e3d4c5b",
+                "RouteTableId": "rtb-0a1b2c3d4e",
+                "SubnetId": "subnet-0a1b2c3d4e-public2",
+                "Main": false
+              }
+            ]
+          },
+          {
+            "RouteTableId": "rtb-1f2e3d4c5b",
+            "VpcId": "vpc-0a1b2c3d4e",
+            "Routes": [
+              {
+                "DestinationCidrBlock": "10.0.0.0/16",
+                "GatewayId": "local",
+                "State": "active",
+                "Origin": "CreateRouteTable"
+              },
+              {
+                "DestinationCidrBlock": "0.0.0.0/0",
+                "NatGatewayId": "nat-0a1b2c3d4e",
+                "State": "active",
+                "Origin": "CreateRoute"
+              }
+            ],
+            "Associations": [
+              {
+                "RouteTableAssociationId": "rtbassoc-2e3d4c5b6a",
+                "RouteTableId": "rtb-1f2e3d4c5b",
+                "SubnetId": "subnet-0a1b2c3d4e-private1",
+                "Main": false
+              },
+              {
+                "RouteTableAssociationId": "rtbassoc-3d4c5b6a7f",
+                "RouteTableId": "rtb-1f2e3d4c5b",
+                "SubnetId": "subnet-0a1b2c3d4e-private2",
+                "Main": false
+              }
+            ]
+          }
+        ],
+        "NetworkAcls": [
+          {
+            "NetworkAclId": "acl-0a1b2c3d4e",
+            "VpcId": "vpc-0a1b2c3d4e",
+            "IsDefault": true,
+            "Entries": [
+              {
+                "RuleNumber": 100,
+                "Protocol": "-1",
+                "RuleAction": "allow",
+                "Egress": true,
+                "CidrBlock": "0.0.0.0/0"
+              },
+              {
+                "RuleNumber": 100,
+                "Protocol": "-1",
+                "RuleAction": "allow",
+                "Egress": false,
+                "CidrBlock": "0.0.0.0/0"
+              }
+            ],
+            "Associations": [
+              {
+                "NetworkAclAssociationId": "aclassoc-0a1b2c3d4e",
+                "NetworkAclId": "acl-0a1b2c3d4e",
+                "SubnetId": "subnet-0a1b2c3d4e-public1"
+              },
+              {
+                "NetworkAclAssociationId": "aclassoc-1f2e3d4c5b",
+                "NetworkAclId": "acl-0a1b2c3d4e",
+                "SubnetId": "subnet-0a1b2c3d4e-public2"
+              },
+              {
+                "NetworkAclAssociationId": "aclassoc-2e3d4c5b6a",
+                "NetworkAclId": "acl-0a1b2c3d4e",
+                "SubnetId": "subnet-0a1b2c3d4e-private1"
+              },
+              {
+                "NetworkAclAssociationId": "aclassoc-3d4c5b6a7f",
+                "NetworkAclId": "acl-0a1b2c3d4e",
+                "SubnetId": "subnet-0a1b2c3d4e-private2"
+              }
+            ]
+          }
+        ],
+        "ElasticIPs": [
+          {
+            "AllocationId": "eipalloc-0a1b2c3d4e",
+            "PublicIp": "54.123.45.67",
+            "Domain": "vpc",
+            "InstanceId": "i-0a1b2c3d4ePublic"
+          },
+          {
+            "AllocationId": "eipalloc-1f2e3d4c5b",
+            "PublicIp": "54.234.56.78",
+            "Domain": "vpc",
+            "NetworkInterfaceId": "eni-0a1b2c3d4e"
+          }
+        ],
+        "TransitGateways": [
+          {
+            "TransitGatewayId": "tgw-0a1b2c3d4e",
+            "State": "available",
+            "OwnerId": "123456789012",
+            "Description": "Main Transit Gateway",
+            "Options": {
+              "AmazonSideAsn": 64512,
+              "AutoAcceptSharedAttachments": "disable",
+              "DefaultRouteTableAssociation": "enable",
+              "DefaultRouteTablePropagation": "enable",
+              "VpnEcmpSupport": "enable",
+              "DnsSupport": "enable"
+            }
+          }
+        ],
+        "LambdaFunctions": [
+          {
+            "FunctionName": "api-processor",
+            "FunctionArn": "arn:aws:lambda:us-east-1:123456789012:function:api-processor",
+            "Runtime": "nodejs16.x",
+            "Handler": "index.handler",
+            "CodeSize": 1024,
+            "Description": "API processor function",
+            "Timeout": 30,
+            "MemorySize": 128,
+            "LastModified": "2023-01-15T12:00:00.000+0000",
+            "Role": "arn:aws:iam::123456789012:role/lambda-api-processor-role",
+            "VpcConfig": {
+              "SubnetIds": [
+                "subnet-0a1b2c3d4e-private1",
+                "subnet-0a1b2c3d4e-private2"
+              ],
+              "SecurityGroupIds": [
+                "sg-lambda-0a1b2c3d4e"
+              ],
+              "VpcId": "vpc-0a1b2c3d4e"
+            },
+            "EventSources": [
+              {
+                "UUID": "event-1",
+                "Type": "S3",
+                "SourceId": "company-assets-1234"
+              },
+              {
+                "UUID": "event-2",
+                "Type": "API Gateway",
+                "SourceId": "api-gateway-1"
+              }
+            ]
+          }
+        ],
+        "ECSClusters": [
+          {
+            "ClusterArn": "arn:aws:ecs:us-east-1:123456789012:cluster/web-cluster",
+            "ClusterName": "web-cluster",
+            "Status": "ACTIVE",
+            "RegisteredContainerInstancesCount": 2,
+            "RunningTasksCount": 4,
+            "PendingTasksCount": 0,
+            "Tasks": [
+              {
+                "TaskArn": "arn:aws:ecs:us-east-1:123456789012:task/web-cluster/task-1",
+                "ClusterArn": "arn:aws:ecs:us-east-1:123456789012:cluster/web-cluster",
+                "TaskDefinitionArn": "arn:aws:ecs:us-east-1:123456789012:task-definition/web-app:1",
+                "ContainerInstanceArn": "arn:aws:ecs:us-east-1:123456789012:container-instance/web-cluster/container-instance-1",
+                "LastStatus": "RUNNING",
+                "DesiredStatus": "RUNNING",
+                "Cpu": "256",
+                "Memory": "512",
+                "Containers": [
+                  {
+                    "ContainerArn": "arn:aws:ecs:us-east-1:123456789012:container/container-1",
+                    "TaskArn": "arn:aws:ecs:us-east-1:123456789012:task/web-cluster/task-1",
+                    "Name": "web-app",
+                    "Image": "nginx",
+                    "Cpu": "256",
+                    "Memory": "512",
+                    "LastStatus": "RUNNING"
+                  }
+                ],
+                "Attachments": [
+                  {
+                    "Id": "attachment-1",
+                    "Type": "ElasticNetworkInterface",
+                    "Status": "ATTACHED",
+                    "Details": [
+                      {
+                        "Name": "subnetId",
+                        "Value": "subnet-0a1b2c3d4e-private1"
+                      },
+                      {
+                        "Name": "networkInterfaceId",
+                        "Value": "eni-0a1b2c3d4e-ecs-1"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "TaskArn": "arn:aws:ecs:us-east-1:123456789012:task/web-cluster/task-2",
+                "ClusterArn": "arn:aws:ecs:us-east-1:123456789012:cluster/web-cluster",
+                "TaskDefinitionArn": "arn:aws:ecs:us-east-1:123456789012:task-definition/web-app:1",
+                "ContainerInstanceArn": "arn:aws:ecs:us-east-1:123456789012:container-instance/web-cluster/container-instance-2",
+                "LastStatus": "RUNNING",
+                "DesiredStatus": "RUNNING",
+                "Cpu": "256",
+                "Memory": "512",
+                "Containers": [
+                  {
+                    "ContainerArn": "arn:aws:ecs:us-east-1:123456789012:container/container-2",
+                    "TaskArn": "arn:aws:ecs:us-east-1:123456789012:task/web-cluster/task-2",
+                    "Name": "web-app",
+                    "Image": "nginx",
+                    "Cpu": "256",
+                    "Memory": "512",
+                    "LastStatus": "RUNNING"
+                  }
+                ],
+                "Attachments": [
+                  {
+                    "Id": "attachment-2",
+                    "Type": "ElasticNetworkInterface",
+                    "Status": "ATTACHED",
+                    "Details": [
+                      {
+                        "Name": "subnetId",
+                        "Value": "subnet-0a1b2c3d4e-private2"
+                      },
+                      {
+                        "Name": "networkInterfaceId",
+                        "Value": "eni-0a1b2c3d4e-ecs-2"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "RDSInstances": [
+          {
+            "DBInstanceIdentifier": "web-db",
+            "Engine": "postgres",
+            "DBInstanceStatus": "available",
+            "MasterUsername": "admin",
+            "DBName": "webapp",
+            "AllocatedStorage": 100,
+            "DBInstanceClass": "db.t3.medium",
+            "VpcSecurityGroups": [
+              {
+                "VpcSecurityGroupId": "sg-2e3d4c5b6a",
+                "Status": "active"
+              }
+            ],
+            "DBSubnetGroup": {
+              "DBSubnetGroupName": "web-db-subnet-group",
+              "Subnets": [
+                {
+                  "SubnetIdentifier": "subnet-0a1b2c3d4e-private1",
+                  "SubnetAvailabilityZone": "us-east-1a"
+                },
+                {
+                  "SubnetIdentifier": "subnet-0a1b2c3d4e-private2",
+                  "SubnetAvailabilityZone": "us-east-1b"
+                }
+              ]
+            }
+          }
+        ],
+        "IAMRoles": [
+          {
+            "RoleName": "ec2-web-role",
+            "RoleId": "AROAI3ADSFDSFSDFDSF",
+            "Arn": "arn:aws:iam::123456789012:role/ec2-web-role",
+            "CreateDate": "2023-01-01T00:00:00Z",
+            "AssumeRolePolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Principal": {
+                    "Service": "ec2.amazonaws.com"
+                  },
+                  "Action": "sts:AssumeRole"
+                }
+              ]
+            },
+            "AttachedPolicies": [
+              {
+                "PolicyName": "AmazonS3ReadOnlyAccess",
+                "PolicyArn": "arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess"
+              },
+              {
+                "PolicyName": "web-custom-policy",
+                "PolicyArn": "arn:aws:iam::123456789012:policy/web-custom-policy"
+              }
+            ]
+          },
+          {
+            "RoleName": "lambda-api-processor-role",
+            "RoleId": "AROAI3BDSFDSFSDFDSF",
+            "Arn": "arn:aws:iam::123456789012:role/lambda-api-processor-role",
+            "CreateDate": "2023-01-01T00:00:00Z",
+            "AssumeRolePolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Principal": {
+                    "Service": "lambda.amazonaws.com"
+                  },
+                  "Action": "sts:AssumeRole"
+                }
+              ]
+            },
+            "AttachedPolicies": [
+              {
+                "PolicyName": "AWSLambdaVPCAccessExecutionRole",
+                "PolicyArn": "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
+              }
+            ]
+          }
+        ]
+      },
+      "subnets": [
+        {
+          "subnetId": "subnet-0a1b2c3d4e-public1",
+          "properties": {
+            "VpcId": "vpc-0a1b2c3d4e",
+            "CidrBlock": "10.0.1.0/24",
+            "AvailabilityZone": "us-east-1a",
+            "State": "available",
+            "MapPublicIpOnLaunch": true,
+            "LoadBalancers": [
+              {
+                "LoadBalancerArn": "arn:aws:elasticloadbalancing:us-east-1:123456789012:loadbalancer/app/web-alb/0a1b2c3d4e",
+                "LoadBalancerName": "web-alb",
+                "Type": "application",
+                "Scheme": "internet-facing",
+                "VpcId": "vpc-0a1b2c3d4e",
+                "State": {
+                  "Code": "active"
+                },
+                "DNSName": "web-alb-123456789.us-east-1.elb.amazonaws.com"
+              }
+            ]
+          },
+          "instances": [
+            {
+              "instanceId": "i-0a1b2c3d4ePublic",
+              "properties": {
+                "InstanceType": "t3.medium",
+                "AvailabilityZone": "us-east-1a",
+                "State": {
+                  "Name": "running",
+                  "Code": 16
+                },
+                "Platform": "Linux",
+                "ImageId": "ami-0a1b2c3d4e",
+                "LaunchTime": "2023-01-01T12:00:00.000Z",
+                "PrivateIpAddress": "10.0.1.10",
+                "PublicIpAddress": "54.123.45.67",
+                "IamInstanceProfile": {
+                  "Arn": "arn:aws:iam::123456789012:instance-profile/ec2-web-role"
+                },
+                "BlockDeviceMappings": [
+                  {
+                    "DeviceName": "/dev/sda1",
+                    "Ebs": {
+                      "VolumeId": "vol-0a1b2c3d4e",
+                      "Status": "attached",
+                      "AttachTime": "2023-01-01T12:00:00.000Z",
+                      "DeleteOnTermination": true
+                    }
+                  }
+                ]
+              },
+              "securityGroups": [
+                {
+                  "groupId": "sg-0a1b2c3d4e",
+                  "groupName": "web-sg"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "subnetId": "subnet-0a1b2c3d4e-public2",
+          "properties": {
+            "VpcId": "vpc-0a1b2c3d4e",
+            "CidrBlock": "10.0.2.0/24",
+            "AvailabilityZone": "us-east-1b",
+            "State": "available",
+            "MapPublicIpOnLaunch": true,
+            "NatGateways": [
+              {
+                "NatGatewayId": "nat-0a1b2c3d4e",
+                "SubnetId": "subnet-0a1b2c3d4e-public2",
+                "State": "available",
+                "ConnectivityType": "public"
+              }
+            ]
+          },
+          "instances": []
+        },
+        {
+          "subnetId": "subnet-0a1b2c3d4e-private1",
+          "properties": {
+            "VpcId": "vpc-0a1b2c3d4e",
+            "CidrBlock": "10.0.3.0/24",
+            "AvailabilityZone": "us-east-1a",
+            "State": "available",
+            "MapPublicIpOnLaunch": false
+          },
+          "instances": [
+            {
+              "instanceId": "i-1f2e3d4c5bPrivate1",
+              "properties": {
+                "InstanceType": "t3.large",
+                "AvailabilityZone": "us-east-1a",
+                "State": {
+                  "Name": "running",
+                  "Code": 16
+                },
+                "Platform": "Linux",
+                "ImageId": "ami-1f2e3d4c5b",
+                "LaunchTime": "2023-01-02T12:00:00.000Z",
+                "PrivateIpAddress": "10.0.3.10",
+                "IamInstanceProfile": {
+                  "Arn": "arn:aws:iam::123456789012:instance-profile/ec2-web-role"
+                }
+              },
+              "securityGroups": [
+                {
+                  "groupId": "sg-1f2e3d4c5b",
+                  "groupName": "app-sg"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "subnetId": "subnet-0a1b2c3d4e-private2",
+          "properties": {
+            "VpcId": "vpc-0a1b2c3d4e",
+            "CidrBlock": "10.0.4.0/24",
+            "AvailabilityZone": "us-east-1b",
+            "State": "available",
+            "MapPublicIpOnLaunch": false
+          },
+          "instances": [
+            {
+              "instanceId": "i-2e3d4c5b6aPrivate2",
+              "properties": {
+                "InstanceType": "t3.large",
+                "AvailabilityZone": "us-east-1b",
+                "State": {
+                  "Name": "running",
+                  "Code": 16
+                },
+                "Platform": "Linux",
+                "ImageId": "ami-2e3d4c5b6a",
+                "LaunchTime": "2023-01-03T12:00:00.000Z",
+                "PrivateIpAddress": "10.0.4.10",
+                "IamInstanceProfile": {
+                  "Arn": "arn:aws:iam::123456789012:instance-profile/ec2-web-role"
+                }
+              },
+              "securityGroups": [
+                {
+                  "groupId": "sg-1f2e3d4c5b",
+                  "groupName": "app-sg"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "securityGroups": [
+        {
+          "groupId": "sg-0a1b2c3d4e",
+          "groupName": "web-sg",
+          "description": "Security group for web servers",
+          "inboundRules": [
+            {
+              "IpProtocol": "tcp",
+              "FromPort": 80,
+              "ToPort": 80,
+              "IpRanges": [
+                {
+                  "CidrIp": "0.0.0.0/0",
+                  "Description": "Allow HTTP from anywhere"
+                }
+              ]
+            },
+            {
+              "IpProtocol": "tcp",
+              "FromPort": 443,
+              "ToPort": 443,
+              "IpRanges": [
+                {
+                  "CidrIp": "0.0.0.0/0",
+                  "Description": "Allow HTTPS from anywhere"
+                }
+              ]
+            },
+            {
+              "IpProtocol": "tcp",
+              "FromPort": 22,
+              "ToPort": 22,
+              "IpRanges": [
+                {
+                  "CidrIp": "192.168.1.0/24",
+                  "Description": "Allow SSH from corporate network"
+                }
+              ]
+            }
+          ],
+          "outboundRules": [
+            {
+              "IpProtocol": "-1",
+              "FromPort": -1,
+              "ToPort": -1,
+              "IpRanges": [
+                {
+                  "CidrIp": "0.0.0.0/0",
+                  "Description": "Allow all outbound traffic"
+                }
+              ]
+            }
+          ],
+          "ReferencedBySecurityGroups": [
+            {
+              "GroupId": "sg-1f2e3d4c5b",
+              "GroupName": "app-sg",
+              "Description": "Referenced by app security group"
+            }
+          ]
+        },
+        {
+          "groupId": "sg-1f2e3d4c5b",
+          "groupName": "app-sg",
+          "description": "Security group for application servers",
+          "inboundRules": [
+            {
+              "IpProtocol": "tcp",
+              "FromPort": 8080,
+              "ToPort": 8080,
+              "UserIdGroupPairs": [
+                {
+                  "GroupId": "sg-0a1b2c3d4e",
+                  "Description": "Allow traffic from web servers"
+                }
+              ]
+            },
+            {
+              "IpProtocol": "tcp",
+              "FromPort": 22,
+              "ToPort": 22,
+              "IpRanges": [
+                {
+                  "CidrIp": "192.168.1.0/24",
+                  "Description": "Allow SSH from corporate network"
+                }
+              ]
+            }
+          ],
+          "outboundRules": [
+            {
+              "IpProtocol": "-1",
+              "FromPort": -1,
+              "ToPort": -1,
+              "IpRanges": [
+                {
+                  "CidrIp": "0.0.0.0/0",
+                  "Description": "Allow all outbound traffic"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "groupId": "sg-lambda-0a1b2c3d4e",
+          "groupName": "lambda-sg",
+          "description": "Security group for Lambda functions",
+          "inboundRules": [],
+          "outboundRules": [
+            {
+              "IpProtocol": "-1",
+              "FromPort": -1,
+              "ToPort": -1,
+              "IpRanges": [
+                {
+                  "CidrIp": "0.0.0.0/0",
+                  "Description": "Allow all outbound traffic"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "vpcId": "vpc-1f2e3d4c5b",
+      "properties": {
+        "CidrBlock": "172.16.0.0/16",
+        "State": "available",
+        "IsDefault": false,
+        "InstanceTenancy": "default",
+        "InternetGateways": [
+          {
+            "InternetGatewayId": "igw-1f2e3d4c5b",
+            "Attachments": [
+              {
+                "VpcId": "vpc-1f2e3d4c5b",
+                "State": "available"
+              }
+            ]
+          }
+        ],
+        "RouteTables": [
+          {
+            "RouteTableId": "rtb-3d4c5b6a7f",
+            "VpcId": "vpc-1f2e3d4c5b",
+            "Routes": [
+              {
+                "DestinationCidrBlock": "172.16.0.0/16",
+                "GatewayId": "local",
+                "State": "active",
+                "Origin": "CreateRouteTable"
+              },
+              {
+                "DestinationCidrBlock": "0.0.0.0/0",
+                "GatewayId": "igw-1f2e3d4c5b",
+                "State": "active",
+                "Origin": "CreateRoute"
+              }
+            ],
+            "Associations": [
+              {
+                "RouteTableAssociationId": "rtbassoc-4c5b6a7f8e",
+                "RouteTableId": "rtb-3d4c5b6a7f",
+                "SubnetId": "subnet-1f2e3d4c5b-db",
+                "Main": false
+              }
+            ]
+          }
+        ],
+        "NetworkAcls": [
+          {
+            "NetworkAclId": "acl-1f2e3d4c5b",
+            "VpcId": "vpc-1f2e3d4c5b",
+            "IsDefault": true,
+            "Entries": [
+              {
+                "RuleNumber": 100,
+                "Protocol": "-1",
+                "RuleAction": "allow",
+                "Egress": true,
+                "CidrBlock": "0.0.0.0/0"
+              },
+              {
+                "RuleNumber": 100,
+                "Protocol": "-1",
+                "RuleAction": "allow",
+                "Egress": false,
+                "CidrBlock": "0.0.0.0/0"
+              }
+            ],
+            "Associations": [
+              {
+                "NetworkAclAssociationId": "aclassoc-4c5b6a7f8e",
+                "NetworkAclId": "acl-1f2e3d4c5b",
+                "SubnetId": "subnet-1f2e3d4c5b-db"
+              }
+            ]
+          }
+        ],
+        "TransitGateways": [
+          {
+            "TransitGatewayId": "tgw-0a1b2c3d4e",
+            "State": "available",
+            "OwnerId": "123456789012",
+            "Description": "Main Transit Gateway",
+            "Options": {
+              "AmazonSideAsn": 64512,
+              "AutoAcceptSharedAttachments": "disable",
+              "DefaultRouteTableAssociation": "enable",
+              "DefaultRouteTablePropagation": "enable",
+              "VpnEcmpSupport": "enable",
+              "DnsSupport": "enable"
+            }
+          }
+        ]
+      },
+      "subnets": [
+        {
+          "subnetId": "subnet-1f2e3d4c5b-db",
+          "properties": {
+            "VpcId": "vpc-1f2e3d4c5b",
+            "CidrBlock": "172.16.1.0/24",
+            "AvailabilityZone": "us-east-1a",
+            "State": "available",
+            "MapPublicIpOnLaunch": false
+          },
+          "instances": [
+            {
+              "instanceId": "i-3d4c5b6a7fDB",
+              "properties": {
+                "InstanceType": "r5.large",
+                "AvailabilityZone": "us-east-1a",
+                "State": {
+                  "Name": "running",
+                  "Code": 16
+                },
+                "Platform": "Linux",
+                "ImageId": "ami-3d4c5b6a7f",
+                "LaunchTime": "2023-01-04T12:00:00.000Z",
+                "PrivateIpAddress": "172.16.1.10"
+              },
+              "securityGroups": [
+                {
+                  "groupId": "sg-2e3d4c5b6a",
+                  "groupName": "db-sg"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "securityGroups": [
+        {
+          "groupId": "sg-2e3d4c5b6a",
+          "groupName": "db-sg",
+          "description": "Security group for database servers",
+          "inboundRules": [
+            {
+              "IpProtocol": "tcp",
+              "FromPort": 5432,
+              "ToPort": 5432,
+              "UserIdGroupPairs": [
+                {
+                  "GroupId": "sg-1f2e3d4c5b",
+                  "Description": "Allow Postgres traffic from app servers"
+                }
+              ]
+            },
+            {
+              "IpProtocol": "tcp",
+              "FromPort": 22,
+              "ToPort": 22,
+              "IpRanges": [
+                {
+                  "CidrIp": "192.168.1.0/24",
+                  "Description": "Allow SSH from corporate network"
+                }
+              ]
+            }
+          ],
+          "outboundRules": [
+            {
+              "IpProtocol": "-1",
+              "FromPort": -1,
+              "ToPort": -1,
+              "IpRanges": [
+                {
+                  "CidrIp": "0.0.0.0/0",
+                  "Description": "Allow all outbound traffic"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "s3Buckets": [
+    {
+      "name": "company-assets-1234",
+      "properties": {
+        "CreationDate": "2023-01-01T00:00:00.000Z",
+        "Region": "us-east-1",
+        "Versioning": {
+          "Status": "Enabled"
+        },
+        "PublicAccessBlockConfiguration": {
+          "BlockPublicAcls": true,
+          "IgnorePublicAcls": true,
+          "BlockPublicPolicy": true,
+          "RestrictPublicBuckets": true
+        }
+      }
+    },
+    {
+      "name": "web-static-content-5678",
+      "properties": {
+        "CreationDate": "2023-01-01T00:00:00.000Z",
+        "Region": "us-east-1",
+        "Versioning": {
+          "Status": "Enabled"
+        },
+        "WebsiteConfiguration": {
+          "IndexDocument": {
+            "Suffix": "index.html"
+          },
+          "ErrorDocument": {
+            "Key": "error.html"
+          }
+        }
+      }
+    },
+    {
+      "name": "application-logs-9012",
+      "properties": {
+        "CreationDate": "2023-01-01T00:00:00.000Z",
+        "Region": "us-east-1",
+        "Versioning": {
+          "Status": "Enabled"
+        },
+        "LifecycleConfiguration": {
+          "Rules": [
+            {
+              "ID": "TransitionToGlacier",
+              "Status": "Enabled",
+              "Prefix": "logs/",
+              "Transitions": [
+                {
+                  "Days": 90,
+                  "StorageClass": "GLACIER"
+                }
+              ]
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "iamUsers": [
+    {
+      "UserName": "admin-user",
+      "UserId": "AIDA3ADSFDSFSDFDSF",
+      "Arn": "arn:aws:iam::123456789012:user/admin-user",
+      "CreateDate": "2023-01-01T00:00:00Z",
+      "PasswordLastUsed": "2023-01-15T12:00:00Z",
+      "Groups": [
+        {
+          "GroupName": "Administrators",
+          "GroupId": "AGPA3ADSFDSFSDFDSF"
+        }
+      ],
+      "AttachedPolicies": [
+        {
+          "PolicyName": "AdministratorAccess",
+          "PolicyArn": "arn:aws:iam::aws:policy/AdministratorAccess"
+        }
+      ]
+    }
+  ],
+  "iamRoles": [
+    {
+      "RoleName": "ec2-web-role",
+      "RoleId": "AROAI3ADSFDSFSDFDSF",
+      "Arn": "arn:aws:iam::123456789012:role/ec2-web-role",
+      "CreateDate": "2023-01-01T00:00:00Z",
+      "AssumeRolePolicyDocument": {
+        "Version": "2012-10-17",
+        "Statement": [
+          {
+            "Effect": "Allow",
+            "Principal": {
+              "Service": "ec2.amazonaws.com"
+            },
+            "Action": "sts:AssumeRole"
+          }
+        ]
+      },
+      "AttachedPolicies": [
+        {
+          "PolicyName": "AmazonS3ReadOnlyAccess",
+          "PolicyArn": "arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess"
+        }
+      ]
+    }
+  ],
+  "iamPolicies": [
+    {
+      "PolicyName": "web-custom-policy",
+      "PolicyId": "ANPAI3XCVBNMGHJKIUY",
+      "Arn": "arn:aws:iam::123456789012:policy/web-custom-policy",
+      "Path": "/",
+      "DefaultVersionId": "v1",
+      "AttachmentCount": 1,
+      "CreateDate": "2023-01-01T00:00:00Z",
+      "UpdateDate": "2023-01-01T00:00:00Z",
+      "Document": {
+        "Version": "2012-10-17",
+        "Statement": [
+          {
+            "Effect": "Allow",
+            "Action": [
+              "s3:GetObject",
+              "s3:ListBucket"
+            ],
+            "Resource": [
+              "arn:aws:s3:::company-assets-1234",
+              "arn:aws:s3:::company-assets-1234/*"
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "apiGateways": [
+    {
+      "ApiId": "api-gateway-1",
+      "Name": "web-api",
+      "Description": "Web application API",
+      "CreatedDate": "2023-01-01T00:00:00Z",
+      "ProtocolType": "HTTP",
+      "Routes": [
+        {
+          "RouteId": "route-1",
+          "RouteKey": "GET /users",
+          "Target": "arn:aws:lambda:us-east-1:123456789012:function:api-processor"
+        }
+      ]
+    }
+  ],
+  "ebsVolumes": [
+    {
+      "VolumeId": "vol-0a1b2c3d4e",
+      "Size": 100,
+      "VolumeType": "gp3",
+      "State": "in-use",
+      "AvailabilityZone": "us-east-1a",
+      "Attachments": [
+        {
+          "InstanceId": "i-0a1b2c3d4ePublic",
+          "Device": "/dev/sda1",
+          "State": "attached",
+          "AttachTime": "2023-01-01T12:00:00.000Z",
+          "DeleteOnTermination": true
+        }
+      ]
+    }
+  ]
+} 

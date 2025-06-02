@@ -1,11 +1,40 @@
 import React, { useEffect, useState } from 'react';
-import { Box, Typography, CircularProgress, Alert, IconButton, Tooltip } from '@mui/material';
+import { Box, Typography, CircularProgress, Alert, IconButton, Tooltip, Tabs, Tab } from '@mui/material';
 import { Refresh as RefreshIcon, Sync as SyncIcon } from '@mui/icons-material';
 import AWSArchitectureVisualizer, { AWSArchitecture } from '../components/aws-architecture-visualizer';
+import CloudDiagramWithProvider from '../components/aws/CloudDiagram';
 import axios from 'axios';
 import { useAccount } from '../hooks/compatibilityHooks';
 import { executeCloudQuery } from '../api/awsConnectionApi';
 import { useUser } from '../hooks/compatibilityHooks';
+
+// Tab panel component
+interface TabPanelProps {
+  children?: React.ReactNode;
+  index: number;
+  value: number;
+}
+
+function TabPanel(props: TabPanelProps) {
+  const { children, value, index, ...other } = props;
+
+  return (
+    <div
+      role="tabpanel"
+      hidden={value !== index}
+      id={`aws-visualization-tabpanel-${index}`}
+      aria-labelledby={`aws-visualization-tab-${index}`}
+      style={{ height: '100%', margin: 0, padding: 0 }}
+      {...other}
+    >
+      {value === index && (
+        <Box sx={{ height: '100%', margin: 0, padding: 0 }}>
+          {children}
+        </Box>
+      )}
+    </div>
+  );
+}
 
 function Visualization() {
   const [data, setData] = useState<AWSArchitecture | null>(null);
@@ -16,6 +45,11 @@ function Visualization() {
   const [lastPolled, setLastPolled] = useState<number>(0);
   const { account } = useAccount();
   const { user } = useUser();
+  const [tabValue, setTabValue] = useState(0);
+
+  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
+    setTabValue(newValue);
+  };
 
   const fetchData = async () => {
     if (!account?._id) {
@@ -270,38 +304,94 @@ function Visualization() {
   }
 
   return (
-    <Box sx={{ p: 0, height: '100%', width: '100%', position: 'relative' }}>
+    <Box 
+      sx={{ 
+        p: 0, 
+        height: 'calc(100vh - 48px)', // Further adjusted for reduced Header height (40px + 8px padding)
+        width: '100%', 
+        display: 'flex', 
+        flexDirection: 'column',
+        bgcolor: 'background.paper', // Match application's paper background
+        overflow: 'hidden' // Prevent scrolling
+      }}
+    >
       <Box sx={{ 
-        position: 'absolute', 
-        top: 16, 
-        right: 16, 
-        zIndex: 1000,
-        display: 'flex',
-        gap: 1,
+        borderBottom: 1, 
+        borderColor: 'divider', 
         bgcolor: 'background.paper',
-        borderRadius: 1,
-        padding: 0.5,
-        boxShadow: 1
+        p: 0, // Remove padding
+        m: 0, // No margin
+        height: 'auto', // Only take height needed
+        minHeight: 0, // Reduce minimum height
+        lineHeight: 1, // Reduce line height to compact further
+        position: 'relative' // Add relative positioning for absolute children
       }}>
-        <Tooltip title="Refresh data">
-          <IconButton 
-            onClick={fetchData}
-            disabled={loading}
-            size="small"
-          >
-            <RefreshIcon />
-          </IconButton>
-        </Tooltip>
-        <Tooltip title="Sync with AWS">
-          <IconButton 
-            onClick={handleSync}
-            disabled={syncing}
-            size="small"
-            color="primary"
-          >
-            <SyncIcon />
-          </IconButton>
-        </Tooltip>
+        <Tabs 
+          value={tabValue} 
+          onChange={handleTabChange} 
+          aria-label="AWS visualization tabs"
+          sx={{
+            '& .MuiTab-root': {
+              py: 0.75, // Increased padding for taller buttons
+              px: 2,
+              m: 0, // No margin anywhere
+              minHeight: 40, // Increased height for taller buttons
+              lineHeight: 1.2 // Slightly increased line height
+            },
+            m: 0, // No margin
+            padding: 0, // No padding
+            minHeight: 40, // Increased height to match tabs
+            position: 'relative', // Ensure proper positioning
+            top: 0 // Align to the top
+          }}
+        >
+          <Tab label="Classic Visualization" id="aws-visualization-tab-0" />
+          <Tab label="Cloud Diagram" id="aws-visualization-tab-1" />
+        </Tabs>
+
+        {/* Action buttons */}
+        <Box sx={{ 
+          position: 'absolute', 
+          top: 2,
+          right: 16, 
+          display: 'flex',
+          gap: 1,
+          bgcolor: 'background.paper',
+          borderRadius: 1,
+          padding: 0.5,
+          boxShadow: 2
+        }}>
+          <Tooltip title="Refresh data">
+            <IconButton 
+              onClick={fetchData}
+              disabled={loading}
+              size="small"
+              sx={{ 
+                color: 'primary.main',
+                '&:hover': {
+                  bgcolor: 'rgba(25, 118, 210, 0.08)'
+                }
+              }}
+            >
+              <RefreshIcon />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Sync with AWS">
+            <IconButton 
+              onClick={handleSync}
+              disabled={syncing}
+              size="small"
+              color="primary"
+              sx={{ 
+                '&:hover': {
+                  bgcolor: 'rgba(25, 118, 210, 0.08)'
+                }
+              }}
+            >
+              <SyncIcon />
+            </IconButton>
+          </Tooltip>
+        </Box>
       </Box>
       
       {/* Status message */}
@@ -310,10 +400,10 @@ function Visualization() {
           severity="info" 
           sx={{ 
             position: 'absolute', 
-            top: 70, 
+            top: 48,
             right: 16, 
-            zIndex: 1000,
-            maxWidth: '300px'
+            maxWidth: '300px',
+            boxShadow: 2
           }}
         >
           {syncStatus}
@@ -327,7 +417,6 @@ function Visualization() {
           top: '50%', 
           left: '50%', 
           transform: 'translate(-50%, -50%)',
-          zIndex: 1001,
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
@@ -342,7 +431,24 @@ function Visualization() {
         </Box>
       )}
       
-      <AWSArchitectureVisualizer data={data} />
+      <Box sx={{ 
+        flexGrow: 1, 
+        position: 'relative', 
+        height: 'calc(100vh - 88px)', // Adjust for header (48px) + taller tab bar (40px)
+        overflow: 'hidden',
+        boxShadow: 'none',
+        border: 'none',
+        borderRadius: 0,
+        m: 0, // No margin
+        p: 0  // No padding
+      }}>
+        <TabPanel value={tabValue} index={0}>
+          <AWSArchitectureVisualizer data={data} />
+        </TabPanel>
+        <TabPanel value={tabValue} index={1}>
+          <CloudDiagramWithProvider awsData={data} />
+        </TabPanel>
+      </Box>
     </Box>
   );
 }

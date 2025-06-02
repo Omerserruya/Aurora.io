@@ -17,7 +17,8 @@ class MCPService {
   /**
    * Process a user query through the MCP service
    */
-  public async processQuery(prompt: string, userId: string, connectionId: string, options = {}): Promise<MCPResponse> {
+  public async processQuery(prompt: string, userId: string, connectionId: string, options = {},chatHistory: string[] = [] , imageData?: string, imageType?: string
+  ): Promise<MCPResponse> {
     // Log incoming request
     
     try {
@@ -26,11 +27,14 @@ class MCPService {
         prompt,
         userId,
         connectionId,
-        options
+        options,
+        chatHistory,
+        imageData,
+        imageType
       };
       
       const response = await axios.post(`${this.mcpServiceUrl}/api/mcp/query`, payload, {
-        timeout: 60000, // 60 second timeout for AI responses
+        timeout: 120000, // 120 second timeout for AI responses
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json'
