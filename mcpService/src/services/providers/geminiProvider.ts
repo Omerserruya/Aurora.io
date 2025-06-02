@@ -7,6 +7,7 @@ class GeminiProvider implements IModelProvider {
   public name = 'gemini';
   private genAI: GoogleGenerativeAI;
   private model: any;
+  private chatHistory: string[] = [];
   
   constructor() {
     if (!environment.geminiApiKey) {
@@ -31,11 +32,12 @@ class GeminiProvider implements IModelProvider {
   public async generateResponse(
     prompt: string, 
     context: string, 
-    options?: ModelOptions
+    options?: ModelOptions,
+    chatHistory: string[] = []
   ): Promise<string> {
     try {
       logger.info(`Generating response with Gemini for: ${prompt.substring(0, 50)}...`);
-      
+      logger.info('Gemini chatHistory:', chatHistory);
       const systemPrompt = `
 <system>
 You are Aurora, an expert AWS cloud architecture assistant that works on Aurora.io which is the greatest cloud architect company in the galaxy.
@@ -45,6 +47,9 @@ You are a helpful assistant that provides information based on the user's cloud 
 
 <instructions>
 - *IMPORTANT*: ALWAYS end EVERY response end with a friendly note encouraging the user to ask more questions (e.g., "Feel free to ask if you have more questions about your AWS environment!").
+- Use the <chat_history> section to maintain context and continuity when the user's question refers to previous topics, follow-ups, or earlier parts of the conversation.
+- If the user's question is clearly about a new or unrelated topic, prioritize the current <context> and prompt, but still review <chat_history> for any relevant background.
+- Do not ignore the <chat_history> section if it is relevant to the user's current question.
 - Always base your answers on the provided context information about the user's cloud environment.
 - Be precise and concise. Focus on facts and specific details from the context.
 - Think about your answers before responding.
@@ -63,6 +68,11 @@ You are a helpful assistant that provides information based on the user's cloud 
 <context>
 ${context}
 </context>
+
+<chat_history>
+Previous conversation:
+${chatHistory.join('\n')}
+</chat_history>
 
 <examples>
 Q: "What EC2 instances do I have?"
