@@ -219,7 +219,7 @@ MONGODB_URL = "mongodb://your_mongo_db"
 
 **Install dependencies**
 
-Before running the project, you must insttall all dependencies by the next command:
+Before running the project, you must install all dependencies by the next command:
 ```bash 
 npm install
 ```

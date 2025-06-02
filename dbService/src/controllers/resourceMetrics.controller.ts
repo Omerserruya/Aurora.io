@@ -129,7 +129,7 @@ export const getResourceDetails = async (req: Request, res: Response) => {
         // Group resources by VPC or other relevant grouping
         const groupedResources: { [key: string]: any[] } = {};
         
-        result.records.forEach(record => {
+        result.records.forEach((record: any) => {
             let resource: any = {};
             let groupKey = 'default';
 
