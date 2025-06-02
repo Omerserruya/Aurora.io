@@ -323,7 +323,7 @@ const handleSendMessage = async () => {
         connectionId: account._id,
         options: {
           temperature: 0.7,
-          maxTokens: 150
+          maxTokens: 2000
         },
         chatHistory,
         imageData: imageData || undefined,
@@ -346,7 +346,7 @@ const sendMessageHttp = async (messageText: string, chatHistory: string[]) => {
       account!._id,
       {
         temperature: 0.7,
-        maxTokens: 150
+        maxTokens: 2000
       },
       chatHistory, 
       imageData || undefined,   
