@@ -15,7 +15,7 @@ export const nodeTypes: NodeTypes = {
   vpc: VpcNode,
   subnet: SubnetNode,
   ec2: Ec2Node,
-  loadbalancer: LoadBalancerNode,
+  alb: LoadBalancerNode,
   internetgateway: InternetGatewayNode,
   s3bucket: S3BucketNode,
   internet: GlobalInternetNode

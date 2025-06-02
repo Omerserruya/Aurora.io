@@ -63,15 +63,11 @@ const GlobalInternetNode = ({ data }: NodeProps) => {
         }}
       />
 
+      {/* Single target handle for incoming connections */}
       <Handle
         type="target"
-        position={Position.Top}
-        style={{ background: '#00C9FF' }}
-      />
-      <Handle
-        type="source"
         position={Position.Bottom}
-        style={{ background: '#8C4FFF' }}
+        style={{ background: 'url(#techGradient)', width: '12px', height: '12px' }}
       />
     </Box>
   );
