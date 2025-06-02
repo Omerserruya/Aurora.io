@@ -16,7 +16,9 @@ export const mcpService = {
     userId: string,
     connectionId: string,
     options: QueryOptions = {},
-    chatHistory: string[]
+    chatHistory: string[] = [],
+    imageData?: string,
+    imageType?: string
   ): Promise<MCPResponse> => {
     try {
       const response = await axios.post(
@@ -24,7 +26,9 @@ export const mcpService = {
         {
           prompt,
           options,
-          chatHistory
+          chatHistory,
+          imageData,
+          imageType
         },
         {
           withCredentials: true,

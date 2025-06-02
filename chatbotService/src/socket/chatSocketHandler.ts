@@ -41,7 +41,7 @@ export default function setupSocketHandlers(io: Server) {
     
     // Handle chat messages
     socket.on('send_message', async (data: any) => {
-      const { prompt, userId, connectionId, options , chatHistory } = data;
+      const { prompt, userId, connectionId, options , chatHistory , imageData , imageType } = data;
       
       if (!prompt || !userId || !connectionId) {
         socket.emit('error', { 
@@ -68,7 +68,7 @@ export default function setupSocketHandlers(io: Server) {
       
       try {
         // Process the query through MCP service
-        const response = await mcpService.processQuery(prompt, userId, connectionId, options , chatHistory);
+        const response = await mcpService.processQuery(prompt, userId, connectionId, options , chatHistory , imageData, imageType);
         
         // Send response back to the specific room
         io.to(roomId).emit('receive_message', {
