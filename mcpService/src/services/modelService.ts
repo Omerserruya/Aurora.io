@@ -28,7 +28,6 @@ class ModelService {
     options: ModelOptions = {},
     chatHistory: string[] = []
   ): Promise<string> {
-    // We're only using Gemini in this implementation
     const providerName = 'gemini';
     
     const provider = this.providers.get(providerName);

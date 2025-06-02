@@ -33,12 +33,6 @@ export const mcpController = {
       
       if (context.error) {
         logger.warn(`[${requestId}] Context error: ${context.error}`);
-        // to check
-        // res.status(200).json({ 
-        //   response: context.error,
-        //   type: 'error'
-        // });
-        // return;
       }
       logger.log('Context:', context);
       // Generate response using Gemini
