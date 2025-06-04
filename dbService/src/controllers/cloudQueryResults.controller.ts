@@ -1,28 +1,14 @@
 import { Request, Response } from 'express';
 import neo4j, { Session } from 'neo4j-driver';
 import { Neo4jService } from '../services/neo4j.service';
+import { ConnectivityVerifier } from '../services/connectivityVerifier';
+import { CloudQueryResult } from '@/types/cloudQuery.types';
 
 // Add interface for authenticated request
 interface AuthenticatedRequest extends Request {
     user?: {
         id: string;
         [key: string]: any;
-    };
-}
-
-interface CloudQueryResult {
-    userId: string;
-    connectionId: string;
-    data: {
-        instances?: any[];
-        vpcs?: any[];
-        subnets?: any[];
-        security_groups?: any[];
-        s3_buckets?: any[];
-        route_tables?: any[];
-        internet_gateways?: any[];
-        network_acls?: any[];
-        load_balancers?: any[];
     };
 }
 
@@ -175,6 +161,9 @@ interface SimpleNode {
 interface SimpleConnection {
     source: string;
     target: string;
+    success?: boolean;
+    failureReason?: string;
+    type?: string;
 }
 
 interface SimpleInfrastructure {
@@ -552,7 +541,7 @@ export const processCloudQueryResults = async (req: Request, res: Response) => {
                                 entryId: `${acl.NetworkAclId}-${entry.RuleNumber}-${entry.Egress}`,
                                 userId,
                                 connectionId,
-                                direction: entry.Egress === "TRUE" ? "egress" : "ingress",
+                                direction: entry.Egress ? "egress" : "ingress",
                                 properties: {
                                     cidrBlock: entry.CidrBlock,
                                     protocol: entry.Protocol,
@@ -632,10 +621,86 @@ export const processCloudQueryResults = async (req: Request, res: Response) => {
             }
         }
 
+        // After all resources are created, verify connectivity
+        console.log('Starting connectivity verification with data:', JSON.stringify(data, null, 2));
+        const connectivityVerifier = new ConnectivityVerifier(data);
+        const connectivityChecks = await connectivityVerifier.verifyConnectivity();
+        console.log('Connectivity checks completed:', JSON.stringify(connectivityChecks, null, 2));
+
+        // Create CAN_CONNECT relationships based on verification results
+        for (const check of connectivityChecks) {
+            let sourceNodeType = '';
+            let targetNodeType = '';
+            let sourceIdProp = '';
+            let targetIdProp = '';
+
+            // Map resource types to Neo4j node types and ID properties
+            switch (check.sourceLabel) {
+                case 'EC2':
+                    sourceNodeType = 'Instance';
+                    sourceIdProp = 'instanceId';
+                    break;
+                case 'S3':
+                    sourceNodeType = 'Bucket';
+                    sourceIdProp = 'name';
+                    break;
+                case 'ALB':
+                    sourceNodeType = 'LoadBalancer';
+                    sourceIdProp = 'loadBalancerArn';
+                    break;
+                case 'IGW':
+                    sourceNodeType = 'InternetGateway';
+                    sourceIdProp = 'internetGatewayId';
+                    break;
+            }
+
+            switch (check.targetLabel) {
+                case 'EC2':
+                    targetNodeType = 'Instance';
+                    targetIdProp = 'instanceId';
+                    break;
+                case 'S3':
+                    targetNodeType = 'Bucket';
+                    targetIdProp = 'name';
+                    break;
+                case 'ALB':
+                    targetNodeType = 'LoadBalancer';
+                    targetIdProp = 'loadBalancerArn';
+                    break;
+                case 'IGW':
+                    targetNodeType = 'InternetGateway';
+                    targetIdProp = 'internetGatewayId';
+                    break;
+            }
+
+            // Create CAN_CONNECT relationship
+            await tx.run(
+                `MATCH (source:${sourceNodeType} {${sourceIdProp}: $sourceId, userId: $userId, connectionId: $connectionId})
+                 MATCH (target:${targetNodeType} {${targetIdProp}: $targetId, userId: $userId, connectionId: $connectionId})
+                 CREATE (source)-[r:CAN_CONNECT {
+                     success: $success,
+                     failureReason: coalesce($failureReason, ''),
+                     userId: $userId,
+                     connectionId: $connectionId
+                 }]->(target)`,
+                {
+                    sourceId: check.sourceId,
+                    targetId: check.targetId,
+                    success: check.success,
+                    failureReason: check.failureReason || '',
+                    userId,
+                    connectionId
+                }
+            );
+        }
+
         // Commit the transaction
         await tx.commit();
 
-        res.status(200).json({ message: 'Results processed successfully' });
+        res.status(200).json({ 
+            message: 'Results processed successfully',
+            connectivityChecks: connectivityChecks 
+        });
     } catch (error) {
         console.error('Error processing CloudQuery results:', error);
         res.status(500).json({ error: 'Failed to process results' });
@@ -1051,7 +1116,13 @@ export const getInfrastructureData = async (req: AuthenticatedRequest, res: Resp
                  OPTIONAL MATCH (igw)-[:CONNECTS_TO]->(g:GlobalInternet)
                  OPTIONAL MATCH (v)<-[:DEPLOYED_IN]-(lb:LoadBalancer)
                  OPTIONAL MATCH (b:Bucket {userId: $userId, connectionId: $connectionId})
-                 RETURN v, s, i, igw, g, lb, collect(DISTINCT b) as buckets`,
+                 OPTIONAL MATCH (source)-[r:CAN_CONNECT]->(target)
+                 WHERE (source:Instance OR source:LoadBalancer OR source:InternetGateway OR source:Bucket)
+                 AND (target:Instance OR target:LoadBalancer OR target:InternetGateway OR target:Bucket)
+                 AND source.userId = $userId AND source.connectionId = $connectionId
+                 AND target.userId = $userId AND target.connectionId = $connectionId
+                 RETURN v, s, i, igw, g, lb, collect(DISTINCT b) as buckets, 
+                        collect(DISTINCT {source: source, target: target, success: r.success, failureReason: r.failureReason}) as connections`,
                 { userId, connectionId }
             )
         );
@@ -1208,6 +1279,41 @@ export const getInfrastructureData = async (req: AuthenticatedRequest, res: Resp
                             }
                         });
                         processedIds.add(bucket.properties.name);
+                    }
+                });
+            }
+
+            // Process CAN_CONNECT relationships
+            const canConnectRelationships = record.get('connections');
+            console.log('Found CAN_CONNECT relationships:', JSON.stringify(canConnectRelationships, null, 2));
+            if (canConnectRelationships && canConnectRelationships.length > 0) {
+                canConnectRelationships.forEach((conn: any) => {
+                    if (conn && conn.source && conn.target) {
+                        console.log('Processing connection:', {
+                            source: conn.source,
+                            target: conn.target,
+                            success: conn.success,
+                            failureReason: conn.failureReason
+                        });
+                        const sourceId = conn.source.properties.instanceId || 
+                                       conn.source.properties.loadBalancerArn || 
+                                       conn.source.properties.internetGatewayId ||
+                                       conn.source.properties.name;
+                        const targetId = conn.target.properties.instanceId || 
+                                       conn.target.properties.loadBalancerArn || 
+                                       conn.target.properties.internetGatewayId ||
+                                       conn.target.properties.name;
+                        
+                        console.log('Extracted IDs:', { sourceId, targetId });
+                        if (sourceId && targetId) {
+                            connections.push({
+                                source: sourceId,
+                                target: targetId,
+                                success: conn.success,
+                                failureReason: conn.failureReason,
+                                type: 'CAN_CONNECT'
+                            });
+                        }
                     }
                 });
             }
