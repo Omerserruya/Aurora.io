@@ -504,4 +504,55 @@ usersRoute.get('/findByGithubId/:githubId', userController.findUserByGithubId);
  */
 usersRoute.get('/findByGoogleId/:googleId', userController.findUserByGoogleId);
 
+/**
+ * @swagger
+ * /users/reset-password:
+ *   post:
+ *     summary: Reset user password
+ *     description: Allows an authenticated user to reset their password by providing their current password and a new password
+ *     tags: [Users]
+ *     security:
+ *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - currentPassword
+ *               - newPassword
+ *             properties:
+ *               currentPassword:
+ *                 type: string
+ *                 description: The user's current password
+ *               newPassword:
+ *                 type: string
+ *                 minLength: 8
+ *                 description: The new password (must be at least 8 characters)
+ *             example:
+ *               currentPassword: "oldPassword123"
+ *               newPassword: "newPassword456"
+ *     responses:
+ *       200:
+ *         description: Password updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Password updated successfully"
+ *       400:
+ *         description: Bad request - missing fields or invalid password
+ *       401:
+ *         description: Unauthorized - invalid current password or not authenticated
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Server error
+ */
+usersRoute.post('/reset-password', authentification, userController.resetPassword);
+
 export default usersRoute;

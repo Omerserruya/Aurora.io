@@ -68,7 +68,7 @@ export default function EditUser() {
   };
 
   const createUser = async (userData: Partial<User>): Promise<User> => {
-    const response = await fetch('/api/users/', {
+    const response = await fetch('/api/users/add', {
       method: 'POST',
       credentials: 'include',
       headers: {
@@ -385,47 +385,25 @@ export default function EditUser() {
             </Grid>
 
             <Grid item xs={12} md={6}>
-              {isCreateMode ? (
-                <FormControl fullWidth>
-                  <InputLabel id="auth-provider-label">Auth Provider</InputLabel>
-                  <TextField
-                    fullWidth
-                    name="authProvider"
-                    value={user.authProvider}
-                    label="Auth Provider"
-                    disabled
-                  >
-                  </TextField>
-                </FormControl>
-              ) : (
-                  <TextField
-                    fullWidth
-                    name="authProvider"
-                    value={user.authProvider}
-                    label="Auth Provider"
-                    disabled
-                  >
-                  </TextField>
-              )}
+              <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, mt: 4 }}>
+                <Button 
+                  variant="outlined" 
+                  onClick={() => navigate('/admin/users')}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit" 
+                  variant="contained" 
+                  disabled={saving}
+                  startIcon={saving ? <CircularProgress size={20} /> : null}
+                >
+                  {saving ? (isCreateMode ? 'Creating...' : 'Saving...') : (isCreateMode ? 'Create User' : 'Save Changes')}
+                </Button>
+              </Box>
             </Grid>
           </Grid>
-          
-          <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, mt: 4 }}>
-            <Button 
-              variant="outlined" 
-              onClick={() => navigate('/admin/users')}
-            >
-              Cancel
-            </Button>
-            <Button 
-              type="submit" 
-              variant="contained" 
-              disabled={saving}
-              startIcon={saving ? <CircularProgress size={20} /> : null}
-            >
-              {saving ? (isCreateMode ? 'Creating...' : 'Saving...') : (isCreateMode ? 'Create User' : 'Save Changes')}
-            </Button>
-          </Box>
+
         </form>
       </Box>
       

@@ -512,6 +512,95 @@ export const findUserByGoogleId = async (req: Request, res: Response) => {
   }
 };
 
+// Reset password for authenticated user
+const resetPassword = async (req: Request, res: Response) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    
+    // Debug logging
+    console.log('Reset password request received');
+    console.log('User ID from params:', req.params.userId);
+    console.log('Has currentPassword:', !!currentPassword);
+    console.log('Has newPassword:', !!newPassword);
+    
+    // Basic validation
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ 
+        message: 'Current password and new password are required' 
+      });
+    }
+    
+    // Validate new password length
+    if (newPassword.length < 8) {
+      return res.status(400).json({ 
+        message: 'New password must be at least 8 characters long' 
+      });
+    }
+    
+    // Get user ID from the authenticated request (set by auth middleware)
+    const userId = req.params.userId;
+    
+    if (!userId) {
+      console.log('No userId found in request params');
+      return res.status(401).json({ message: 'User not authenticated' });
+    }
+    
+    // Find the user and include the password field
+    const user = await userModel.findById(userId).select('+password');
+    if (!user) {
+      console.log('User not found with ID:', userId);
+      return res.status(404).json({ message: 'User not found' });
+    }
+    
+    console.log('User found:', user.email);
+    console.log('User has password:', !!user.password);
+    
+    // Check if user has a password (might be OAuth-only user)
+    if (!user.password) {
+      return res.status(400).json({ 
+        message: 'Cannot reset password for OAuth-only accounts' 
+      });
+    }
+    
+    // Verify current password
+    const isCurrentPasswordValid = await bcrypt.compare(currentPassword, user.password);
+    console.log('Current password valid:', isCurrentPasswordValid);
+    
+    if (!isCurrentPasswordValid) {
+      return res.status(401).json({ 
+        message: 'Current password is incorrect' 
+      });
+    }
+    
+    // Hash the new password
+    const saltRounds = 10;
+    const hashedNewPassword = await bcrypt.hash(newPassword, saltRounds);
+    
+    // Update user's password
+    const updatedUser = await userModel.findByIdAndUpdate(
+      userId,
+      { password: hashedNewPassword },
+      { new: true }
+    );
+    
+    if (!updatedUser) {
+      return res.status(500).json({ message: 'Failed to update password' });
+    }
+    
+    console.log('Password updated successfully for user:', user.email);
+    return res.status(200).json({ 
+      message: 'Password updated successfully' 
+    });
+    
+  } catch (error: any) {
+    console.error('Error in resetPassword:', error);
+    return res.status(500).json({ 
+      message: 'Error updating password', 
+      error: error.message 
+    });
+  }
+};
+
 export default { 
   addUser, 
   getUsers, 
@@ -527,5 +616,6 @@ export default {
   addUserToken,
   removeUserToken,
   verifyUserToken,
-  updateUserToken
+  updateUserToken,
+  resetPassword
 };
