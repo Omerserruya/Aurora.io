@@ -123,7 +123,8 @@ passport.use(
               const newUser = {
                 githubId: profile.id,
                 username: profile.username || profile.displayName || 'github_user',
-                email: primaryEmail
+                email: primaryEmail,
+                authProvider: 'github' as const
               };
               console.log('New user data:', newUser);
               
@@ -216,7 +217,8 @@ passport.use(
               const newUser = {
                 googleId: profile.id,
                 username: profile.name?.givenName || profile.displayName || 'google_user',
-                email: email
+                email: email,
+                authProvider: 'google' as const
               };
               console.log('New user data:', newUser);
               

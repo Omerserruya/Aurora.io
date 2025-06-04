@@ -203,6 +203,7 @@ const loginExternal = async (req: Request, res: Response, next: NextFunction) =>
         }
 
         // Determine auth provider based on OAuth source
+        console.log('user', user);
         const authProvider = user.googleId ? 'google' : 'github';
 
         // Update last login and auth provider

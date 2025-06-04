@@ -14,6 +14,7 @@ import {
   IconButton,
   Divider,
   Card,
+  useTheme,
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import PersonAddOutlinedIcon from '@mui/icons-material/PersonAddOutlined';
@@ -41,6 +42,7 @@ const StyledCard = styled(Card)(({ theme }: { theme: Theme }) => ({
 
 const Register = () => {
   const navigate = useNavigate();
+  const theme = useTheme();
   const [formData, setFormData] = useState<RegisterFormData>({
     username: '',
     email: '',
@@ -54,6 +56,10 @@ const Register = () => {
     message: '',
     severity: 'error' as 'error' | 'success',
   });
+
+  const logoPath = theme.palette.mode === 'dark' 
+    ? '/aurora-dark.png'
+    : '/aurora-light.png';
 
   const validateForm = () => {
     const newErrors: Partial<RegisterFormData> = {};
@@ -143,17 +149,24 @@ const Register = () => {
                 mb: 3,
               }}
             >
-              <IconButton
-                sx={{
-                  bgcolor: 'primary.main',
-                  color: 'white',
-                  '&:hover': { bgcolor: 'primary.dark' },
-                  mb: 2,
-                }}
-                size="large"
-              >
-                <PersonAddOutlinedIcon />
-              </IconButton>
+              {/* Aurora Logo */}
+              <Box sx={{ 
+                display: 'flex', 
+                justifyContent: 'center', 
+                alignItems: 'center',
+                mb: 3
+              }}>
+                <img 
+                  src={logoPath}
+                  alt="Aurora Logo" 
+                  style={{ 
+                    width: '160px', 
+                    height: 'auto',
+                    display: 'block'
+                  }} 
+                />
+              </Box>
+
               <Typography component="h1" variant="h5" fontWeight="bold">
                 Create Account
               </Typography>
