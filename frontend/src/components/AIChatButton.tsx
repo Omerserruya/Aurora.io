@@ -112,7 +112,8 @@ interface Message {
   isUser: boolean;
   error?: string;
   imageData?: string;   
-  imageType?: string;   
+  imageType?: string;
+  isDirectMessage?: boolean;
 }
 
 interface AIChatButtonProps {
@@ -222,15 +223,21 @@ const AIChatButton: React.FC<AIChatButtonProps> = ({ isInline = false, isOpen: p
 
   useEffect(() => {
     const handler = (event: CustomEvent) => {
-      if (chatIsOpen) {
-        setChatIsOpen(false);
-      } else {
-        setChatIsOpen(true);
-        if (event.detail && event.detail.message) {
-          setInputMessage(`Your analysis gave me this recommendation: ${event.detail.message}\nPlease instruct me how to fix that. Thank you!`);
+      if (event.detail && event.detail.message) {
+        if (event.detail.isDirectMessage) {
+          if (event.detail.shouldOpen && !chatIsOpen) {
+            setChatIsOpen(true);
+            if (onToggle) onToggle();
+          }
+          handleDirectMessage(event.detail.message);
+        } else {
+          if (!chatIsOpen) {
+            setChatIsOpen(true);
+            setInputMessage(`Your analysis gave me this recommendation: ${event.detail.message}\nPlease instruct me how to fix that. Thank you!`);
+            if (onToggle) onToggle();
+          }
         }
       }
-      if (onToggle) onToggle();
     };
     window.addEventListener('open-ai-chat', handler as EventListener);
     return () => window.removeEventListener('open-ai-chat', handler as EventListener);
@@ -365,6 +372,47 @@ const sendMessageHttp = async (messageText: string, chatHistory: string[]) => {
   }
 };
 
+const handleDirectMessage = async (messageText: string) => {
+  if (!user || !account) return;
+
+  setIsLoading(true);
+  const userMessage: Message = {
+    text: messageText,
+    isUser: true,
+    isDirectMessage: true
+  };
+
+  // Ensure chat is open
+  if (!chatIsOpen) {
+    setChatIsOpen(true);
+    if (onToggle) onToggle();
+  }
+
+  // First update messages
+  setMessages(prev => [...prev, userMessage]);
+
+  // Then create chat history and send message
+  const updatedMessages = [...messages, userMessage];
+  const chatHistory = updatedMessages.map(
+    (m, i) => `${i + 1}. ${m.isUser ? 'User' : 'Aurora'}: ${m.text}`
+  );
+
+  if (socketConnected) {
+    socketService.sendMessage({
+      prompt: messageText,
+      userId: user._id,
+      connectionId: account._id,
+      options: {
+        temperature: 0.7,
+        maxTokens: 2000
+      },
+      chatHistory
+    });
+  } else {
+    sendMessageHttp(messageText, chatHistory);
+  }
+};
+
   const getTooltipTitle = () => {
     if (!user) {
       return 'Please sign in to use the Cloud Architecture Assistant';
@@ -431,20 +479,20 @@ const sendMessageHttp = async (messageText: string, chatHistory: string[]) => {
                   }}
                 >
                   {message.isUser ? (
-  <Box>
-    <Typography variant="body2">
-      {message.text}
-    </Typography>
-    {message.imageData && message.imageType && (
-      <Box sx={{ mt: 1 }}>
-        <img
-          src={`data:${message.imageType};base64,${message.imageData}`}
-          alt="uploaded"
-          style={{ maxWidth: 200, maxHeight: 200, borderRadius: 8 }}
-        />
-      </Box>
-    )}
-  </Box>
+                    <Box>
+                      <Typography variant="body2">
+                        {message.isDirectMessage ? 'Analyzing your infrastructure issue...' : message.text}
+                      </Typography>
+                      {message.imageData && message.imageType && (
+                        <Box sx={{ mt: 1 }}>
+                          <img
+                            src={`data:${message.imageType};base64,${message.imageData}`}
+                            alt="uploaded"
+                            style={{ maxWidth: 200, maxHeight: 200, borderRadius: 8 }}
+                          />
+                        </Box>
+                      )}
+                    </Box>
                   ) : (
                     <Box>
                       <ReactMarkdown
