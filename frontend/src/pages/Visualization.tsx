@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback, useEffect, useMemo } from "react"
+import { useState, useCallback, useEffect, useMemo, useRef } from "react"
 import ReactFlow, { 
   type Node,
   type Edge,
@@ -16,7 +16,7 @@ import ELK from "elkjs/lib/elk.bundled.js"
 import "reactflow/dist/style.css"
 import { useReduxAccount } from "../hooks/useReduxAccount"
 import React from "react"
-import { Box, Typography, IconButton, Table, TableBody, TableCell, TableRow, Paper, Chip, Tooltip, CircularProgress, Snackbar, Alert } from '@mui/material';
+import { Box, Typography, IconButton, Table, TableBody, TableCell, TableRow, Paper, Chip, Tooltip, CircularProgress, Snackbar, Alert, FormGroup, FormControlLabel, Switch, Button, Menu, MenuItem, Stack, Divider } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import StorageIcon from '@mui/icons-material/Storage';
 import CloudIcon from '@mui/icons-material/Cloud';
@@ -29,6 +29,9 @@ import ComputerIcon from '@mui/icons-material/Computer';
 import AccountTreeIcon from '@mui/icons-material/AccountTree';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import SyncIcon from '@mui/icons-material/Sync';
+import FilterListIcon from '@mui/icons-material/FilterList';
+import SaveAltIcon from '@mui/icons-material/SaveAlt';
+import { toPng } from 'html-to-image';
 
 // Import custom AWS nodes
 import { nodeTypes } from '../components/aws/custom_nodes'
@@ -445,7 +448,12 @@ const convertELKToReactFlow = (elkGraph: ELKGraph) => {
           target,
           type: "smoothstep",
           animated: false,
-          style: { stroke: edgeColor, strokeWidth: 2 },
+          style: { 
+            stroke: edgeColor, 
+            strokeWidth: 2,
+            zIndex: 1000 // Ensure edges are above nodes
+          },
+          zIndex: 1000 // Add zIndex to the edge itself
         })
       })
     })
@@ -492,6 +500,10 @@ const TYPE_ICON_COLOR: Record<string, { icon: React.ReactNode, color: 'primary' 
   internet: { icon: <PublicIcon />, color: 'default' },
   // ...add more as needed
 };
+
+const PANEL_MARGIN = 16;
+const PANEL_WIDTH = 220; // approximate width of the panel
+const PANEL_HEIGHT = 56; // approximate height of the panel (adjust as needed)
 
 // Material UI-based side panel for node details
 const NodeDetailsPanel = ({ node, onClose }: { node: Node | null, onClose: () => void }) => {
@@ -564,6 +576,171 @@ const NodeDetailsPanel = ({ node, onClose }: { node: Node | null, onClose: () =>
   );
 }
 
+// Add ControlPanel component
+const ControlPanel: React.FC<{ 
+  onToggleEdges: () => void;
+  showEdges: boolean;
+  onToggleNodeType: (type: string) => void;
+  highlightedTypes: Set<string>;
+  onSaveImage: () => void;
+  position?: { top?: number; left?: number; right?: number; bottom?: number };
+  onDrag?: (pos: { top?: number; left?: number; right?: number; bottom?: number }) => void;
+}> = ({ 
+  onToggleEdges, 
+  showEdges, 
+  onToggleNodeType, 
+  highlightedTypes,
+  onSaveImage,
+  position = { top: PANEL_MARGIN, right: PANEL_MARGIN },
+  onDrag
+}) => {
+  const [showChips, setShowChips] = useState(true);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const dragData = useRef<{ offsetX: number; offsetY: number; dragging: boolean }>({ offsetX: 0, offsetY: 0, dragging: false });
+
+  // Drag handlers
+  const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (panelRef.current) {
+      dragData.current.dragging = true;
+      const rect = panelRef.current.getBoundingClientRect();
+      dragData.current.offsetX = e.clientX - rect.left;
+      dragData.current.offsetY = e.clientY - rect.top;
+      document.body.style.userSelect = 'none';
+    }
+  };
+
+  const handleMouseMove = (e: MouseEvent) => {
+    if (!dragData.current.dragging || !panelRef.current) return;
+    const parent = panelRef.current.parentElement;
+    if (!parent) return;
+    const parentRect = parent.getBoundingClientRect();
+    let x = e.clientX - parentRect.left - dragData.current.offsetX;
+    let y = e.clientY - parentRect.top - dragData.current.offsetY;
+    // Clamp to parent bounds with margin
+    x = Math.max(PANEL_MARGIN, Math.min(x, parentRect.width - PANEL_WIDTH - PANEL_MARGIN));
+    y = Math.max(PANEL_MARGIN, Math.min(y, parentRect.height - PANEL_HEIGHT - PANEL_MARGIN));
+    if (onDrag) {
+      onDrag({ top: y, left: x });
+    }
+  };
+
+  const handleMouseUp = () => {
+    dragData.current.dragging = false;
+    document.body.style.userSelect = '';
+  };
+
+  useEffect(() => {
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  });
+
+  return (
+    <Box
+      ref={panelRef}
+      sx={{
+        position: 'absolute',
+        zIndex: 3000,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 1,
+        bgcolor: 'background.paper',
+        borderRadius: 2,
+        padding: 2,
+        boxShadow: 2,
+        cursor: 'move',
+        width: PANEL_WIDTH,
+        minWidth: 220,
+        ...position,
+      }}
+      onMouseDown={handleMouseDown}
+    >
+      <Box sx={{ display: 'flex', alignItems: 'center', position: 'relative', minHeight: 40 }}>
+        <Tooltip title="Toggle Edges">
+          <FormControlLabel
+            control={
+              <Switch
+                checked={showEdges}
+                onChange={onToggleEdges}
+                size="small"
+              />
+            }
+            label="Edges"
+          />
+        </Tooltip>
+        <Divider orientation="vertical" flexItem sx={{ mx: 1 }} />
+        <Box sx={{ position: 'absolute', right: 0, top: 0 }}>
+          <Tooltip title="Save as Image">
+            <IconButton onClick={onSaveImage} size="small">
+              <SaveAltIcon />
+            </IconButton>
+          </Tooltip>
+        </Box>
+      </Box>
+      <Box>
+        <FormControlLabel
+          control={
+            <Switch
+              checked={showChips}
+              onChange={() => setShowChips(v => !v)}
+              size="small"
+            />
+          }
+          label="Node Type"
+        />
+      </Box>
+      <Divider sx={{ my: 1 }} />
+      {showChips && (
+        <Box
+          sx={{
+            borderRadius: 2,
+            minHeight: 48,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'flex-start',
+          }}
+        >
+          <Stack
+            direction="row"
+            spacing={1}
+            flexWrap="wrap"
+            justifyContent="flex-start"
+            sx={{  rowGap: 1, bgcolor: 'transparent' }}
+          >
+            {Object.entries(TYPE_ICON_COLOR)
+              .sort(([a], [b]) => a.localeCompare(b))
+              .map(([type, { icon, color }]) => (
+                <Chip
+                  key={type}
+                  icon={icon as React.ReactElement}
+                  label={type}
+                  color={highlightedTypes.has(type) ? color : 'default'}
+                  variant={highlightedTypes.has(type) ? 'filled' : 'outlined'}
+                  size="small"
+                  onClick={() => onToggleNodeType(type)}
+                  onDelete={highlightedTypes.has(type) ? () => onToggleNodeType(type) : undefined}
+                  sx={{
+                    fontWeight: 600,
+                    fontSize: 11,
+                    cursor: 'pointer',
+                    opacity: highlightedTypes.has(type) ? 1 : 0.5,
+                    height: 24,
+                    minHeight: 24,
+                    p: 0,
+                    minWidth: 70,
+                  }}
+                />
+              ))}
+          </Stack>
+        </Box>
+      )}
+    </Box>
+  );
+};
+
 // Main Graph Component
 const InfrastructureGraph = () => {
   const [nodes, setNodes, onNodesChange] = useNodesState([])
@@ -574,8 +751,12 @@ const InfrastructureGraph = () => {
   const [isSyncing, setIsSyncing] = useState(false)
   const [syncStatus, setSyncStatus] = useState<string | null>(null)
   const { layoutGraph } = useELKLayout()
-  const { fitView } = useReactFlow()
+  const { fitView, getNodes, getEdges, getViewport } = useReactFlow()
   const { account } = useReduxAccount();
+  const reactFlowWrapper = useRef<HTMLDivElement>(null);
+  const [showEdges, setShowEdges] = useState(true);
+  const [highlightedTypes, setHighlightedTypes] = useState<Set<string>>(new Set());
+  const [panelPosition, setPanelPosition] = useState<{ top?: number; left?: number; right?: number; bottom?: number }>({ top: PANEL_MARGIN, right: PANEL_MARGIN });
 
   // Function to handle fit view with consistent settings
   const handleFitView = useCallback(() => {
@@ -698,6 +879,53 @@ const InfrastructureGraph = () => {
     setSelectedNode(node)
   }, [])
 
+  // Add handlers for control panel
+  const handleToggleEdges = useCallback(() => {
+    setShowEdges(prev => !prev);
+  }, []);
+
+  const handleToggleNodeType = useCallback((type: string) => {
+    setHighlightedTypes(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(type)) {
+        newSet.delete(type);
+      } else {
+        newSet.add(type);
+      }
+      return newSet;
+    });
+  }, []);
+
+  const handleSaveImage = useCallback(() => {
+    const container = document.querySelector('.react-flow');
+    if (!container) return;
+    toPng(container as HTMLElement, { backgroundColor: '#fff' })
+      .then((dataUrl) => {
+        const link = document.createElement('a');
+        link.download = 'infrastructure-graph.png';
+        link.href = dataUrl;
+        link.click();
+      })
+      .catch((err) => {
+        console.error('Error exporting image:', err);
+      });
+  }, []);
+
+  // Modify the nodes and edges based on visibility and highlighting
+  const visibleEdges = useMemo(() => {
+    return showEdges ? edges : [];
+  }, [edges, showEdges]);
+
+  const filteredNodes = useMemo(() => {
+    return nodes.map(node => ({
+      ...node,
+      style: {
+        ...node.style,
+        opacity: highlightedTypes.size === 0 || highlightedTypes.has(node.type as string) ? 1 : 0.3,
+      },
+    }));
+  }, [nodes, highlightedTypes]);
+
   // Show a message if no account is selected
   if (!account?._id) {
     return (
@@ -719,7 +947,7 @@ const InfrastructureGraph = () => {
       <div style={{ 
         flex: 1,
         position: 'relative'
-      }}>
+      }} ref={reactFlowWrapper}>
         {/* Soft/Hard Refresh Buttons */}
         <Box sx={{
           position: 'absolute',
@@ -759,9 +987,21 @@ const InfrastructureGraph = () => {
             </span>
           </Tooltip>
         </Box>
+
+        {/* Add Control Panel */}
+        <ControlPanel
+          onToggleEdges={handleToggleEdges}
+          showEdges={showEdges}
+          onToggleNodeType={handleToggleNodeType}
+          highlightedTypes={highlightedTypes}
+          onSaveImage={handleSaveImage}
+          position={panelPosition}
+          onDrag={setPanelPosition}
+        />
+
         <ReactFlow
-          nodes={nodes}
-          edges={edges}
+          nodes={filteredNodes}
+          edges={visibleEdges}
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
           nodeTypes={nodeTypes}
@@ -808,8 +1048,8 @@ const InfrastructureGraph = () => {
         </Alert>
       </Snackbar>
     </div>
-  )
-}
+  );
+};
 
 // Main Component with Provider
 export default function Visualization() {
