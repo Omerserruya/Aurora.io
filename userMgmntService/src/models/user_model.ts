@@ -12,6 +12,7 @@ export interface IUser extends Document {
   role?: string;
   authProvider: 'google' | 'github' | 'local';
   lastLogin: Date;
+  firstTimeLogin?: boolean;
   createdAt?: Date;
   updatedAt?: Date;
   tokens?: string[];
@@ -49,6 +50,14 @@ const userSchema: Schema<IUser> = new mongoose.Schema({
   lastLogin: {
     type: Date,
     default: Date.now
+  },
+  firstTimeLogin: {
+    type: Boolean,
+    default: function(this: IUser) {
+      // Only set to true for local auth provider users
+      return this.authProvider === 'local';
+    },
+    required: false
   },
   avatarUrl: {
     type: String,

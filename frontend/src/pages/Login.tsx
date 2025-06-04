@@ -13,6 +13,7 @@ import {
   CardContent,
   Divider,
   IconButton,
+  useTheme,
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import GoogleIcon from '@mui/icons-material/Google';
@@ -61,6 +62,7 @@ const StyledTextField = styled(TextField)(({ theme }: { theme: Theme }) => ({
 
 const Login = () => {
   const navigate = useNavigate();
+  const theme = useTheme();
   const { setUser, refreshUserDetails } = useUser();
   const [formData, setFormData] = useState<LoginFormData>({
     email: '',
@@ -73,6 +75,10 @@ const Login = () => {
     message: '',
     severity: 'error' as 'error' | 'success',
   });
+
+  const logoPath = theme.palette.mode === 'dark' 
+    ? '/aurora-dark.png'
+    : '/aurora-light.png';
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -204,17 +210,24 @@ const Login = () => {
                 mb: 3,
               }}
             >
-              <IconButton
-                sx={{
-                  bgcolor: 'primary.main',
-                  color: 'white',
-                  '&:hover': { bgcolor: 'primary.dark' },
-                  mb: 2,
-                }}
-                size="large"
-              >
-                <LockOutlinedIcon />
-              </IconButton>
+              {/* Aurora Logo */}
+              <Box sx={{ 
+                display: 'flex', 
+                justifyContent: 'center', 
+                alignItems: 'center',
+                mb: 3
+              }}>
+                <img 
+                  src={logoPath}
+                  alt="Aurora Logo" 
+                  style={{ 
+                    width: '160px', 
+                    height: 'auto',
+                    display: 'block'
+                  }} 
+                />
+              </Box>
+
               <Typography component="h1" variant="h5" fontWeight="bold">
                 Welcome Back
               </Typography>

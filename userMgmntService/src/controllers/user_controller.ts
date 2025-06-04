@@ -111,6 +111,11 @@ export const addUser = async (req: Request, res: Response): Promise<void> => {
       userData.role = role;
     }
 
+    // Set firstTimeLogin to true for local auth provider users
+    if (!googleId && !githubId && password) {
+      userData.firstTimeLogin = true;
+    }
+
     // Create and save new user
     const newUser = new userModel(userData);
     const savedUser = await newUser.save();
@@ -579,7 +584,10 @@ const resetPassword = async (req: Request, res: Response) => {
     // Update user's password
     const updatedUser = await userModel.findByIdAndUpdate(
       userId,
-      { password: hashedNewPassword },
+      { 
+        password: hashedNewPassword,
+        firstTimeLogin: false // User has now changed their default password
+      },
       { new: true }
     );
     
@@ -601,6 +609,45 @@ const resetPassword = async (req: Request, res: Response) => {
   }
 };
 
+// Get current user profile - for authenticated users
+const getUserProfile = async (req: Request, res: Response) => {
+  try {
+    // Get user ID from the authenticated request (set by auth middleware)
+    const userId = (req as any).authenticatedUserId || req.params.userId;
+    
+    console.log('getUserProfile - userId from auth:', userId);
+    console.log('getUserProfile - req.params:', req.params);
+    
+    if (!userId) {
+      console.log('No userId found in request');
+      return res.status(401).json({ message: 'User not authenticated' });
+    }
+    
+    // Find the user and include firstTimeLogin field
+    const user = await userModel.findById(userId).select('-password -tokens');
+    
+    if (!user) {
+      console.log('User not found with ID:', userId);
+      return res.status(404).json({ message: 'User not found' });
+    }
+    
+    console.log('User profile found:', { 
+      id: user._id, 
+      email: user.email, 
+      authProvider: user.authProvider, 
+      firstTimeLogin: user.firstTimeLogin 
+    });
+    
+    return res.status(200).json(user);
+  } catch (error: any) {
+    console.error('Error in getUserProfile:', error);
+    return res.status(500).json({ 
+      message: 'Error fetching user profile', 
+      error: error.message 
+    });
+  }
+};
+
 export default { 
   addUser, 
   getUsers, 
@@ -617,5 +664,6 @@ export default {
   removeUserToken,
   verifyUserToken,
   updateUserToken,
-  resetPassword
+  resetPassword,
+  getUserProfile
 };

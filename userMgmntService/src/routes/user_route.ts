@@ -555,4 +555,29 @@ usersRoute.get('/findByGoogleId/:googleId', userController.findUserByGoogleId);
  */
 usersRoute.post('/reset-password', authentification, userController.resetPassword);
 
+/**
+ * @swagger
+ * /users/profile/me:
+ *   get:
+ *     summary: Get current user profile
+ *     description: Get the authenticated user's profile information including firstTimeLogin status
+ *     tags: [Users]
+ *     security:
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: User profile retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/User'
+ *       401:
+ *         description: Unauthorized - user not authenticated
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Server error
+ */
+usersRoute.get('/profile/me', authentification, userController.getUserProfile);
+
 export default usersRoute;

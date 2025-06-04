@@ -20,7 +20,6 @@ import {
   Autocomplete
 } from '@mui/material';
 import LockResetIcon from '@mui/icons-material/LockReset';
-import NavigateNextIcon from '@mui/icons-material/NavigateNext';
 
 // User type definition
 interface User {
@@ -30,13 +29,18 @@ interface User {
   authProvider: 'google' | 'github' | 'local';
   lastLogin: string;
   username: string;
+  password?: string;
+  firstTimeLogin?: boolean;
 }
 
 interface FormErrors {
   email?: string;
   role?: string;
   username?: string;
+  password?: string;
 }
+
+const DEFAULT_FIRST_TIME_LOGIN_PASSWORD = 'Aa123456'; // Default password for new users
 
 export default function EditUser() {
   const { userId } = useParams<{ userId: string }>();
@@ -68,13 +72,22 @@ export default function EditUser() {
   };
 
   const createUser = async (userData: Partial<User>): Promise<User> => {
+    // Prepare user data for creation
+    const createData = {
+      username: userData.username,
+      email: userData.email,
+      role: userData.role,
+      password: userData.password,
+      authProvider: userData.authProvider || 'local'
+    };
+
     const response = await fetch('/api/users/add', {
       method: 'POST',
       credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(userData),
+      body: JSON.stringify(createData),
     });
 
     if (!response.ok) {
@@ -85,13 +98,21 @@ export default function EditUser() {
   };
 
   const updateUser = async (id: string, userData: Partial<User>): Promise<User> => {
+    // Prepare user data for update (exclude password field for existing users)
+    const updateData = {
+      username: userData.username,
+      email: userData.email,
+      role: userData.role,
+      authProvider: userData.authProvider
+    };
+
     const response = await fetch(`/api/users/${id}`, {
       method: 'PUT',
       credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(userData),
+      body: JSON.stringify(updateData),
     });
 
     if (!response.ok) {
@@ -118,7 +139,7 @@ export default function EditUser() {
   useEffect(() => {
     const loadUser = async () => {
       if (!userId) {
-        // Create mode - initialize empty user
+        // Create mode - initialize empty user with default password
         setUser({
           _id: '',
           username: '',
@@ -126,6 +147,8 @@ export default function EditUser() {
           role: 'user',
           authProvider: 'local',
           lastLogin: '',
+          password: DEFAULT_FIRST_TIME_LOGIN_PASSWORD,
+          firstTimeLogin: true
         });
         setLoading(false);
         return;
@@ -196,6 +219,15 @@ export default function EditUser() {
     
     if (!user?.role?.trim()) {
       newErrors.role = 'Role is required';
+    }
+    
+    // Only validate password for create mode
+    if (isCreateMode) {
+      if (!user?.password?.trim()) {
+        newErrors.password = 'Password is required';
+      } else if (user.password.length < 6) {
+        newErrors.password = 'Password must be at least 6 characters long';
+      }
     }
     
     setErrors(newErrors);
@@ -384,26 +416,49 @@ export default function EditUser() {
               </FormControl>
             </Grid>
 
-            <Grid item xs={12} md={6}>
-              <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, mt: 4 }}>
-                <Button 
-                  variant="outlined" 
-                  onClick={() => navigate('/admin/users')}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="submit" 
-                  variant="contained" 
-                  disabled={saving}
-                  startIcon={saving ? <CircularProgress size={20} /> : null}
-                >
-                  {saving ? (isCreateMode ? 'Creating...' : 'Saving...') : (isCreateMode ? 'Create User' : 'Save Changes')}
-                </Button>
-              </Box>
-            </Grid>
+            {/* Only show password field in create mode */}
+            {isCreateMode && (
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  label="Default Password"
+                  name="password"
+                  type="text"
+                  value={user.password || 'Aa123456'}
+                  onChange={handleInputChange}
+                  error={!!errors.password}
+                  helperText={errors.password || 'Default password for the new user'}
+                  required
+                />
+              </Grid>
+            )}
           </Grid>
 
+          {/* Buttons positioned on the right side */}
+          <Box sx={{ 
+            display: 'flex', 
+            justifyContent: 'flex-end', 
+            gap: 2, 
+            mt: 4,
+            width: '100%'
+          }}>
+            <Button 
+              variant="outlined" 
+              onClick={() => navigate('/admin/users')}
+              sx={{ minWidth: 120 }}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit" 
+              variant="contained" 
+              disabled={saving}
+              startIcon={saving ? <CircularProgress size={20} /> : null}
+              sx={{ minWidth: 140 }}
+            >
+              {saving ? (isCreateMode ? 'Creating...' : 'Saving...') : (isCreateMode ? 'Create User' : 'Save Changes')}
+            </Button>
+          </Box>
         </form>
       </Box>
       
