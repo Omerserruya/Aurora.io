@@ -1325,7 +1325,11 @@ export const getInfrastructureData = async (req: AuthenticatedRequest, res: Resp
                     id: vpc.properties.vpcId,
                     type: 'vpc',
                     label: vpc.properties.CidrBlock || vpc.properties.vpcId,
-                    properties: omitKeys(vpc.properties, ['userId', 'connectionId'])
+                    properties: {
+                        VpcId: vpc.properties.vpcId,
+                        CidrBlock: vpc.properties.CidrBlock,
+                        ...omitKeys(vpc.properties, ['userId', 'connectionId', 'vpcId'])
+                    }
                 });
                 processedIds.add(vpc.properties.vpcId);
             }
@@ -1338,7 +1342,12 @@ export const getInfrastructureData = async (req: AuthenticatedRequest, res: Resp
                     type: 'subnet',
                     label: subnet.properties.CidrBlock || subnet.properties.subnetId,
                     parent: vpc.properties.vpcId,
-                    properties: omitKeys(subnet.properties, ['userId', 'connectionId'])
+                    properties: {
+                        SubnetId: subnet.properties.subnetId,
+                        VpcId: vpc.properties.vpcId,
+                        CidrBlock: subnet.properties.CidrBlock,
+                        ...omitKeys(subnet.properties, ['userId', 'connectionId', 'subnetId'])
+                    }
                 });
                 processedIds.add(subnet.properties.subnetId);
             }
@@ -1351,7 +1360,25 @@ export const getInfrastructureData = async (req: AuthenticatedRequest, res: Resp
                     type: 'ec2',
                     label: instance.properties.instanceType || instance.properties.instanceId,
                     parent: subnet?.properties.subnetId,
-                    properties: omitKeys(instance.properties, ['userId', 'connectionId'])
+                    properties: {
+                        InstanceId: instance.properties.instanceId,
+                        InstanceType: instance.properties.instanceType,
+                        VpcId: vpc.properties.vpcId,
+                        SubnetId: subnet?.properties.subnetId,
+                        ImageId: instance.properties.imageId,
+                        ImageName: instance.properties.imageName,
+                        ImageDescription: instance.properties.imageDescription,
+                        ImageCreationDate: instance.properties.imageCreationDate,
+                        ...omitKeys(instance.properties, [
+                            'userId', 
+                            'connectionId', 
+                            'instanceId', 
+                            'imageId', 
+                            'imageName', 
+                            'imageDescription', 
+                            'imageCreationDate'
+                        ])
+                    }
                 });
                 processedIds.add(instance.properties.instanceId);
             }
@@ -1364,7 +1391,14 @@ export const getInfrastructureData = async (req: AuthenticatedRequest, res: Resp
                     type: 'internetgateway',
                     label: 'Internet Gateway',
                     parent: vpc.properties.vpcId,
-                    properties: omitKeys(igw.properties, ['userId', 'connectionId'])
+                    properties: {
+                        InternetGatewayId: igw.properties.internetGatewayId,
+                        Attachments: [{
+                            VpcId: vpc.properties.vpcId,
+                            State: 'attached'
+                        }],
+                        ...omitKeys(igw.properties, ['userId', 'connectionId', 'internetGatewayId'])
+                    }
                 });
                 processedIds.add(igw.properties.internetGatewayId);
 
@@ -1383,7 +1417,14 @@ export const getInfrastructureData = async (req: AuthenticatedRequest, res: Resp
                     type: 'alb',
                     label: lb.properties.loadBalancerName || 'Application Load Balancer',
                     parent: subnet?.properties.subnetId,
-                    properties: omitKeys(lb.properties, ['userId', 'connectionId'])
+                    properties: {
+                        LoadBalancerArn: lb.properties.loadBalancerArn,
+                        LoadBalancerName: lb.properties.loadBalancerName,
+                        VpcId: vpc.properties.vpcId,
+                        Type: lb.properties.type || 'application',
+                        Scheme: lb.properties.scheme,
+                        ...omitKeys(lb.properties, ['userId', 'connectionId', 'loadBalancerArn', 'loadBalancerName'])
+                    }
                 });
                 processedIds.add(lb.properties.loadBalancerArn);
 
@@ -1405,8 +1446,11 @@ export const getInfrastructureData = async (req: AuthenticatedRequest, res: Resp
                             id: bucket.properties.name,
                             type: 's3bucket',
                             label: bucket.properties.name || 'S3 Bucket',
-                            parent: undefined, // S3 buckets are global
-                            properties: omitKeys(bucket.properties, ['userId', 'connectionId'])
+                            properties: {
+                                Name: bucket.properties.name,
+                                CreationDate: bucket.properties.creationDate,
+                                ...omitKeys(bucket.properties, ['userId', 'connectionId', 'name'])
+                            }
                         });
                         processedIds.add(bucket.properties.name);
                     }

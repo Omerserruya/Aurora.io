@@ -456,7 +456,7 @@ const convertELKToReactFlow = (elkGraph: ELKGraph) => {
 
 // Config mapping for which fields to show per resource type
 const RESOURCE_FIELDS: Record<string, string[]> = {
-  ec2: ["InstanceId", "InstanceType", "VpcId", "SubnetId", "ImageId", "Image"],
+  ec2: ["InstanceId", "InstanceType", "VpcId", "SubnetId", "ImageId", "ImageName", "ImageDescription", "ImageCreationDate"],
   vpc: ["VpcId", "CidrBlock"],
   subnet: ["SubnetId", "VpcId", "CidrBlock"],
   security_group: ["GroupId", "GroupName", "VpcId", "Description", "InboundRules", "OutboundRules"],
