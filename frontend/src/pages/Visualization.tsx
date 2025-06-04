@@ -486,17 +486,14 @@ const RESOURCE_FIELDS: Record<string, string[]> = {
   iam_policy: ["PolicyName", "PolicyId", "AttachmentCount"]
 };
 
-const HEADER_HEIGHT = 64; // Adjust if your header is a different height
 
 const TYPE_ICON_COLOR: Record<string, { icon: React.ReactNode, color: 'primary' | 'secondary' | 'default' | 'success' | 'error' | 'info' | 'warning' }> = {
   ec2: { icon: <ComputerIcon />, color: 'primary' },
   vpc: { icon: <CloudIcon />, color: 'info' },
   subnet: { icon: <DnsIcon />, color: 'success' },
-  s3: { icon: <StorageIcon />, color: 'warning' },
   s3bucket: { icon: <StorageIcon />, color: 'warning' },
   internetgateway: { icon: <RouterIcon />, color: 'secondary' },
   alb: { icon: <DeviceHubIcon />, color: 'secondary' },
-  load_balancer: { icon: <DeviceHubIcon />, color: 'secondary' },
   internet: { icon: <PublicIcon />, color: 'default' },
   // ...add more as needed
 };
