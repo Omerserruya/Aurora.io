@@ -31,20 +31,59 @@ class GeminiProvider implements IModelProvider {
   public async generateResponse(
     prompt: string, 
     context: string, 
-    options?: ModelOptions
+    options?: ModelOptions,
+    chatHistory: string[] = [],
+    imageData?: string,
+    imageType?: string
   ): Promise<string> {
     try {
       logger.info(`Generating response with Gemini for: ${prompt.substring(0, 50)}...`);
+      // Create a new model instance with the provided options
+      const modelWithOptions = this.genAI.getGenerativeModel({
+        model: 'gemini-1.5-flash',
+        generationConfig: {
+          temperature: options?.temperature ?? 0.7,
+          topP: options?.topP ?? 0.9,
+          topK: options?.topK ?? 40,
+          maxOutputTokens: options?.maxTokens ?? 2000,
+        }
+      });
       
+
+      const imageInstructions = imageData && imageType ? `
+<image_analysis>
+IMPORTANT: An image has been provided. You MUST analyze it in detail.
+- You MUST always acknowledge and describe what is in the image.
+- You MUST focus your analysis on any cloud-related content, such as:
+  - AWS architecture
+  - Dashboards and metrics
+  - Cost breakdowns
+  - Security configurations
+  - Infrastructure diagrams
+  - Monitoring/logs
+- You MUST use the provided context to enhance your analysis.
+If the image is NOT related to cloud infrastructure:
+- You MUST briefly state that your role is to support cloud-related topics and that this image falls outside that scope.
+- DO NOT ask whether it is relevant.
+NEVER skip or ignore an image. You MUST analyze whatever is shown.
+</image_analysis>
+` : '';
       const systemPrompt = `
 <system>
 You are Aurora, an expert AWS cloud architecture assistant that works on Aurora.io which is the greatest cloud architect company in the galaxy.
 You have deep knowledge of cloud infrastructure, security best practices, and optimization strategies. You analyze AWS environments and provide concise, technically accurate answers.
 You are a helpful assistant that provides information based on the user's cloud environment data.
+You can analyze images of cloud infrastructure, architecture diagrams, AWS dashboards, and other cloud-related visual content.
+
 </system>
 
 <instructions>
+${imageInstructions}
 - *IMPORTANT*: ALWAYS end EVERY response end with a friendly note encouraging the user to ask more questions (e.g., "Feel free to ask if you have more questions about your AWS environment!").
+- *CRITICAL*: ALWAYS read and respond to the user's prompt in the <user> section. Never skip or ignore it.
+${chatHistory.length > 0 ? `- Use the <chat_history> section to maintain context and continuity when the user's question refers to previous topics, follow-ups, or earlier parts of the conversation.
+- If the user's question is clearly about a new or unrelated topic, prioritize the current <context> and prompt, but still review <chat_history> for any relevant background.
+- Do not ignore the <chat_history> section if it is relevant to the user's current question.` : ''}
 - Always base your answers on the provided context information about the user's cloud environment.
 - Be precise and concise. Focus on facts and specific details from the context.
 - Think about your answers before responding.
@@ -60,9 +99,20 @@ You are a helpful assistant that provides information based on the user's cloud 
 - Remember: Even for short, factual answers, you MUST include a friendly closing note.
 </instructions>
 
+<user>
+${prompt}
+</user>
+
 <context>
 ${context}
 </context>
+
+${chatHistory.length > 0 ? `
+<chat_history>
+Previous conversation:
+${chatHistory.join('\n')}
+</chat_history>
+` : ''}
 
 <examples>
 Q: "What EC2 instances do I have?"
@@ -85,22 +135,36 @@ A: "Your VPC CIDR is 10.0.0.0/16. Let me know if you need any other network info
 Q: "How many EC2 instances do I have?"
 A: "You have 5 EC2 instances. Feel free to ask if you'd like to know more about their configuration!"
 </examples>
-
-<user>
-${prompt}
-</user>
       `;
+
+      const contents = [
+        {
+          role: 'user',
+          parts: [
+            { text: systemPrompt }
+          ]
+        },
+        ...(imageData && imageType ? [{
+          role: 'user',
+          parts: [
+            {
+              inlineData: {
+                mimeType: imageType,
+                data: imageData
+              }
+            } as any // Force cast for now to bypass TS typing
+          ]
+        }] : []),
+        {
+          role: 'user',
+          parts: [
+            { text: prompt }
+          ]
+        }
+      ];
       
-      // Apply custom options if provided
-      const generationConfig: any = {
-        temperature: 0.1  // Default to lower temperature for better instruction following
-      };
-      if (options?.temperature !== undefined) generationConfig.temperature = options.temperature;
-      if (options?.maxTokens !== undefined) generationConfig.maxOutputTokens = options.maxTokens;
-      if (options?.topP !== undefined) generationConfig.topP = options.topP;
-      if (options?.topK !== undefined) generationConfig.topK = options.topK;
-      
-      const result = await this.model.generateContent(systemPrompt, { generationConfig });
+
+      const result = await modelWithOptions.generateContent({ contents });
       const response = result.response;
       const text = response.text();
       

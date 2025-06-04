@@ -23,6 +23,7 @@
     "@types/recharts": "^1.8.29",
     "@types/socket.io-client": "^1.4.36",
     "axios": "^1.8.4",
+    "browser-image-compression": "^2.0.2",
     "dayjs": "^1.11.10",
     "elkjs": "^0.10.0",
     "html-to-image": "^1.11.11",

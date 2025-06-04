@@ -15,14 +15,20 @@ export const mcpService = {
     prompt: string,
     userId: string,
     connectionId: string,
-    options: QueryOptions = {}
+    options: QueryOptions = {},
+    chatHistory: string[] = [],
+    imageData?: string,
+    imageType?: string
   ): Promise<MCPResponse> => {
     try {
       const response = await axios.post(
         `/api/chatbot/query/${userId}/${connectionId}`,
         {
           prompt,
-          ...options,
+          options,
+          chatHistory,
+          imageData,
+          imageType
         },
         {
           withCredentials: true,
