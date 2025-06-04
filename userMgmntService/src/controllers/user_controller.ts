@@ -43,7 +43,7 @@ export const addUser = async (req: Request, res: Response): Promise<void> => {
 
   try {
     // Extract user data from request body
-    const { username, email, password, googleId, githubId, role } = req.body;
+    const { username, email, password, googleId, githubId, role, authProvider } = req.body;
 
     // Basic validation for required fields
     if (!username || !email) {
@@ -102,6 +102,9 @@ export const addUser = async (req: Request, res: Response): Promise<void> => {
     // Add OAuth IDs if provided
     if (googleId) userData.googleId = googleId;
     if (githubId) userData.githubId = githubId;
+    
+    // Add authProvider if provided
+    if (authProvider) userData.authProvider = authProvider;
     
     // Add role if provided and this is an internal request
     if (role && isInternalServiceRequest) {
