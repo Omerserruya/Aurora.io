@@ -669,7 +669,11 @@ export const processCloudQueryResults = async (req: Request, res: Response) => {
     }
 };
 
-export const getInfrastructureData = async (req: Request, res: Response) => {    const { connectionId, userId } = req.params;    if (!userId || !connectionId) {        return res.status(400).json({ error: 'Missing required parameters' });    }
+export const getInfrastructureData = async (req: Request, res: Response) => {
+    const { connectionId, userId } = req.params;
+    if (!userId || !connectionId) {
+        return res.status(400).json({ error: 'Missing required parameters' });
+    }
 
     const session = Neo4jService.getSession();
     try {
@@ -696,43 +700,19 @@ export const getInfrastructureData = async (req: Request, res: Response) => {   
             )
         );
 
-        const infrastructure: CloudInfrastructure = {
-            vpcs: result.records.map((record: any) => ({
-                vpcId: record.get('v').properties.vpcId,
-                properties: record.get('v').properties,
-                subnets: record.get('subnets').map((subnet: any) => ({
-                    subnetId: subnet.properties.subnetId,
-                    properties: subnet.properties,
-                    instances: record.get('instances')
-                        .filter((instance: any) => instance.properties.subnetId === subnet.properties.subnetId)
-                        .map((instance: any) => ({
-                            instanceId: instance.properties.instanceId,
-                            properties: instance.properties
-                        }))
-                })),
-                securityGroups: record.get('securityGroups').map((sg: any) => ({
-                    groupId: sg.properties.groupId,
-                    properties: sg.properties
-                }))
-            })),
-            s3Buckets: result.records[0].get('buckets').map((bucket: any) => ({
-                name: bucket.properties.name,
-                properties: bucket.properties
-            }))
-        
         // Process the results into the expected AWSArchitecture format
-        const vpcs = new Map();
-        const subnets = new Map();
-        const instances = new Map();
-        const securityGroups = new Map();
-        const routeTables = new Map();
-        const internetGateways = new Map();
-        const networkAcls = new Map();
-        const loadBalancers = new Map();
+        const vpcs = new Map<string, any>();
+        const subnets = new Map<string, any>();
+        const instances = new Map<string, any>();
+        const securityGroups = new Map<string, any>();
+        const routeTables = new Map<string, any>();
+        const internetGateways = new Map<string, any>();
+        const networkAcls = new Map<string, any>();
+        const loadBalancers = new Map<string, any>();
         const s3Buckets: Array<{name: string; properties: any}> = [];
         
         // Process all records to collect resources
-        result.records.forEach(record => {
+        result.records.forEach((record: any) => {
             const vpc = record.get('v');
             const subnet = record.get('s');
             const instance = record.get('i');
@@ -943,7 +923,7 @@ export const getInfrastructureData = async (req: Request, res: Response) => {   
         });
         
         // Build the final infrastructure object
-        const infrastructure = {
+        const infrastructure: CloudInfrastructure = {
             vpcs: Array.from(vpcs.values()),
             s3Buckets: s3Buckets
         };
@@ -1021,8 +1001,8 @@ export const getTerraformInfrastructureData = async (req: Request, res: Response
             const instance = record.get('i');
             const ami = record.get('a');
             const securityGroup = record.get('sg');
-            const inRule = record.get('inRule');
-            const outRule = record.get('outRule');
+            const inboundRule = record.get('inRule');
+            const outboundRule = record.get('outRule');
             const routeTable = record.get('rt');
             const route = record.get('route');
             const internetGateway = record.get('igw');
@@ -1087,28 +1067,28 @@ export const getTerraformInfrastructureData = async (req: Request, res: Response
                 const sgData = securityGroupsMap.get(groupId);
 
                 // Process inbound rules
-                if (inRule) {
-                    const ruleId = `${groupId}-ingress-${inRule.properties.ipProtocol}-${inRule.properties.fromPort}-${inRule.properties.toPort}`;
+                if (inboundRule) {
+                    const ruleId = `${groupId}-ingress-${inboundRule.properties.ipProtocol}-${inboundRule.properties.fromPort}-${inboundRule.properties.toPort}`;
                     const existingRule = sgData.securityGroup.rules.find((r: any) => r.ruleId === ruleId);
                     
                     if (!existingRule) {
                         sgData.securityGroup.rules.push({
                             ruleId: ruleId,
-                            properties: inRule.properties,
+                            properties: inboundRule.properties,
                             ruleType: 'ingress'
                         });
                     }
                 }
 
                 // Process outbound rules
-                if (outRule) {
-                    const ruleId = `${groupId}-egress-${outRule.properties.ipProtocol}-${outRule.properties.fromPort}-${outRule.properties.toPort}`;
+                if (outboundRule) {
+                    const ruleId = `${groupId}-egress-${outboundRule.properties.ipProtocol}-${outboundRule.properties.fromPort}-${outboundRule.properties.toPort}`;
                     const existingRule = sgData.securityGroup.rules.find((r: any) => r.ruleId === ruleId);
                     
                     if (!existingRule) {
                         sgData.securityGroup.rules.push({
                             ruleId: ruleId,
-                            properties: outRule.properties,
+                            properties: outboundRule.properties,
                             ruleType: 'egress'
                         });
                     }
@@ -1288,8 +1268,8 @@ export const getInfrastructureDataWithUserId = async (req: Request, res: Respons
             const subnet = record.get('s');
             const instance = record.get('i');
             const securityGroup = record.get('sg');
-            const inRule = record.get('inRule');
-            const outRule = record.get('outRule');
+            const inboundRule = record.get('inRule');
+            const outboundRule = record.get('outRule');
             const routeTable = record.get('rt');
             const route = record.get('route');
             const internetGateway = record.get('igw');
@@ -1359,15 +1339,15 @@ export const getInfrastructureDataWithUserId = async (req: Request, res: Respons
                 
                 const sgData = securityGroups.get(securityGroup.properties.groupId);
                 
-                if (inRule) {
+                if (inboundRule) {
                     const ruleData = {
-                        ipProtocol: inRule.properties.ipProtocol,
-                        fromPort: inRule.properties.fromPort,
-                        toPort: inRule.properties.toPort,
-                        userIdGroupPairs: inRule.properties.userIdGroupPairs || [],
-                        ipRanges: inRule.properties.ipRanges || [],
-                        ipv6Ranges: inRule.properties.ipv6Ranges || [],
-                        prefixListIds: inRule.properties.prefixListIds || []
+                        ipProtocol: inboundRule.properties.ipProtocol,
+                        fromPort: inboundRule.properties.fromPort,
+                        toPort: inboundRule.properties.toPort,
+                        userIdGroupPairs: inboundRule.properties.userIdGroupPairs || [],
+                        ipRanges: inboundRule.properties.ipRanges || [],
+                        ipv6Ranges: inboundRule.properties.ipv6Ranges || [],
+                        prefixListIds: inboundRule.properties.prefixListIds || []
                     };
                     
                     // Check if this rule already exists
@@ -1382,15 +1362,15 @@ export const getInfrastructureDataWithUserId = async (req: Request, res: Respons
                     }
                 }
                 
-                if (outRule) {
+                if (outboundRule) {
                     const ruleData = {
-                        ipProtocol: outRule.properties.ipProtocol,
-                        fromPort: outRule.properties.fromPort,
-                        toPort: outRule.properties.toPort,
-                        userIdGroupPairs: outRule.properties.userIdGroupPairs || [],
-                        ipRanges: outRule.properties.ipRanges || [],
-                        ipv6Ranges: outRule.properties.ipv6Ranges || [],
-                        prefixListIds: outRule.properties.prefixListIds || []
+                        ipProtocol: outboundRule.properties.ipProtocol,
+                        fromPort: outboundRule.properties.fromPort,
+                        toPort: outboundRule.properties.toPort,
+                        userIdGroupPairs: outboundRule.properties.userIdGroupPairs || [],
+                        ipRanges: outboundRule.properties.ipRanges || [],
+                        ipv6Ranges: outboundRule.properties.ipv6Ranges || [],
+                        prefixListIds: outboundRule.properties.prefixListIds || []
                     };
                     
                     // Check if this rule already exists
@@ -1497,7 +1477,7 @@ export const getInfrastructureDataWithUserId = async (req: Request, res: Respons
                     });
                     
                     const vpcData = vpcs.get(vpc.properties.vpcId);
-                    if (vpcData) {
+                    if (vpcData && !vpcData.loadBalancers.some((lb: any) => lb.loadBalancerArn === loadBalancer.properties.loadBalancerArn)) {
                         vpcData.loadBalancers.push(loadBalancers.get(loadBalancer.properties.loadBalancerArn));
                     }
                 }
