@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = process.env.REACT_APP_DB_SERVICE_URL || 'https://aurora-io.cs.colman.ac.il';
+const API_URL = process.env.REACT_APP_DB_SERVICE_URL || 'https://aurora-io.cs.colman.ac.il/api/db';
 
 export interface ResourceMetrics {
     compute: number;
