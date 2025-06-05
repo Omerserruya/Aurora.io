@@ -9,7 +9,7 @@ import cookieParser from 'cookie-parser';
 export const createServer = () => {
   const app = express();
   const corsOptions = {
-      origin: process.env.FRONTEND_URL || 'http://localhost',
+      origin: process.env.FRONTEND_URL || 'https://aurora-io.cs.colman.ac.il',
       credentials: true,
       methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
       allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']

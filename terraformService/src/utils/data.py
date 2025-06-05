@@ -2,7 +2,7 @@ import json
 import requests
 import os
 
-DB_SERVICE_URL = os.getenv('DB_SERVICE_URL', 'http://localhost:4003')
+DB_SERVICE_URL = os.getenv('DB_SERVICE_URL', 'https://aurora-io.cs.colman.ac.il')
 
 def load_mock_data(file_path="src/mock_aws_data1.json"):
     with open(file_path, "r") as file:
