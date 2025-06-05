@@ -84,38 +84,30 @@ export default function SelectContent() {
     }
   }, [userId]);
   
-  // Fetch AWS connections on mount
+  // Fetch AWS connections on mount and when account changes
   React.useEffect(() => {
-    fetchAwsConnections();
-  }, []);
+    const refreshData = async () => {
+      await refreshAccountDetails();
+      await fetchAwsConnections();
+    };
+    refreshData();
+  }, [account?._id]);
 
   // Handle account state changes
   React.useEffect(() => {
     if (account && account._id && userId) {
       setSelectedAccount(account._id);
-      setSelectedAccountName(account.name);
-      saveAccountSelection(account._id, account.name, userId);
-    }
-  }, [account, userId]);
-
-  // Handle initial account restoration
-  React.useEffect(() => {
-    if (initialLoadComplete && !account && persistedId && listAccounts.length > 0 && userId) {
-      const persistedAccount = listAccounts.find(acc => acc.id === persistedId);
-      if (persistedAccount) {
-        setSelectedAccount(persistedId);
-        setSelectedAccountName(persistedAccount.name);
-        setAccount({
-          _id: persistedId,
-          name: persistedAccount.name
-        });
+      // Find the latest name from the list
+      const found = listAccounts.find(acc => acc.id === account._id);
+      if (found) {
+        setSelectedAccountName(found.name);
+        saveAccountSelection(account._id, found.name, userId);
       } else {
-        clearUserAccountSelection(userId);
-        setSelectedAccount('');
-        setSelectedAccountName('Account');
+        setSelectedAccountName(account.name);
+        saveAccountSelection(account._id, account.name, userId);
       }
     }
-  }, [initialLoadComplete, listAccounts, userId]);
+  }, [account, userId, listAccounts]);
 
   const fetchAwsConnections = async () => {
     setIsLoading(true);

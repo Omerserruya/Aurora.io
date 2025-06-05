@@ -31,13 +31,13 @@ import {
   Tooltip
 } from '@mui/material';
 import { Edit as EditIcon, PhotoCamera, Delete as DeleteIcon, Cloud as CloudIcon, Add as AddIcon, Lock as LockIcon } from '@mui/icons-material';
-import { useUser } from '../hooks/compatibilityHooks';
+import { useUser, useAccount } from '../hooks/compatibilityHooks';
 import UserAvatar from '../components/UserAvatar';
 import Toast from '../components/Toast';
 import api from '../utils/api';
-import { AddAccountDialog } from '../components/AccountConnection';
+import { AddAccountDialog, EditAccountDialog } from '../components/AccountConnection';
 import { AWSConnection } from '../types/awsConnection';
-import { fetchAwsConnections as fetchAwsConnectionsApi, createAwsConnection } from '../api/awsConnectionApi';
+import { fetchAwsConnections as fetchAwsConnectionsApi, createAwsConnection, updateAwsConnection, deleteAwsConnection } from '../api/awsConnectionApi';
 
 interface User {
   _id: string;
@@ -63,10 +63,14 @@ interface AWSAccount {
   provider: string;
   region: string;
   isValid: boolean;
+  description?: string;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export default function Profile() {
   const { user: contextUser, refreshUserDetails } = useUser();
+  const { refreshAccountDetails, setAccount } = useAccount();
   const user = contextUser as User;
   const navigate = useNavigate();
   
@@ -100,6 +104,9 @@ export default function Profile() {
   const [passwordErrors, setPasswordErrors] = useState<FormErrors>({});
   const [isResettingPassword, setIsResettingPassword] = useState(false);
 
+  const [selectedConnection, setSelectedConnection] = useState<AWSConnection | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+
   useEffect(() => {
     if (user?._id) {
       setUsername(user.username || '');
@@ -122,7 +129,10 @@ export default function Profile() {
           name: conn.name,
           provider: conn.provider,
           region: conn.credentials.region,
-          isValid: conn.isValidated
+          isValid: conn.isValidated,
+          description: conn.description,
+          createdAt: new Date(conn.createdAt),
+          updatedAt: new Date(conn.updatedAt)
         }));
         setAwsAccounts(formattedConnections);
       }
@@ -137,12 +147,59 @@ export default function Profile() {
   const handleAddAccount = async (connection: AWSConnection) => {
     try {
       const newConnection = await createAwsConnection(connection);
+      await refreshAccountDetails();
       await fetchAwsAccounts();
       setIsAddDialogOpen(false);
       return newConnection;
     } catch (error) {
       console.error('Error adding account:', error);
       throw error;
+    }
+  };
+
+  const handleEditConnection = async (connection: AWSConnection): Promise<AWSConnection> => {
+    try {
+      const updatedConnection = await updateAwsConnection(connection);
+      await refreshAccountDetails();
+      await fetchAwsAccounts();
+      // Find the updated account in the list
+      const data = await fetchAwsConnectionsApi();
+      const updated = Array.isArray(data) ? data.find((acc: any) => acc._id === connection._id) : null;
+      if (updated) {
+        setAccount({ _id: updated._id, name: updated.name });
+        // Also update localStorage
+        const userId = user?._id || localStorage.getItem('user_id');
+        if (userId) {
+          localStorage.setItem(`selected_account_id_${userId}`, updated._id);
+          localStorage.setItem(`selected_account_name_${userId}`, updated.name);
+        }
+      }
+      setToastMessage('Connection updated successfully');
+      setToastSeverity('success');
+      setToastOpen(true);
+      return updatedConnection;
+    } catch (error) {
+      console.error('Error updating connection:', error);
+      setToastMessage('Failed to update connection');
+      setToastSeverity('error');
+      setToastOpen(true);
+      throw error;
+    }
+  };
+
+  const handleDeleteConnection = async (connectionId: string) => {
+    try {
+      await deleteAwsConnection(connectionId);
+      await refreshAccountDetails();
+      await fetchAwsAccounts();
+      setToastMessage('Connection deleted successfully');
+      setToastSeverity('success');
+      setToastOpen(true);
+    } catch (error) {
+      console.error('Error deleting connection:', error);
+      setToastMessage('Failed to delete connection');
+      setToastSeverity('error');
+      setToastOpen(true);
     }
   };
 
@@ -470,7 +527,24 @@ export default function Profile() {
                         <Tooltip title="Edit">
                           <IconButton
                             size="small"
-                            onClick={() => {/* Handle edit */}}
+                            onClick={() => {
+                              const connection: AWSConnection = {
+                                _id: account.id,
+                                userId: user?._id || '',
+                                name: account.name,
+                                provider: account.provider as 'aws',
+                                credentials: {
+                                  accessKeyId: '',
+                                  secretAccessKey: '',
+                                  region: account.region
+                                },
+                                isValidated: account.isValid,
+                                createdAt: new Date(),
+                                updatedAt: new Date()
+                              };
+                              setSelectedConnection(connection);
+                              setIsEditDialogOpen(true);
+                            }}
                           >
                             <EditIcon />
                           </IconButton>
@@ -479,7 +553,7 @@ export default function Profile() {
                           <IconButton
                             size="small"
                             color="error"
-                            onClick={() => {/* Handle delete */}}
+                            onClick={() => handleDeleteConnection(account.id)}
                           >
                             <DeleteIcon />
                           </IconButton>
@@ -701,6 +775,20 @@ export default function Profile() {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Add EditAccountDialog */}
+      {selectedConnection && (
+        <EditAccountDialog
+          open={isEditDialogOpen}
+          onClose={() => {
+            setIsEditDialogOpen(false);
+            setSelectedConnection(null);
+          }}
+          connection={selectedConnection}
+          onSubmit={handleEditConnection}
+          onDelete={handleDeleteConnection}
+        />
+      )}
 
       {/* Toast notification */}
       <Toast
