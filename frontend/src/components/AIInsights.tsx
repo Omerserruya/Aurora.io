@@ -51,41 +51,50 @@ export const AIInsights: React.FC = () => {
     const [recommendations, setRecommendations] = useState<AIRecommendation[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+
+    const fetchRecommendations = async (refresh: boolean = false) => {
+        if (!user?._id || !account?._id) {
+            console.log('Missing user or account ID:', { userId: user?._id, accountId: account?._id });
+            setLoading(false);
+            return;
+        }
+
+        try {
+            setLoading(true);
+            console.log('Fetching recommendations for user:', user._id, 'and account:', account._id);
+            const response = await getAIRecommendations(user._id, account._id, refresh);
+            console.log('Received recommendations response:', response);
+            if (response.recommendations) {
+                console.log('AI Recommendations:', response.recommendations);
+            }
+            if (response.error) {
+                setError(response.error);
+                setRecommendations([]);
+            } else if (response.recommendations) {
+                setRecommendations(response.recommendations);
+                setError(null);
+                setLastUpdated(new Date());
+            } else {
+                setError('No recommendations available');
+                setRecommendations([]);
+            }
+        } catch (err) {
+            console.error('Error fetching recommendations:', err);
+            setError(err instanceof Error ? err.message : 'Failed to fetch recommendations');
+            setRecommendations([]);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     useEffect(() => {
-        const fetchRecommendations = async () => {
-            if (!user?._id || !account?._id) {
-                console.log('Missing user or account ID:', { userId: user?._id, accountId: account?._id });
-                setLoading(false);
-                return;
-            }
-
-            try {
-                console.log('Fetching recommendations for user:', user._id, 'and account:', account._id);
-                const response = await getAIRecommendations(user._id, account._id);
-                console.log('Received recommendations response:', response);
-
-                if (response.error) {
-                    setError(response.error);
-                    setRecommendations([]);
-                } else if (response.recommendations) {
-                    setRecommendations(response.recommendations);
-                    setError(null);
-                } else {
-                    setError('No recommendations available');
-                    setRecommendations([]);
-                }
-            } catch (err) {
-                console.error('Error fetching recommendations:', err);
-                setError(err instanceof Error ? err.message : 'Failed to fetch recommendations');
-                setRecommendations([]);
-            } finally {
-                setLoading(false);
-            }
-        };
-
         fetchRecommendations();
     }, [user?._id, account?._id]);
+
+    const handleRefresh = () => {
+        fetchRecommendations(true);
+    };
 
     if (loading) {
         return (
