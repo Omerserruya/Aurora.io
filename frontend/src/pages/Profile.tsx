@@ -390,7 +390,6 @@ export default function Profile() {
                 startIcon={<LockIcon />}
                 onClick={() => setResetPasswordDialogOpen(true)}
                 disabled={user.authProvider !== 'local'}
-                title={user.authProvider !== 'local' ? `Password change is not available for ${user.authProvider === 'google' ? 'Google' : 'GitHub'} accounts` : ''}
               >
                 Change Password
               </Button>
