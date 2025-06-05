@@ -1,4 +1,5 @@
 export { default as AddAccountDialog } from './AddAccountDialog';
+export { default as EditAccountDialog } from './EditAccountDialog';
 export { default as AWSConnectionForm } from './AWSConnectionForm';
 export { default as AboutStep } from './AboutStep';
 export { default as CredentialsStep } from './CredentialsStep';

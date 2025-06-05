@@ -1,4 +1,6 @@
 import { AWSConnection } from '../types/awsConnection';
+import api from '../utils/api';
+import { useUser } from '../hooks/compatibilityHooks';
 
 // API base URLs according to nginx configuration
 const API_BASE_URL = '/api/db'; // Maps to db-service in nginx config
@@ -21,7 +23,6 @@ export const fetchAwsConnections = async () => {
     return await response.json();
   } catch (error) {
     console.error('Error fetching AWS connections:', error);
-    // Return empty array to avoid breaking the UI
     return [];
   }
 };
@@ -48,113 +49,15 @@ export const createAwsConnection = async (connectionData: Partial<AWSConnection>
   }
 };
 
-export const validateAwsCredentials = async (awsCredentials: {
-  accessKeyId: string;
-  secretAccessKey: string;
-  region: string;
-  sessionToken?: string;
-}): Promise<{ valid: boolean; message: string; containerId?: string }> => {
+export const updateAwsConnection = async (connection: AWSConnection): Promise<AWSConnection> => {
   try {
-    // Log validation attempt for debugging
-    console.log('Validating AWS credentials for region:', awsCredentials.region);
-    
-    // Format the credentials as required by the API
-    const payload = {
-      awsCredentials: {
-        AWS_ACCESS_KEY_ID: awsCredentials.accessKeyId,
-        AWS_SECRET_ACCESS_KEY: awsCredentials.secretAccessKey,
-        AWS_REGION: awsCredentials.region
-      }
-    };
-    
-    // Call the validation API
-    const response = await fetch(`${CLOUDQUERY_SERVICE_URL}/validate`, {
-      method: 'POST',
-      credentials: 'include',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(payload),
-    });
-    
-    // If response is successful and has JSON data
-    if (response.ok) {
-      const data = await response.json();
-      
-      // If we have a containerId, validation was successful
-      if (data && data.containerId) {
-        return { 
-          valid: true, 
-          message: 'Credentials verified successfully',
-          containerId: data.containerId
-        };
-      }
-    }
-    
-    // For any other case (errors, invalid response, etc.), return "Invalid credentials"
-    return { 
-      valid: false, 
-      message: 'Invalid credentials'
-    };
-  } catch (error) {
-    // Catch all errors with a single error message
-    console.error('Error validating AWS credentials:', error);
-    return { 
-      valid: false, 
-      message: 'Invalid credentials'
-    };
-  }
-};
-
-export const executeCloudQuery = async (connectionId: string): Promise<{ success: boolean; message: string; containerId?: string }> => {
-  try {
-    // Call the cloud query API
-    const response = await fetch(`${CLOUDQUERY_SERVICE_URL}/query/${connectionId}`, {
-      method: 'POST',
-      credentials: 'include',
-      headers: {
-        'Content-Type': 'application/json',
-      }
-    });
-    
-    // If response is successful
-    if (response.ok) {
-      const data = await response.json();
-      
-      // If the query was started successfully
-      if (data && data.containerId) {
-        return { 
-          success: true, 
-          message: 'Cloud query started successfully',
-          containerId: data.containerId
-        };
-      }
-    }
-    
-    // Handle error response
-    const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
-    return { 
-      success: false, 
-      message: errorData.error || 'Failed to start cloud query'
-    };
-  } catch (error) {
-    console.error('Error executing cloud query:', error);
-    return { 
-      success: false, 
-      message: 'Failed to connect to cloud query service'
-    };
-  }
-};
-
-export const updateAwsConnection = async (connectionId: string, updateData: Partial<AWSConnection>) => {
-  try {
-    const response = await fetch(`${API_BASE_URL}/aws-connections/${connectionId}`, {
+    const response = await fetch(`${API_BASE_URL}/aws-connections/${connection._id}`, {
       method: 'PUT',
       credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(updateData),
+      body: JSON.stringify(connection),
     });
 
     if (!response.ok) {
@@ -168,7 +71,7 @@ export const updateAwsConnection = async (connectionId: string, updateData: Part
   }
 };
 
-export const deleteAwsConnection = async (connectionId: string) => {
+export const deleteAwsConnection = async (connectionId: string): Promise<void> => {
   try {
     const response = await fetch(`${API_BASE_URL}/aws-connections/${connectionId}`, {
       method: 'DELETE',
@@ -181,10 +84,92 @@ export const deleteAwsConnection = async (connectionId: string) => {
     if (!response.ok) {
       throw new Error(`Failed to delete AWS connection: ${response.status} ${response.statusText}`);
     }
+  } catch (error) {
+    console.error('Error deleting AWS connection:', error);
+    throw error;
+  }
+};
+
+export const validateAwsCredentials = async (credentials: {
+  accessKeyId: string;
+  secretAccessKey: string;
+  region: string;
+}) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/aws-connections/validate`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(credentials),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to validate AWS credentials: ${response.status} ${response.statusText}`);
+    }
 
     return await response.json();
   } catch (error) {
-    console.error('Error deleting AWS connection:', error);
+    console.error('Error validating AWS credentials:', error);
+    throw error;
+  }
+};
+
+export const validateAwsCredentialsCloud = async (credentials: {
+  accessKeyId: string;
+  secretAccessKey: string;
+  region: string;
+}, userId?: string) => {
+  try {
+    // Get userId from localStorage if not provided
+    const uid = userId || localStorage.getItem('user_id');
+    if (!uid) throw new Error('No user ID found for validation');
+    const response = await fetch('/api/cloud/validate', {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        userID: uid,
+        awsCredentials: {
+          AWS_ACCESS_KEY_ID: credentials.accessKeyId,
+          AWS_SECRET_ACCESS_KEY: credentials.secretAccessKey,
+          AWS_REGION: credentials.region
+        }
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to validate AWS credentials: ${response.status} ${response.statusText}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error validating AWS credentials (cloud):', error);
+    throw error;
+  }
+};
+
+export const executeCloudQuery = async (connectionId: string) => {
+  try {
+    // Call the cloud query API
+    const response = await fetch(`${CLOUDQUERY_SERVICE_URL}/query/${connectionId}`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to execute cloud query: ${response.status} ${response.statusText}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error executing cloud query:', error);
     throw error;
   }
 }; 
