@@ -43,7 +43,7 @@ export const addUser = async (req: Request, res: Response): Promise<void> => {
 
   try {
     // Extract user data from request body
-    const { username, email, password, googleId, githubId, role } = req.body;
+    const { username, email, password, googleId, githubId, role, authProvider } = req.body;
 
     // Basic validation for required fields
     if (!username || !email) {
@@ -103,9 +103,17 @@ export const addUser = async (req: Request, res: Response): Promise<void> => {
     if (googleId) userData.googleId = googleId;
     if (githubId) userData.githubId = githubId;
     
+    // Add authProvider if provided
+    if (authProvider) userData.authProvider = authProvider;
+    
     // Add role if provided and this is an internal request
     if (role && isInternalServiceRequest) {
       userData.role = role;
+    }
+
+    // Set firstTimeLogin to true for local auth provider users
+    if (!googleId && !githubId && password) {
+      userData.firstTimeLogin = true;
     }
 
     // Create and save new user
@@ -157,7 +165,7 @@ const getUserById = async (req: Request, res: Response) => {
 // Function to update a user (self or admin access)
 const updateUser = async (req: Request, res: Response) => {
   const { id } = req.params;
-  const { username, email, password, avatarUrl, googleId, githubId } = req.body;
+  const { username, email, password, role, avatarUrl, googleId, githubId } = req.body;
   
   try {
     // Find the user by ID
@@ -168,11 +176,6 @@ const updateUser = async (req: Request, res: Response) => {
     
     // Check if this is an internal service request
     const isInternalServiceRequest = req.headers['x-internal-service'] === 'true';
-    
-    // For non-internal requests, check if the authenticated user matches the requested user ID
-    if (!isInternalServiceRequest && req.params.userId !== id) {
-      return res.status(403).json({ message: "Access denied" });
-    }
     
     if (Object.keys(req.body).length === 0) {
       return res.status(400).json({
@@ -197,6 +200,10 @@ const updateUser = async (req: Request, res: Response) => {
       if (googleId) updateData.googleId = googleId;
       if (githubId) updateData.githubId = githubId;
     }
+
+    if (role) {
+      updateData.role = role;
+    }
     
     // Update the user with the new data
     const updatedUser = await userModel.findByIdAndUpdate(
@@ -220,28 +227,30 @@ const updateUser = async (req: Request, res: Response) => {
 
 // Function to delete a user (self or admin access)
 const deleteUser = async (req: Request, res: Response) => {
-  const { id } = req.params;
-  const userId = req.params.userId;
+  const { id: userToDeleteId, userId: adminUserId } = req.params;
+  console.log('Deleting user with ID:', userToDeleteId, adminUserId);
+
   try {
-    const user = await userModel.findById(userId);
-    if (!mongoose.Types.ObjectId.isValid(id)) {
+    const adminUser = await userModel.findById(adminUserId);
+    if (!mongoose.Types.ObjectId.isValid(adminUserId)) {
       res.status(400).json({ message: "Invalid user ID format" });
       return;
     }
 
-    const userToDelete = await userModel.findById(id);
+    const userToDelete = await userModel.findById(userToDeleteId);
     if (!userToDelete) {
       res.status(404).json({ message: "User not found" });
       return;
     }
     // Check if the user has admin privileges
-    if (user?.role !== "admin" && userId !== id) {
+    console.log('user:', adminUser);
+    if (adminUser?.role !== "admin") {
       res.status(403).json({ message: "Access denied" });
       return;
     }
-
-    await userModel.findByIdAndDelete(id);
-    res.status(200).send(); // No content
+    await userToDelete.deleteOne();
+    console.log('User deleted successfully:', userToDeleteId);
+    res.status(200).send();
   } catch (error: any) {
     res.status(500).json({ message: "Error deleting user", error: error.message });
   }
@@ -254,13 +263,9 @@ const uploadAvatar = async (req: Request, res: Response) => {
   try {
     // Check if user exists
     const user = await userModel.findById(id);
+    console.debug('Uploading avatar for user:', user);
     if (!user) {
       return res.status(404).json({ message: "User not found" });
-    }
-    
-    // Check if this is the current user
-    if (req.params.userId !== id) {
-      return res.status(403).json({ message: "Access denied" });
     }
     
     // Handle file upload
@@ -271,7 +276,8 @@ const uploadAvatar = async (req: Request, res: Response) => {
     // If a previous avatar exists, delete it
     if (user.avatarUrl) {
       try {
-        const previousPath = path.join(__dirname, '../../../Backend/uploads/users', path.basename(user.avatarUrl));
+        const uploadsDir = process.env.PROFILE_UPLOAD_PATH || '/app/uploads/users';
+        const previousPath = path.join(uploadsDir, path.basename(user.avatarUrl));
         if (fs.existsSync(previousPath)) {
           fs.unlinkSync(previousPath);
         }
@@ -511,6 +517,137 @@ export const findUserByGoogleId = async (req: Request, res: Response) => {
   }
 };
 
+// Reset password for authenticated user
+const resetPassword = async (req: Request, res: Response) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    
+    // Debug logging
+    console.log('Reset password request received');
+    console.log('User ID from params:', req.params.userId);
+    console.log('Has currentPassword:', !!currentPassword);
+    console.log('Has newPassword:', !!newPassword);
+    
+    // Basic validation
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ 
+        message: 'Current password and new password are required' 
+      });
+    }
+    
+    // Validate new password length
+    if (newPassword.length < 8) {
+      return res.status(400).json({ 
+        message: 'New password must be at least 8 characters long' 
+      });
+    }
+    
+    // Get user ID from the authenticated request (set by auth middleware)
+    const userId = req.params.userId;
+    
+    if (!userId) {
+      console.log('No userId found in request params');
+      return res.status(401).json({ message: 'User not authenticated' });
+    }
+    
+    // Find the user and include the password field
+    const user = await userModel.findById(userId).select('+password');
+    if (!user) {
+      console.log('User not found with ID:', userId);
+      return res.status(404).json({ message: 'User not found' });
+    }
+    
+    console.log('User found:', user.email);
+    console.log('User has password:', !!user.password);
+    
+    // Check if user has a password (might be OAuth-only user)
+    if (!user.password) {
+      return res.status(400).json({ 
+        message: 'Cannot reset password for OAuth-only accounts' 
+      });
+    }
+    
+    // Verify current password
+    const isCurrentPasswordValid = await bcrypt.compare(currentPassword, user.password);
+    console.log('Current password valid:', isCurrentPasswordValid);
+    
+    if (!isCurrentPasswordValid) {
+      return res.status(401).json({ 
+        message: 'Current password is incorrect' 
+      });
+    }
+    
+    // Hash the new password
+    const saltRounds = 10;
+    const hashedNewPassword = await bcrypt.hash(newPassword, saltRounds);
+    
+    // Update user's password
+    const updatedUser = await userModel.findByIdAndUpdate(
+      userId,
+      { 
+        password: hashedNewPassword,
+        firstTimeLogin: false // User has now changed their default password
+      },
+      { new: true }
+    );
+    
+    if (!updatedUser) {
+      return res.status(500).json({ message: 'Failed to update password' });
+    }
+    
+    console.log('Password updated successfully for user:', user.email);
+    return res.status(200).json({ 
+      message: 'Password updated successfully' 
+    });
+    
+  } catch (error: any) {
+    console.error('Error in resetPassword:', error);
+    return res.status(500).json({ 
+      message: 'Error updating password', 
+      error: error.message 
+    });
+  }
+};
+
+// Get current user profile - for authenticated users
+const getUserProfile = async (req: Request, res: Response) => {
+  try {
+    // Get user ID from the authenticated request (set by auth middleware)
+    const userId = (req as any).authenticatedUserId || req.params.userId;
+    
+    console.log('getUserProfile - userId from auth:', userId);
+    console.log('getUserProfile - req.params:', req.params);
+    
+    if (!userId) {
+      console.log('No userId found in request');
+      return res.status(401).json({ message: 'User not authenticated' });
+    }
+    
+    // Find the user and include firstTimeLogin field
+    const user = await userModel.findById(userId).select('-password -tokens');
+    
+    if (!user) {
+      console.log('User not found with ID:', userId);
+      return res.status(404).json({ message: 'User not found' });
+    }
+    
+    console.log('User profile found:', { 
+      id: user._id, 
+      email: user.email, 
+      authProvider: user.authProvider, 
+      firstTimeLogin: user.firstTimeLogin 
+    });
+    
+    return res.status(200).json(user);
+  } catch (error: any) {
+    console.error('Error in getUserProfile:', error);
+    return res.status(500).json({ 
+      message: 'Error fetching user profile', 
+      error: error.message 
+    });
+  }
+};
+
 export default { 
   addUser, 
   getUsers, 
@@ -526,5 +663,7 @@ export default {
   addUserToken,
   removeUserToken,
   verifyUserToken,
-  updateUserToken
+  updateUserToken,
+  resetPassword,
+  getUserProfile
 };

@@ -39,6 +39,7 @@ import { getResourceMetrics, getResourceDetails, ResourceMetrics } from '../api/
 import ResourceDetailsPanel from '../components/ResourceDetailsPanel';
 import { getAIRecommendations, AIRecommendation } from '../api/aiRecommendationsApi';
 import AIChatButton from '../components/AIChatButton';
+import { SolutionDialog } from '../components/SolutionDialog';
 
 interface OverviewCardProps {
   title: string;
@@ -54,9 +55,11 @@ interface AIInsightCardProps {
   title: string;
   description: string;
   action: string;
+  solution: string;
   icon: React.ReactNode;
   severity: 'critical' | 'mid' | 'low';
   impact?: string;
+  recommendation: AIRecommendation;
 }
 
 const OverviewCard = ({ title, value, icon, color, trend, trendValue, onClick }: OverviewCardProps) => {
@@ -123,103 +126,150 @@ const AIInsightCard = ({
   title, 
   description, 
   action, 
+  solution,
   icon, 
   severity,
-  impact
-}: AIInsightCardProps & { severity: 'critical' | 'mid' | 'low' }) => {
+  impact,
+  recommendation
+}: AIInsightCardProps) => {
   const theme = useTheme();
+  const [showSolution, setShowSolution] = useState(false);
   const shortDescription = description.length > 120 ? description.slice(0, 117) + '...' : description;
 
   const handleDiscussInChat = () => {
+    const enhancedPrompt = `I have an infrastructure issue that needs attention:
+
+Problem: ${recommendation.problem}
+Impact: ${recommendation.impact}
+
+${recommendation.solution}
+
+Please help me understand and implement this solution.`;
+
     if (window.openAIChatWithMessage) {
-      window.openAIChatWithMessage(action);
+      window.openAIChatWithMessage(enhancedPrompt);
     } else {
-      window.dispatchEvent(new CustomEvent('open-ai-chat', { detail: { message: action } }));
+      window.dispatchEvent(new CustomEvent('open-ai-chat', { 
+        detail: { 
+          message: enhancedPrompt,
+          isDirectMessage: true,
+          shouldOpen: true
+        } 
+      }));
     }
   };
 
   let color;
-  if (severity === 'critical') color = 'error'; // red
-  else if (severity === 'mid') color = 'warning'; // orange
-  else color = 'yellow'; // yellow for low (info/success)
+  if (severity === 'critical') color = 'error';
+  else if (severity === 'mid') color = 'warning';
+  else color = 'yellow';
 
-  // Map MUI color names to palette
-  const muiColor = color === 'error' ? 'error' : color === 'warning' ? 'warning' : 'warning'; // use warning for yellow
+  const muiColor = color === 'error' ? 'error' : color === 'warning' ? 'warning' : 'warning';
   const muiLight = color === 'error' ? 'error.light' : color === 'warning' ? 'warning.light' : 'warning.light';
   const muiMain = color === 'error' ? 'error.main' : color === 'warning' ? 'warning.main' : 'warning.main';
   const muiDark = color === 'error' ? 'error.dark' : color === 'warning' ? 'warning.dark' : 'warning.dark';
 
   return (
-    <Card 
-      sx={{ 
-        height: '100%',
-        background: `linear-gradient(135deg, ${alpha(theme.palette.background.paper, 0.9)} 0%, ${alpha(theme.palette.background.paper, 0.7)} 100%)`,
-        backdropFilter: 'blur(10px)',
-        border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
-        transition: 'transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out',
-        '&:hover': {
-          transform: 'translateY(-4px)',
-          boxShadow: theme.palette.mode === 'dark' 
-            ? `0 8px 24px ${alpha(theme.palette.primary.main, 0.3)}`
-            : theme.shadows[4],
-          borderColor: theme.palette.mode === 'dark' ? theme.palette.primary.main : undefined
-        }
-      }}
-    >
-      <CardContent>
-        <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 2 }}>
-          <Box sx={{ 
-            bgcolor: muiLight,
-            p: 1.5, 
-            borderRadius: 2,
-            mr: 2,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}>
-            {icon}
-          </Box>
-          <Box sx={{ flex: 1 }}>
-            <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
-              {title}
-            </Typography>
-            <Tooltip title={description} placement="top" arrow>
-              <Typography variant="body2" color="text.secondary" paragraph sx={{ cursor: 'pointer' }}>
-                {shortDescription}
-              </Typography>
-            </Tooltip>
-            {impact && (
-              <Typography 
-                variant="body2" 
-                sx={{ 
-                  color: muiMain,
-                  fontWeight: 500,
-                  mb: 1
-                }}
-              >
-                Impact: {impact}
-              </Typography>
-            )}
-          </Box>
-        </Box>
-        <Button 
-          variant="outlined" 
-          size="small"
-          onClick={handleDiscussInChat}
-          sx={{ 
-            mt: 2,
-            borderColor: muiMain,
-            color: muiMain,
-            '&:hover': {
-              borderColor: muiDark,
+    <>
+      <Card 
+        sx={{ 
+          height: '100%',
+          background: `linear-gradient(135deg, ${alpha(theme.palette.background.paper, 0.9)} 0%, ${alpha(theme.palette.background.paper, 0.7)} 100%)`,
+          backdropFilter: 'blur(10px)',
+          border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+          transition: 'transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out',
+          '&:hover': {
+            transform: 'translateY(-4px)',
+            boxShadow: theme.palette.mode === 'dark' 
+              ? `0 8px 24px ${alpha(theme.palette.primary.main, 0.3)}`
+              : theme.shadows[4],
+            borderColor: theme.palette.mode === 'dark' ? theme.palette.primary.main : undefined
+          }
+        }}
+      >
+        <CardContent>
+          <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 2 }}>
+            <Box sx={{ 
               bgcolor: muiLight,
+              p: 1.5, 
+              borderRadius: 2,
+              mr: 2,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              {icon}
+            </Box>
+            <Box sx={{ flex: 1 }}>
+              <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
+                {title}
+              </Typography>
+              <Tooltip title={description} placement="top" arrow>
+                <Typography variant="body2" color="text.secondary" paragraph sx={{ cursor: 'pointer' }}>
+                  {shortDescription}
+                </Typography>
+              </Tooltip>
+              {impact && (
+                <Typography 
+                  variant="body2" 
+                  sx={{ 
+                    color: muiMain,
+                    fontWeight: 500,
+                    mb: 1
+                  }}
+                >
+                  Impact: {impact}
+                </Typography>
+              )}
+            </Box>
+          </Box>
+          <Box sx={{ 
+            display: 'flex', 
+            gap: 2,
+            mt: 3,
+            '& > button': {
+              flex: 1
             }
-          }}
-        >
-          Discuss in Chat
-        </Button>
-      </CardContent>
-    </Card>
+          }}>
+            <Button 
+              variant="outlined" 
+              size="small"
+              onClick={handleDiscussInChat}
+              sx={{ 
+                borderColor: muiMain,
+                color: muiMain,
+                '&:hover': {
+                  borderColor: muiDark,
+                  bgcolor: muiLight,
+                }
+              }}
+            >
+              Discuss in Chat
+            </Button>
+            <Button 
+              variant="contained" 
+              size="small"
+              onClick={() => setShowSolution(true)}
+              sx={{ 
+                bgcolor: muiMain,
+                color: 'white',
+                '&:hover': {
+                  bgcolor: muiDark,
+                }
+              }}
+            >
+              Show Solution
+            </Button>
+          </Box>
+        </CardContent>
+      </Card>
+      <SolutionDialog
+        open={showSolution}
+        onClose={() => setShowSolution(false)}
+        title={title}
+        solution={solution}
+      />
+    </>
   );
 };
 
@@ -395,10 +445,11 @@ const AIInsights = () => {
   const { account } = useAccount();
   const [recommendations, setRecommendations] = useState<AIRecommendation[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
-  const fetchRecommendations = async () => {
+  const fetchRecommendations = async (refresh: boolean = false) => {
     if (!user?._id || !account?._id) {
       console.log('Missing user or account ID:', { userId: user?._id, accountId: account?._id });
       setLoading(false);
@@ -406,9 +457,13 @@ const AIInsights = () => {
     }
 
     try {
-      setLoading(true);
-      console.log('Fetching recommendations for user:', user._id, 'and account:', account._id);
-      const response = await getAIRecommendations(user._id, account._id);
+      if (refresh) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
+      console.log('Fetching recommendations for user:', user._id, 'and account:', account._id, 'refresh:', refresh);
+      const response = await getAIRecommendations(user._id, account._id, refresh);
       console.log('Received recommendations response:', response);
       if (response.recommendations) {
         console.log('AI Recommendations:', response.recommendations);
@@ -430,6 +485,7 @@ const AIInsights = () => {
       setRecommendations([]);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
@@ -438,7 +494,7 @@ const AIInsights = () => {
   }, [user?._id, account?._id]);
 
   const handleRefresh = () => {
-    fetchRecommendations();
+    fetchRecommendations(true);
   };
 
   const renderContent = () => {
@@ -474,9 +530,11 @@ const AIInsights = () => {
               title={recommendation.title}
               description={recommendation.problem}
               action={recommendation.chatPrompt}
+              solution={recommendation.solution}
               icon={getIconForRecommendation(recommendation.icon)}
               severity={getSeverityFromRecommendation(recommendation)}
               impact={recommendation.impact}
+              recommendation={recommendation}
             />
           </Grid>
         ))}
@@ -503,22 +561,28 @@ const AIInsights = () => {
             Generated by CloudAI · {lastUpdated ? `Updated ${lastUpdated.toLocaleTimeString()}` : 'Loading...'}
           </Typography>
         </Box>
-        <Tooltip title="Refresh recommendations">
+        <Tooltip title="Generate new recommendations">
           <IconButton 
             onClick={handleRefresh}
-            disabled={loading}
+            disabled={refreshing}
             sx={{ 
               bgcolor: 'background.paper',
               '&:hover': { bgcolor: 'background.paper' },
               transition: 'transform 0.2s',
-              transform: loading ? 'rotate(180deg)' : 'none'
+              transform: refreshing ? 'rotate(180deg)' : 'none'
             }}
           >
             <RefreshIcon />
           </IconButton>
         </Tooltip>
       </Box>
-      {renderContent()}
+      {refreshing ? (
+        <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
+          <CircularProgress />
+        </Box>
+      ) : (
+        renderContent()
+      )}
     </Box>
   );
 };

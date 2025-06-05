@@ -2,7 +2,6 @@ import * as React from 'react';
 import { Stack, Box, IconButton, Menu, MenuItem, Typography, Divider, useTheme, alpha } from '@mui/material';
 import NavbarBreadcrumbs from './NavbarBreadcrumbs';
 import ColorModeIconDropdown from '../shared-theme/ColorModeIconDropdown';
-import Search from './Search';
 import UserAvatar from './UserAvatar';
 import { useUser } from '../hooks/compatibilityHooks';
 import { useNavigate } from 'react-router-dom';
@@ -63,9 +62,10 @@ export default function Header() {
           width: '100%',
           display: 'flex',
           justifyContent: 'center',
-          alignItems: 'center'
+          alignItems: 'center',
+          minHeight: 40,
         }}>
-          <Search />
+         
         </Box>
         <Box sx={{ position: 'absolute', right: 0, display: 'flex', alignItems: 'center', gap: 1 }}>
           <ColorModeIconDropdown />

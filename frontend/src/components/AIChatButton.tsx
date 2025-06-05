@@ -12,6 +12,8 @@ import { mcpService } from '../api/mcpService';
 import { useUser } from '../hooks/compatibilityHooks';
 import { useAccount } from '../hooks/compatibilityHooks';
 import socketService from '../services/socketService';
+import ImageOutlinedIcon from '@mui/icons-material/ImageOutlined';
+import imageCompression from 'browser-image-compression';
 
 const FloatingButton = styled(MuiButton)(({ theme }) => ({
   position: 'fixed',
@@ -108,8 +110,10 @@ const ServiceStatusTooltip = styled(Box)(({ theme }) => ({
 interface Message {
   text: string;
   isUser: boolean;
-  timestamp: Date;
   error?: string;
+  imageData?: string;   
+  imageType?: string;
+  isDirectMessage?: boolean;
 }
 
 interface AIChatButtonProps {
@@ -131,7 +135,9 @@ const AIChatButton: React.FC<AIChatButtonProps> = ({ isInline = false, isOpen: p
   const theme = useTheme();
   const messagesEndRef = useRef<null | HTMLDivElement>(null);
   const [chatIsOpen, setChatIsOpen] = useState(isInline ? propIsOpen : false);
-
+  const [imageData, setImageData] = useState<string | null>(null);
+  const [imageType, setImageType] = useState<string | null>(null);
+  const [imageLoading, setImageLoading] = useState(false);
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -177,7 +183,6 @@ const AIChatButton: React.FC<AIChatButtonProps> = ({ isInline = false, isOpen: p
           const aiMessage: Message = {
             text: data.response,
             isUser: false,
-            timestamp: new Date()
           };
           
           setMessages(prev => [...prev, aiMessage]);
@@ -218,83 +223,195 @@ const AIChatButton: React.FC<AIChatButtonProps> = ({ isInline = false, isOpen: p
 
   useEffect(() => {
     const handler = (event: CustomEvent) => {
-      if (chatIsOpen) {
-        setChatIsOpen(false);
-      } else {
-        setChatIsOpen(true);
-        if (event.detail && event.detail.message) {
-          setInputMessage(`Your analysis gave me this recommendation: ${event.detail.message}\nPlease instruct me how to fix that. Thank you!`);
+      if (event.detail && event.detail.message) {
+        if (event.detail.isDirectMessage) {
+          if (event.detail.shouldOpen && !chatIsOpen) {
+            setChatIsOpen(true);
+            if (onToggle) onToggle();
+          }
+          handleDirectMessage(event.detail.message);
+        } else {
+          if (!chatIsOpen) {
+            setChatIsOpen(true);
+            setInputMessage(`Your analysis gave me this recommendation: ${event.detail.message}\nPlease instruct me how to fix that. Thank you!`);
+            if (onToggle) onToggle();
+          }
         }
       }
-      if (onToggle) onToggle();
     };
     window.addEventListener('open-ai-chat', handler as EventListener);
     return () => window.removeEventListener('open-ai-chat', handler as EventListener);
   }, [onToggle, chatIsOpen]);
 
-  const handleSendMessage = async () => {
-    if (!inputMessage.trim() || !user || !account) return;
+const SUPPORTED_IMAGE_TYPES = [
+  'image/png',
+  'image/jpeg',
+  'image/webp',
+  'image/heic',
+  'image/heif'
+];
+const MAX_IMAGE_SIZE = 20 * 1024 * 1024; // 20MB
 
-    setIsLoading(true);
-    const userMessage: Message = {
-      text: inputMessage,
-      isUser: true,
-      timestamp: new Date()
+const handleImageChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const file = event.target.files?.[0];
+  if (!file) {
+    setImageLoading(false);
+    return;
+  } 
+  if (!SUPPORTED_IMAGE_TYPES.includes(file.type)) {
+    showError('Unsupported image format. Supported: PNG, JPEG, WEBP, HEIC, HEIF.');
+    setImageLoading(false);
+    return;
+  }
+  if (file.size > MAX_IMAGE_SIZE) {
+    showError('Image is too large. Maximum size is 20MB.');
+    setImageLoading(false);
+    return;
+  }
+
+  try {
+    setImageLoading(true);
+    
+    const options = {
+      maxSizeMB: 1,
+      maxWidthOrHeight: 1920,
+      useWebWorker: true
     };
 
-    setMessages(prev => [...prev, userMessage]);
-    const messageText = inputMessage;
-    setInputMessage('');
+    const compressedFile = await imageCompression(file, options);
+    
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result as string;
+      const base64 = dataUrl.split(',')[1];
+      setImageData(base64);
+      setImageType(file.type);
+      setImageLoading(false);
+    };
+    reader.onerror = () => {
+      console.error('Error reading image file:', reader.error);
+      showError('Failed to read image file');
+      setImageLoading(false);
+    };
+    reader.readAsDataURL(compressedFile);
+  } catch (error) {
+    console.error('Error compressing image:', error);
+    showError('Failed to process image. Please try again.');
+    setImageLoading(false);
+  }
+};
 
-    if (socketConnected) {
-      try {
-        socketService.sendMessage({
-          prompt: messageText,
-          userId: user._id,
-          connectionId: account._id,
-          options: {
-            temperature: 0.7,
-            maxTokens: 150
-          }
-        });
-      } catch (error) {
-        console.error('Socket error:', error);
-        sendMessageHttp(messageText);
-      }
-    } else {
-      sendMessageHttp(messageText);
-    }
+const handleSendMessage = async () => {
+  if (!inputMessage.trim() || !user || !account) return;
+
+  setIsLoading(true);
+  const userMessage: Message = {
+    text: inputMessage,
+    isUser: true,
+    imageData: imageData || undefined,   
+    imageType: imageType || undefined 
   };
 
-  const sendMessageHttp = async (messageText: string) => {
+  const updatedMessages = [...messages, userMessage];
+  const chatHistory = updatedMessages.map(
+    (m, i) => `${i + 1}. ${m.isUser ? 'User' : 'Aurora'}: ${m.text}`
+  );
+
+  setMessages(updatedMessages);
+  setInputMessage('');
+  setImageData(null);   
+  setImageType(null);
+
+  if (socketConnected) {
     try {
-      const response = await mcpService.sendQuery(
-        messageText,
-        user!._id,
-        account!._id,
-        {
+      socketService.sendMessage({
+        prompt: inputMessage,
+        userId: user._id,
+        connectionId: account._id,
+        options: {
           temperature: 0.7,
-          maxTokens: 150
-        }
-      );
-
-      const aiMessage: Message = {
-        text: response.response,
-        isUser: false,
-        timestamp: new Date()
-      };
-
-      setMessages(prev => [...prev, aiMessage]);
+          maxTokens: 2000
+        },
+        chatHistory,
+        imageData: imageData || undefined,
+        imageType: imageType || undefined
+      });
     } catch (error) {
-      showError(error instanceof Error ? error.message : 'Failed to send message');
-    } finally {
-      setIsLoading(false);
+      console.error('Socket error:', error);
+      sendMessageHttp(inputMessage, chatHistory);
     }
+  } else {
+    sendMessageHttp(inputMessage, chatHistory);
+  }
+};
+
+const sendMessageHttp = async (messageText: string, chatHistory: string[]) => {
+  try {
+    const response = await mcpService.sendQuery(
+      messageText,
+      user!._id,
+      account!._id,
+      {
+        temperature: 0.7,
+        maxTokens: 2000
+      },
+      chatHistory, 
+      imageData || undefined,   
+      imageType || undefined    
+    );
+
+    const aiMessage: Message = {
+      text: response.response,
+      isUser: false
+    };
+    setMessages(prev => [...prev, aiMessage]);
+  } catch (error) {
+    showError(error instanceof Error ? error.message : 'Failed to send message');
+  } finally {
+    setIsLoading(false);
+  }
+};
+
+const handleDirectMessage = async (messageText: string) => {
+  if (!user || !account) return;
+
+  setIsLoading(true);
+  const userMessage: Message = {
+    text: messageText,
+    isUser: true,
+    isDirectMessage: true
   };
 
-  const formatTime = (date: Date) => {
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  };
+  // Ensure chat is open
+  if (!chatIsOpen) {
+    setChatIsOpen(true);
+    if (onToggle) onToggle();
+  }
+
+  // First update messages
+  setMessages(prev => [...prev, userMessage]);
+
+  // Then create chat history and send message
+  const updatedMessages = [...messages, userMessage];
+  const chatHistory = updatedMessages.map(
+    (m, i) => `${i + 1}. ${m.isUser ? 'User' : 'Aurora'}: ${m.text}`
+  );
+
+  if (socketConnected) {
+    socketService.sendMessage({
+      prompt: messageText,
+      userId: user._id,
+      connectionId: account._id,
+      options: {
+        temperature: 0.7,
+        maxTokens: 2000
+      },
+      chatHistory
+    });
+  } else {
+    sendMessageHttp(messageText, chatHistory);
+  }
+};
 
   const getTooltipTitle = () => {
     if (!user) {
@@ -361,13 +478,26 @@ const AIChatButton: React.FC<AIChatButtonProps> = ({ isInline = false, isOpen: p
                       : '0 2px 8px rgba(0, 0, 0, 0.05)',
                   }}
                 >
-                  <Typography variant="body2">
-                    {message.isUser ? (
-                      message.text
-                    ) : (
+                  {message.isUser ? (
+                    <Box>
+                      <Typography variant="body2">
+                        {message.isDirectMessage ? 'Analyzing your infrastructure issue...' : message.text}
+                      </Typography>
+                      {message.imageData && message.imageType && (
+                        <Box sx={{ mt: 1 }}>
+                          <img
+                            src={`data:${message.imageType};base64,${message.imageData}`}
+                            alt="uploaded"
+                            style={{ maxWidth: 200, maxHeight: 200, borderRadius: 8 }}
+                          />
+                        </Box>
+                      )}
+                    </Box>
+                  ) : (
+                    <Box>
                       <ReactMarkdown
                         components={{
-                          p: ({ children }) => <Typography variant="body2" component="p" color="inherit">{children}</Typography>,
+                          p: ({ children }) => <Typography variant="body2" component="div" sx={{ mb: 1 }}>{children}</Typography>,
                           h1: ({ children }) => <Typography variant="h1" component="h1" color="inherit">{children}</Typography>,
                           h2: ({ children }) => <Typography variant="h2" component="h2" color="inherit">{children}</Typography>,
                           h3: ({ children }) => <Typography variant="h3" component="h3" color="inherit">{children}</Typography>,
@@ -443,8 +573,8 @@ const AIChatButton: React.FC<AIChatButtonProps> = ({ isInline = false, isOpen: p
                       >
                         {message.text}
                       </ReactMarkdown>
-                    )}
-                  </Typography>
+                    </Box>
+                  )}
                   {message.error && (
                     <Typography
                       variant="caption"
@@ -482,6 +612,43 @@ const AIChatButton: React.FC<AIChatButtonProps> = ({ isInline = false, isOpen: p
         </ChatMessages>
 
         <ChatInput>
+           {imageData && imageType && (
+    <Box
+      sx={{
+        display: 'flex',
+        alignItems: 'center',
+        mb: 1,
+        position: 'relative',
+        maxWidth: 120,
+        maxHeight: 120,
+        borderRadius: 2,
+        background: theme.palette.mode === 'dark' ? '#222' : '#f5f5f5',
+        border: `1px solid ${theme.palette.divider}`,
+        p: 0.5,
+      }}
+    >
+      <img
+        src={`data:${imageType};base64,${imageData}`}
+        alt="preview"
+        style={{ maxWidth: 100, maxHeight: 100, borderRadius: 6 }}
+      />
+      <IconButton
+        size="small"
+        sx={{
+          position: 'absolute',
+          top: 2,
+          right: 2,
+          background: 'rgba(255,255,255,0.7)'
+        }}
+        onClick={() => {
+          setImageData(null);
+          setImageType(null);
+        }}
+      >
+        <CloseIcon fontSize="small" />
+      </IconButton>
+    </Box>
+  )}
           <TextField
             fullWidth
             size="small"
@@ -504,6 +671,26 @@ const AIChatButton: React.FC<AIChatButtonProps> = ({ isInline = false, isOpen: p
               },
             }}
           />
+          {/* Hidden file input for image upload */}
+          <input
+          accept="image/*"
+          style={{ display: 'none' }}
+          id="chat-image-upload"
+          type="file"
+          onChange={handleImageChange}
+          onClick={e => { (e.target as HTMLInputElement).value = ''; }}
+          />
+          <label htmlFor="chat-image-upload">
+         <Tooltip title="Add Image" arrow>
+    <IconButton component="span" disabled={imageLoading}>
+      {imageLoading ? (
+        <CircularProgress size={24} />
+      ) : (
+        <ImageOutlinedIcon fontSize="medium" />
+      )}
+    </IconButton>
+  </Tooltip>
+</label>
           <IconButton
             color="primary"
             onClick={() => handleSendMessage()}

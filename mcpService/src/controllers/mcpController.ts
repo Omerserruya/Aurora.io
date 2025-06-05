@@ -13,7 +13,7 @@ export const mcpController = {
     try {
       logger.info(`[${requestId}] Processing request`);
       
-      const { prompt, userId, connectionId, options = {} } = req.body;
+      const { prompt, userId, connectionId, options = {},chatHistory = [], imageData = '' ,imageType = '' } = req.body;
       
       if (!prompt || !userId) {
         res.status(400).json({ error: 'Missing required parameters' });
@@ -33,18 +33,16 @@ export const mcpController = {
       
       if (context.error) {
         logger.warn(`[${requestId}] Context error: ${context.error}`);
-        res.status(200).json({ 
-          response: context.error,
-          type: 'error'
-        });
-        return;
       }
       logger.log('Context:', context);
       // Generate response using Gemini
       const response = await modelService.generateResponse(
         prompt, 
         context.text, 
-        { ...options, format: 'text' } // Specify text format for chat
+        { ...options, format: 'text' }, // Specify text format for chat
+        chatHistory,
+        imageData,
+        imageType
       );
       
       // Capture metrics

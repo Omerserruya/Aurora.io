@@ -24,8 +24,11 @@ export const authentification = (req: Request, res: Response, next: NextFunction
     // Verify token
     const decoded = jwt.verify(token, process.env.JWT_SECRET_KEY || 'default-secret-key') as any;
     
-    // Add user ID to request params for route handlers
-    req.params.userId = decoded.id;
+    // Add user ID to request params for route handlers (for compatibility)
+    req.params.userId = decoded.userId;
+    
+    // Also add to a custom property for easier access
+    (req as any).authenticatedUserId = decoded.userId;
     
     next();
   } catch (error) {

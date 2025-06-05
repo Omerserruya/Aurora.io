@@ -4,6 +4,7 @@ export interface AIRecommendation {
     title: string;
     problem: string;
     impact: string;
+    solution: string;
     color: 'error' | 'warning' | 'success' | 'info';
     icon: string;
     chatPrompt: string;
@@ -23,7 +24,7 @@ const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 let lastRequestTime = 0;
 let pendingRequest: Promise<AIRecommendationsResponse> | null = null;
 
-export const getAIRecommendations = async (userId: string, connectionId: string): Promise<AIRecommendationsResponse> => {
+export const getAIRecommendations = async (userId: string, connectionId: string, refresh: boolean = false): Promise<AIRecommendationsResponse> => {
     const now = Date.now();
     
     // If there's a pending request, return it
@@ -42,7 +43,7 @@ export const getAIRecommendations = async (userId: string, connectionId: string)
     pendingRequest = (async () => {
         for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
             try {
-                const url = `${API_URL}/api/chatbot/recommendations?userId=${userId}&connectionId=${connectionId}`;
+                const url = `${API_URL}/api/chatbot/recommendations?userId=${userId}&connectionId=${connectionId}${refresh ? '&refresh=true' : ''}`;
                 console.log(`Fetching recommendations (attempt ${attempt}/${MAX_RETRIES}) from:`, url);
                 
                 const controller = new AbortController();
