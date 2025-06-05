@@ -181,10 +181,7 @@ function Layout() {
             maxWidth: isChatOpen ? `calc(100% - ${chatWidth}px)` : '100%',
             width: '100%',
             margin: '0',
-            mt: 2,
-            pl: 10,
-            pr: 3,
-            pb: 3,
+
             transition: isDragging ? 'none' : 'max-width 0.3s ease-in-out'
           }}>
             <Outlet />

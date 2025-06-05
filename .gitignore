@@ -27,3 +27,4 @@ yarn-error.log*
 # python
 *.venv
 *.pyc
+images/tf-tests
