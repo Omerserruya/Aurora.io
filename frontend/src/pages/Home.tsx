@@ -394,7 +394,7 @@ const ResourceOverview = () => {
         <Grid item xs={12} sm={6} md={3}>
           <OverviewCard
             title="Compute"
-            value={metrics.compute.toString()}
+            value={(metrics.compute ?? 0).toString()}
             icon={<ComputeIcon sx={{ color: 'primary.main', fontSize: 28 }} />}
             color="primary"
             onClick={() => handleResourceClick('compute')}
@@ -403,7 +403,7 @@ const ResourceOverview = () => {
         <Grid item xs={12} sm={6} md={3}>
           <OverviewCard
             title="Storage"
-            value={metrics.storage.toString()}
+            value={(metrics.storage ?? 0).toString()}
             icon={<StorageIcon sx={{ color: 'info.main', fontSize: 28 }} />}
             color="info"
             onClick={() => handleResourceClick('storage')}
@@ -412,7 +412,7 @@ const ResourceOverview = () => {
         <Grid item xs={12} sm={6} md={3}>
           <OverviewCard
             title="Network"
-            value={metrics.network.toString()}
+            value={(metrics.network ?? 0).toString()}
             icon={<NetworkIcon sx={{ color: 'success.main', fontSize: 28 }} />}
             color="success"
             onClick={() => handleResourceClick('network')}
@@ -421,7 +421,7 @@ const ResourceOverview = () => {
         <Grid item xs={12} sm={6} md={3}>
           <OverviewCard
             title="Database"
-            value={metrics.database.toString()}
+            value={(metrics.database ?? 0).toString()}
             icon={<DatabaseIcon sx={{ color: 'warning.main', fontSize: 28 }} />}
             color="warning"
             onClick={() => handleResourceClick('database')}
