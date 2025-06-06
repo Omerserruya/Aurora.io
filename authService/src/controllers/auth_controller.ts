@@ -62,7 +62,7 @@ const register = async (req: Request, res: Response) => {
     }
    
     try {
-        const response = await userServiceClient.post('/add', { username, email, password, role });
+        const response = await userServiceClient.post('/internal/add', { username, email, password, role });
         return res.status(response.status).json(response.data);
 
     } catch (error: any) {

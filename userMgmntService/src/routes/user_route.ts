@@ -48,7 +48,7 @@ import fs from 'fs';
  * @swagger
  * /users/add:
  *   post:
- *     summary: Create a new user
+ *     summary: Create a new user (Admin only)
  *     tags: [Users]
  *     security:
  *       - cookieAuth: []
@@ -64,7 +64,27 @@ import fs from 'fs';
  *       401:
  *         description: Unauthorized
  */
-usersRoute.post('/add', userController.addUser);
+usersRoute.post('/add', authentification, userController.addUser);
+
+/**
+ * @swagger
+ * /users/internal/add:
+ *   post:
+ *     summary: Create a new user (Internal service only)
+ *     tags: [Users]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/User'
+ *     responses:
+ *       201:
+ *         description: User created successfully
+ *       401:
+ *         description: Unauthorized - Internal service access only
+ */
+usersRoute.post('/internal/add', internalServiceMiddleware, userController.addUser);
 
 /**
  * @swagger
@@ -84,6 +104,8 @@ usersRoute.get('/', userController.getUsers);
  *   get:
  *     summary: Get a user by ID
  *     tags: [Users]
+ *     security:
+ *       - cookieAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -94,10 +116,19 @@ usersRoute.get('/', userController.getUsers);
  *     responses:
  *       200:
  *         description: The user data
+ *       401:
+ *         description: Unauthorized
  *       404:
  *         description: User not found
  */
-usersRoute.get('/:id', userController.getUserById);
+usersRoute.get('/:id', (req: express.Request, res: express.Response, next: express.NextFunction) => {
+  // Check if it's an internal service request
+  if (req.headers['x-internal-service'] === 'true') {
+    return next();
+  }
+  // Otherwise, apply regular authentication
+  authentification(req, res, next);
+}, userController.getUserById);
 
 /**
  * @swagger
