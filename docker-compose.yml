@@ -155,6 +155,8 @@ services:
         condition: service_healthy
       mcp-service:
         condition: service_healthy
+      mail-service:
+        condition: service_healthy
     networks:
       - default
 
@@ -291,6 +293,30 @@ services:
         condition: service_healthy
     healthcheck:
       test: wget -O /dev/null -q http://localhost:4006/api/mcp/health || exit 1
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - default
+
+  mail-service:
+    build:
+      context: ./mailService
+      dockerfile: Dockerfile
+      target: production
+    environment:
+      - PORT=${PORT_MAIL:-4007}
+      - NODE_ENV=${NODE_ENV}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      - FRONTEND_URL=${FRONTEND_URL}
+      - BREVO_USER=${BREVO_USER}
+      - BREVO_PASS=${BREVO_PASS}
+      - FROM_EMAIL=${FROM_EMAIL}
+    ports:
+      - "4007:4007"
+    healthcheck:
+      test: wget -O /dev/null -q http://localhost:4007/health || exit 1
       interval: 10s
       timeout: 5s
       retries: 5
