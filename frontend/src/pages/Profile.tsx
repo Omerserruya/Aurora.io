@@ -389,8 +389,9 @@ export default function Profile() {
                 variant="outlined"
                 startIcon={<LockIcon />}
                 onClick={() => setResetPasswordDialogOpen(true)}
+                disabled={user.authProvider !== 'local'}
               >
-                Reset Password
+                Change Password
               </Button>
             </Box>
           )}
@@ -439,18 +440,23 @@ export default function Profile() {
             </Grid>
             
             <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Email"
-                name="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                error={!!errors.email}
-                helperText={errors.email}
-                disabled={!isEditing}
-                required
-              />
+              <Tooltip 
+                title={user.authProvider !== 'local' ? `Email cannot be changed for ${user.authProvider === 'google' ? 'Google' : 'GitHub'} accounts` : ''}
+                placement="top"
+              >
+                <TextField
+                  fullWidth
+                  label="Email"
+                  name="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  error={!!errors.email}
+                  helperText={errors.email}
+                  disabled={!isEditing || user.authProvider !== 'local'}
+                  required
+                />
+              </Tooltip>
             </Grid>
             
             <Grid item xs={12} md={6}>
@@ -652,7 +658,7 @@ export default function Profile() {
         maxWidth="sm"
         fullWidth
       >
-        <DialogTitle>Reset Password</DialogTitle>
+        <DialogTitle>Change Password</DialogTitle>
         <DialogContent>
           <Box sx={{ mt: 2 }}>
             <Grid container spacing={2}>

@@ -500,7 +500,10 @@ const AIInsights = () => {
   const renderContent = () => {
     if (loading && !lastUpdated) {
       return (
-        <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', p: 3, gap: 2 }}>
+          <Typography variant="body1" color="text.secondary">
+            Loading recommendations...
+          </Typography>
           <CircularProgress />
         </Box>
       );
@@ -577,7 +580,10 @@ const AIInsights = () => {
         </Tooltip>
       </Box>
       {refreshing ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', p: 3, gap: 2 }}>
+          <Typography variant="body1" color="text.secondary">
+            Analyzing your cloud infrastructure...
+          </Typography>
           <CircularProgress />
         </Box>
       ) : (
