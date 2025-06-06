@@ -753,6 +753,7 @@ export default function Profile() {
                   setNewPassword('');
                   setConfirmPassword('');
                   setPasswordErrors({});
+                  setIsEditing(false);
                 } catch (error: any) {
                   if (error.response?.status === 401) {
                     setPasswordErrors({
