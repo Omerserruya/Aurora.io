@@ -1,8 +1,7 @@
 import express, { Express } from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
-// Mail routes - no routes yet
-// import { mailRoutes } from './routes/mail.routes';
+import { mailRoutes } from './routes/mail.routes';
 
 const app = express();
 const corsOptions = {
@@ -34,8 +33,7 @@ app.get('/health', (req, res) => {
   res.status(200).json({ status: 'healthy' });
 });
 
-// Mail routes - no routes yet
-// app.use('/api/mail', mailRoutes); 
+app.use('/api/mail', mailRoutes); 
 
 const initApp = () => {
   return new Promise<Express>((resolve) => {
