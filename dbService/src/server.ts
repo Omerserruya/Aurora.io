@@ -13,6 +13,7 @@ import Neo4jManager from './config/neo4j';
 import neoRoutes from './routes/cloudQueryResults.routes';
 import resourceMetricsRoutes from './routes/resourceMetrics.routes';
 import aiRecommendationsRoutes from './routes/aiRecommendations.routes';
+import documentationRoutes from './routes/documentationRoutes';
 import { Neo4jService } from './services/neo4j.service';
 
 const app = express();
@@ -50,6 +51,7 @@ app.use('/aws-connections', awsConnectionRoutes);
 app.use('/neo', neoRoutes);
 app.use('/resources', resourceMetricsRoutes);
 app.use('/ai-recommendations', aiRecommendationsRoutes);
+app.use('/documentation', documentationRoutes);
 
 // Initialize database connections
 const mongoManager = MongoDBManager.getInstance();
