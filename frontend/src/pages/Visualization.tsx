@@ -938,7 +938,23 @@ const InfrastructureGraph = () => {
   }
 
   if (isLoading) {
-    return <div className="flex items-center justify-center h-full">Loading infrastructure data...</div>
+    return (
+      <Box 
+        sx={{ 
+          display: 'flex', 
+          flexDirection: 'column',
+          alignItems: 'center', 
+          justifyContent: 'center', 
+          height: '100%',
+          gap: 2
+        }}
+      >
+        <CircularProgress size={48} thickness={4} />
+        <Typography variant="h6" color="text.secondary">
+          Loading infrastructure data...
+        </Typography>
+      </Box>
+    )
   }
 
   return (
