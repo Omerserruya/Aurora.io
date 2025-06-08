@@ -503,7 +503,7 @@ usersRoute.put('/:id/updateToken', internalServiceMiddleware, userController.upd
  *       500:
  *         description: Server error
  */
-usersRoute.get('/findByGithubId/:githubId', userController.findUserByGithubId);
+usersRoute.get('/findByGithubId/:githubId', internalServiceMiddleware, userController.findUserByGithubId);
 
 /**
  * @swagger
@@ -533,7 +533,7 @@ usersRoute.get('/findByGithubId/:githubId', userController.findUserByGithubId);
  *       500:
  *         description: Server error
  */
-usersRoute.get('/findByGoogleId/:googleId', userController.findUserByGoogleId);
+usersRoute.get('/findByGoogleId/:googleId', internalServiceMiddleware, userController.findUserByGoogleId);
 
 /**
  * @swagger
