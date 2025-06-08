@@ -90,65 +90,61 @@ export const deleteAwsConnection = async (connectionId: string): Promise<void> =
   }
 };
 
-export const validateAwsCredentials = async (credentials: {
+export const validateAwsCredentials = async (awsCredentials: {
   accessKeyId: string;
   secretAccessKey: string;
   region: string;
-}) => {
+  sessionToken?: string;
+}): Promise<{ valid: boolean; message: string; containerId?: string }> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/aws-connections/validate`, {
+    // Log validation attempt for debugging
+    console.log('Validating AWS credentials for region:', awsCredentials.region);
+
+    // Format the credentials as required by the API
+    const payload = {
+      awsCredentials: {
+        AWS_ACCESS_KEY_ID: awsCredentials.accessKeyId,
+        AWS_SECRET_ACCESS_KEY: awsCredentials.secretAccessKey,
+        AWS_REGION: awsCredentials.region
+      }
+    };
+
+    // Call the validation API
+    const response = await fetch(`${CLOUDQUERY_SERVICE_URL}/validate`, {
       method: 'POST',
       credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(credentials),
+      body: JSON.stringify(payload),
     });
 
-    if (!response.ok) {
-      throw new Error(`Failed to validate AWS credentials: ${response.status} ${response.statusText}`);
+    // If response is successful and has JSON data
+    if (response.ok) {
+      const data = await response.json();
+
+      // If we have a containerId, validation was successful
+      if (data && data.containerId) {
+        return { 
+          valid: true, 
+          message: 'Credentials verified successfully',
+          containerId: data.containerId
+        };
+      }
     }
 
-    return await response.json();
+    // For any other case (errors, invalid response, etc.), return "Invalid credentials"
+    return { 
+      valid: false, 
+      message: 'Invalid credentials'
+    };
   } catch (error) {
+    // Catch all errors with a single error message
     console.error('Error validating AWS credentials:', error);
-    throw error;
-  }
-};
-
-export const validateAwsCredentialsCloud = async (credentials: {
-  accessKeyId: string;
-  secretAccessKey: string;
-  region: string;
-}, userId?: string) => {
-  try {
-    // Get userId from localStorage if not provided
-    const uid = userId || localStorage.getItem('user_id');
-    if (!uid) throw new Error('No user ID found for validation');
-    const response = await fetch('/api/cloud/validate', {
-      method: 'POST',
-      credentials: 'include',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        userID: uid,
-        awsCredentials: {
-          AWS_ACCESS_KEY_ID: credentials.accessKeyId,
-          AWS_SECRET_ACCESS_KEY: credentials.secretAccessKey,
-          AWS_REGION: credentials.region
-        }
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to validate AWS credentials: ${response.status} ${response.statusText}`);
-    }
-
-    return await response.json();
-  } catch (error) {
-    console.error('Error validating AWS credentials (cloud):', error);
-    throw error;
+    return { 
+      valid: false, 
+      message: 'Invalid credentials'
+    };
   }
 };
 

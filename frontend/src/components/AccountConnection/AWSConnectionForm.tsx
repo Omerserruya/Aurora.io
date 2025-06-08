@@ -2,7 +2,6 @@ import React from 'react';
 import { Box, Stepper, Step, StepLabel, Button, Paper } from '@mui/material';
 import AboutStep from './AboutStep';
 import CredentialsStep from './CredentialsStep';
-import AccountsStep from './AccountsStep';
 import OverviewStep from './OverviewStep';
 import { AWSConnectionFormData, AWSConnection } from '../../types/awsConnection';
 import { useUser } from '../../hooks/compatibilityHooks';
@@ -12,7 +11,6 @@ const steps = [
   { label: 'About', description: 'Connection Details' },
   { label: 'Credentials', description: 'AWS Credentials' },
   { label: 'Validate', description: 'Validate Credentials' },
-  { label: 'Accounts', description: 'Select Accounts' },
   { label: 'Overview', description: 'Review & Create' }
 ];
 
@@ -178,18 +176,6 @@ export default function AWSConnectionForm({ onSubmit, onCancel }: AWSConnectionF
           />
         );
       case 3:
-        return (
-          <AccountsStep
-            formData={formData.step3}
-            onChange={(data) => handleStepChange(2, data)}
-            credentials={{
-              accessKeyId: formData.step2.accessKeyId,
-              secretAccessKey: formData.step2.secretAccessKey,
-              region: formData.step1.region
-            }}
-          />
-        );
-      case 4:
         return (
           <OverviewStep
             formData={formData}
