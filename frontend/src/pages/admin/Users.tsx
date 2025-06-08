@@ -288,7 +288,7 @@ export default function Users() {
   };
 
   return (
-    <Box sx={{ width: '100%', mx: 'auto', px: 2 }}>
+    <Box sx={{ width: '100%', mx: 'auto', px: 2, padding: 3 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
         <Typography variant="h4" component="h1">
           User Management
