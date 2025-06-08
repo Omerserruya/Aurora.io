@@ -13,7 +13,7 @@ import {
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import { AWSConnection } from '../../types/awsConnection';
-import { validateAwsCredentialsCloud } from '../../api/awsConnectionApi';
+import { validateAwsCredentials, executeCloudQuery } from '../../api/awsConnectionApi';
 
 interface EditAccountDialogProps {
   open: boolean;
@@ -67,7 +67,7 @@ export default function EditAccountDialog({
     setValidationError(null);
 
     try {
-      const result = await validateAwsCredentialsCloud({
+      const result = await validateAwsCredentials({
         accessKeyId,
         secretAccessKey,
         region: connection.credentials.region
@@ -75,6 +75,16 @@ export default function EditAccountDialog({
 
       if (result.valid) {
         await handleSubmit();
+        // Execute cloud query for updated credentials
+        if (connection._id) {
+          try {
+            await executeCloudQuery(connection._id);
+            console.log('Cloud query started for updated connection');
+          } catch (syncError) {
+            console.error('Failed to start cloud query after credential update:', syncError);
+            // Don't throw this error as the connection was still updated successfully
+          }
+        }
       } else {
         setValidationError('Invalid credentials. Please check and try again.');
       }
