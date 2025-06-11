@@ -106,7 +106,7 @@ authRoute.post('/login', auth.login);
  *       500:
  *         description: Error during logout
  */
-authRoute.post('/logout', auth.logout);
+authRoute.post('/logout', authentification, auth.logout);
 
 /**
  * @swagger
