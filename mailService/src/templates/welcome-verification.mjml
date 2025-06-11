@@ -74,7 +74,7 @@
 
         <mj-divider border-color="#f0f0f0" padding="0 0 32px 0" />
 
-        <mj-text css-class="footer-text" align="center" padding="0">
+        <mj-text css-class="footer-text" align="center" padding="0 0 32px 0">
           © 2025 Aurora.io. All rights reserved.
         </mj-text>
       </mj-column>

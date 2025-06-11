@@ -13,12 +13,13 @@ import Register from './pages/Register';
 import VerifyEmail from './pages/VerifyEmail';
 import OAuthCallback from './components/OAuthCallback';
 import ScrollToTop from './components/ScrollToTop';
-import FirstTimeLoginHandler from './components/FirstTimeLoginHandler';
+
 import { useAppDispatch } from './store/hooks';
 import { refreshUserDetails } from './store/slices/userSlice';
 import { refreshAccountDetails } from './store/slices/accountSlice';
 import Users from './pages/admin/Users';
 import EditUser from './pages/admin/EditUser';
+import PasswordFlow from './pages/PasswordFlow';
 
 function App() {
   const dispatch = useAppDispatch();
@@ -37,28 +38,28 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/verify-email" element={<VerifyEmail />} />
+        <Route path="/set-password" element={<PasswordFlow />} />
+        <Route path="/forgot-password" element={<PasswordFlow />} />
         <Route path="/oauth/callback" element={<OAuthCallback />} />
         
-        {/* Protected routes - wrapped with FirstTimeLoginHandler */}
+        {/* Protected routes */}
         <Route path="/*" element={
-          <FirstTimeLoginHandler>
-            <Routes>
-              <Route element={<Layout />}>
-                <Route path="/" element={<Navigate to="/home" replace />} />
-                <Route path="/home" element={<Home />} />
-                <Route path="/visualization" element={<Visualization />} />
-                <Route path="/iac" element={<IAC />} />
-                <Route path="/profile" element={<Profile />} />
-                <Route path="/about" element={<About />} />
-                <Route path="/setting" element={<Settings />} />
-                
-                {/* Admin routes */}
-                <Route path="/admin/users" element={<Users />} />
-                <Route path="/admin/users/edit/:userId" element={<EditUser />} />
-                <Route path="/admin/users/create" element={<EditUser />} />
-              </Route>
-            </Routes>
-          </FirstTimeLoginHandler>
+          <Routes>
+            <Route element={<Layout />}>
+              <Route path="/" element={<Navigate to="/home" replace />} />
+              <Route path="/home" element={<Home />} />
+              <Route path="/visualization" element={<Visualization />} />
+              <Route path="/iac" element={<IAC />} />
+              <Route path="/profile" element={<Profile />} />
+              <Route path="/about" element={<About />} />
+              <Route path="/setting" element={<Settings />} />
+              
+              {/* Admin routes */}
+              <Route path="/admin/users" element={<Users />} />
+              <Route path="/admin/users/edit/:userId" element={<EditUser />} />
+              <Route path="/admin/users/create" element={<EditUser />} />
+            </Route>
+          </Routes>
         } />
       </Routes>
     </ThemeProvider>

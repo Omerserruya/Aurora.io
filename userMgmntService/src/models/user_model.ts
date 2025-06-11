@@ -14,6 +14,11 @@ export interface IUser extends Document {
   lastLogin: Date;
   emailVerified: boolean;
   verificationToken?: string;
+  otpCode?: string;
+  otpExpires?: Date;
+  otpType?: 'password_setup' | 'password_reset';
+  otpVerified?: boolean;
+  isAdminCreated?: boolean;
   createdAt?: Date;
   updatedAt?: Date;
   tokens?: string[];
@@ -67,6 +72,34 @@ const userSchema: Schema<IUser> = new mongoose.Schema({
     select: false,
     default: undefined
   },
+  otpCode: {
+    type: String,
+    required: false,
+    select: false,
+    default: undefined
+  },
+  otpExpires: {
+    type: Date,
+    required: false,
+    default: undefined
+  },
+  otpType: {
+    type: String,
+    enum: ['password_setup', 'password_reset'],
+    required: false,
+    default: undefined
+  },
+  otpVerified: {
+    type: Boolean,
+    required: false,
+    default: undefined
+  },
+  isAdminCreated: {
+    type: Boolean,
+    required: false,
+    default: false
+  },
+
   avatarUrl: {
     type: String,
     default: '',
@@ -100,10 +133,11 @@ const userSchema: Schema<IUser> = new mongoose.Schema({
   }
 }, { timestamps: true });
 
-// Custom validation to ensure at least one of password, githubId, or googleId is present
+// Custom validation to ensure at least one authentication method is present
 userSchema.pre('save', function (next) {
   if (this.isNew) {
-    if (!this.password && !this.githubId && !this.googleId) {
+    // Allow admin-created users to have no password initially
+    if (!this.password && !this.githubId && !this.googleId && !this.isAdminCreated) {
       this.invalidate('password', 'At least one of password, githubId, or googleId is required.');
     }
   }

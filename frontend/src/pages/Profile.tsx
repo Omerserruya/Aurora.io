@@ -734,6 +734,10 @@ export default function Profile() {
                 errors.confirmPassword = 'Passwords do not match';
               }
               
+              if (currentPassword === newPassword) {
+                errors.newPassword = 'New password must be different from current password';
+              }
+              
               setPasswordErrors(errors);
               
               if (Object.keys(errors).length === 0) {

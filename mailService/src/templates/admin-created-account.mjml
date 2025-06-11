@@ -66,34 +66,32 @@
         </mj-text>
 
         <mj-text font-size="16px" color="#4a4a4a" line-height="1.6" padding="0 0 24px 0">
-          An administrator has created an account for you on Aurora.io. Here are your login credentials:
+          An administrator has created an Aurora.io account for you. To get started, you need to set up your password by clicking the button below:
         </mj-text>
 
         <mj-text font-size="16px" color="#4a4a4a" line-height="1.6" padding="0 0 8px 0">
-          Email: <span style="color: #4A90E2;">{{email}}</span>
+          Your account email: <span style="color: #4A90E2;">{{email}}</span>
         </mj-text>
 
-        <mj-text font-size="16px" color="#4a4a4a" line-height="1.6" padding="0 0 16px 0">
-          Default Password:
+        <mj-button background-color="#4A90E2" color="white" href="{{setupUrl}}" padding="0 0 32px 0" border-radius="6px" font-weight="bold">
+          Set Up Your Password
+        </mj-button>
+
+        <mj-text font-size="14px" color="#666666" line-height="1.5" padding="0 0 24px 0">
+          If the button doesn't work, you can also copy and paste this link into your browser:
         </mj-text>
 
-        <mj-raw>
-          <div class="password-box">
-            <div class="password-text">{{defaultPassword}}</div>
-          </div>
-        </mj-raw>
+        <mj-text font-size="14px" color="#4A90E2" line-height="1.5" padding="0 0 16px 0">
+          {{setupUrl}}
+        </mj-text>
 
         <mj-text font-size="14px" color="#666666" line-height="1.5" padding="0 0 16px 0">
-          For security reasons, please change your password after your first login.
+          Once you set up your password, you'll be able to access all Aurora.io features.
         </mj-text>
-
-        <mj-button background-color="#4A90E2" color="white" href="https://aurora-io.cs.colman.ac.il/login" padding="0 0 32px 0" border-radius="6px" font-weight="bold">
-          Login to Your Account
-        </mj-button>
 
         <mj-divider border-color="#f0f0f0" padding="0 0 32px 0" />
 
-        <mj-text css-class="footer-text" align="center" padding="0">
+        <mj-text css-class="footer-text" align="center" padding="0 0 32px 0">
           © 2025 Aurora.io. All rights reserved.
         </mj-text>
       </mj-column>
