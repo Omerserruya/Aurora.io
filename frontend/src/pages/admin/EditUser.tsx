@@ -14,7 +14,8 @@ import {
   Alert,
   FormHelperText,
   SelectChangeEvent,
-  Divider
+  Divider,
+  Tooltip
 } from '@mui/material';
 
 // User type definition
@@ -317,17 +318,23 @@ export default function EditUser() {
             </Grid>
             
             <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Email"
-                name="email"
-                type="email"
-                value={user.email}
-                onChange={handleInputChange}
-                error={!!errors.email}
-                helperText={errors.email}
-                required
-              />
+              <Tooltip 
+                title={user.authProvider !== 'local' ? `Email cannot be changed for ${user.authProvider === 'google' ? 'Google' : 'GitHub'} accounts` : ''}
+                placement="top"
+              >
+                <TextField
+                  fullWidth
+                  label="Email"
+                  name="email"
+                  type="email"
+                  value={user.email}
+                  onChange={handleInputChange}
+                  error={!!errors.email}
+                  helperText={errors.email}
+                  disabled={user.authProvider !== 'local'}
+                  required
+                />
+              </Tooltip>
             </Grid>
             
             <Grid item xs={12} md={6}>
