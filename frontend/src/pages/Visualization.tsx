@@ -926,17 +926,35 @@ const InfrastructureGraph = () => {
   // Show a message if no account is selected
   if (!account?._id) {
     return (
+      <Box sx={{ padding: 3, textAlign: 'center', height: '100%' }}>
       <div className="flex items-center justify-center h-full">
         <div className="text-center">
           <h2 className="text-xl font-semibold mb-2">No Account Selected</h2>
           <p className="text-gray-600">Please select an AWS account to view its infrastructure.</p>
         </div>
       </div>
+      </Box>
     );
   }
 
   if (isLoading) {
-    return <div className="flex items-center justify-center h-full">Loading infrastructure data...</div>
+    return (
+      <Box 
+        sx={{ 
+          display: 'flex', 
+          flexDirection: 'column',
+          alignItems: 'center', 
+          justifyContent: 'center', 
+          height: '100%',
+          gap: 2
+        }}
+      >
+        <CircularProgress size={48} thickness={4} />
+        <Typography variant="h6" color="text.secondary">
+          Loading infrastructure data...
+        </Typography>
+      </Box>
+    )
   }
 
   return (

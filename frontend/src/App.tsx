@@ -13,22 +13,28 @@ import Register from './pages/Register';
 import VerifyEmail from './pages/VerifyEmail';
 import OAuthCallback from './components/OAuthCallback';
 import ScrollToTop from './components/ScrollToTop';
-
-import { useAppDispatch } from './store/hooks';
+import { useAppDispatch, useAppSelector } from './store/hooks';
 import { refreshUserDetails } from './store/slices/userSlice';
-import { refreshAccountDetails } from './store/slices/accountSlice';
+import { initializeAccountFromStorage } from './store/slices/accountSlice';
 import Users from './pages/admin/Users';
 import EditUser from './pages/admin/EditUser';
 import PasswordFlow from './pages/PasswordFlow';
 
 function App() {
   const dispatch = useAppDispatch();
+  const user = useAppSelector((state) => state.user.user);
 
-  // Load user and account data on app start
+  // Load user data on app start
   useEffect(() => {
     dispatch(refreshUserDetails());
-    dispatch(refreshAccountDetails());
   }, [dispatch]);
+
+  // Initialize account from storage when user becomes available
+  useEffect(() => {
+    if (user?._id) {
+      dispatch(initializeAccountFromStorage(user._id));
+    }
+  }, [dispatch, user?._id]);
 
   return (
     <ThemeProvider>
