@@ -74,15 +74,24 @@ export default function SelectContent() {
   // Set initial values from persisted state when user becomes available
   React.useEffect(() => {
     if (userId) {
-      const id = getPersistedAccountId(userId);
-      const name = getPersistedAccountName(userId);
-      setSelectedAccount(id);
-      setSelectedAccountName(name);
+      // Only set from localStorage if there's no account in Redux yet
+      if (!account) {
+        const id = getPersistedAccountId(userId);
+        const name = getPersistedAccountName(userId);
+        setSelectedAccount(id);
+        setSelectedAccountName(name);
+      } else {
+        // If account is set in Redux but local state doesn't match, update local state
+        if (selectedAccount !== account._id) {
+          setSelectedAccount(account._id);
+          setSelectedAccountName(account.name);
+        }
+      }
     } else {
       setSelectedAccount('');
       setSelectedAccountName('Account');
     }
-  }, [userId]);
+  }, [userId, account, selectedAccount]);
   
   // Fetch AWS connections on mount and when account changes
   React.useEffect(() => {

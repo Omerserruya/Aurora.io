@@ -236,11 +236,13 @@ Please help me understand and implement this solution.`;
               size="small"
               onClick={handleDiscussInChat}
               sx={{ 
-                borderColor: muiMain,
-                color: muiMain,
+                borderColor: alpha(theme.palette.text.primary, 0.23),
+                color: theme.palette.text.primary,
+                bgcolor: alpha(theme.palette.text.primary, 0.04),
                 '&:hover': {
-                  borderColor: muiDark,
-                  bgcolor: muiLight,
+                  borderColor: alpha(theme.palette.text.primary, 0.5),
+                  bgcolor: alpha(theme.palette.text.primary, 0.08),
+                  color: theme.palette.text.primary,
                 }
               }}
             >
@@ -253,6 +255,7 @@ Please help me understand and implement this solution.`;
               sx={{ 
                 bgcolor: muiMain,
                 color: 'white',
+                fontWeight: 700,
                 '&:hover': {
                   bgcolor: muiDark,
                 }

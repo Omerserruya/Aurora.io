@@ -1,5 +1,5 @@
 import { useAppSelector, useAppDispatch } from '../store/hooks';
-import { setAccount, clearAccount, refreshAccountDetails } from '../store/slices/accountSlice';
+import { setAccount, clearAccount, refreshAccountDetails, initializeAccountFromStorage } from '../store/slices/accountSlice';
 import type { Account } from '../store/slices/accountSlice';
 
 export const useReduxAccount = () => {
@@ -12,6 +12,7 @@ export const useReduxAccount = () => {
     error,
     setAccount: (account: Account | null) => dispatch(setAccount(account)),
     clearAccount: () => dispatch(clearAccount()),
-    refreshAccountDetails: () => dispatch(refreshAccountDetails())
+    refreshAccountDetails: () => dispatch(refreshAccountDetails()),
+    initializeAccountFromStorage: (userId: string) => dispatch(initializeAccountFromStorage(userId))
   };
 }; 
