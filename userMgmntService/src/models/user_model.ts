@@ -12,11 +12,13 @@ export interface IUser extends Document {
   role?: string;
   authProvider: 'google' | 'github' | 'local';
   lastLogin: Date;
-  firstTimeLogin?: boolean;
+  emailVerified: boolean;
+  verificationToken?: string;
   createdAt?: Date;
   updatedAt?: Date;
   tokens?: string[];
   likedPosts?: string[];
+
   comparePassword(candidatePassword: string): Promise<boolean>;
 }
 
@@ -51,13 +53,19 @@ const userSchema: Schema<IUser> = new mongoose.Schema({
     type: Date,
     default: Date.now
   },
-  firstTimeLogin: {
+  emailVerified: {
     type: Boolean,
     default: function(this: IUser) {
-      // Only set to true for local auth provider users
-      return this.authProvider === 'local';
+      // Auto-verify email for social login users
+      return this.authProvider !== 'local';
     },
-    required: false
+    required: true
+  },
+  verificationToken: {
+    type: String,
+    required: false,
+    select: false,
+    default: undefined
   },
   avatarUrl: {
     type: String,

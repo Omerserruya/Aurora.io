@@ -10,6 +10,7 @@ import ThemeProvider from './theme/ThemeProvider';
 import Layout from './components/Layout';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import VerifyEmail from './pages/VerifyEmail';
 import OAuthCallback from './components/OAuthCallback';
 import ScrollToTop from './components/ScrollToTop';
 import FirstTimeLoginHandler from './components/FirstTimeLoginHandler';
@@ -35,6 +36,7 @@ function App() {
         {/* Auth routes - outside FirstTimeLoginHandler */}
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/verify-email" element={<VerifyEmail />} />
         <Route path="/oauth/callback" element={<OAuthCallback />} />
         
         {/* Protected routes - wrapped with FirstTimeLoginHandler */}

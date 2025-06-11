@@ -557,27 +557,30 @@ usersRoute.post('/reset-password', authentification, userController.resetPasswor
 
 /**
  * @swagger
- * /users/profile/me:
- *   get:
- *     summary: Get current user profile
- *     description: Get the authenticated user's profile information including firstTimeLogin status
+ * /users/verify-email:
+ *   post:
+ *     summary: Verify user's email
  *     tags: [Users]
- *     security:
- *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - token
+ *             properties:
+ *               token:
+ *                 type: string
+ *                 description: The verification token
  *     responses:
  *       200:
- *         description: User profile retrieved successfully
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/User'
- *       401:
- *         description: Unauthorized - user not authenticated
+ *         description: Email verified successfully
+ *       400:
+ *         description: Invalid request
  *       404:
- *         description: User not found
- *       500:
- *         description: Server error
+ *         description: Invalid token
  */
-usersRoute.get('/profile/me', authentification, userController.getUserProfile);
+usersRoute.post('/verify-email', userController.verifyEmail);
 
 export default usersRoute;

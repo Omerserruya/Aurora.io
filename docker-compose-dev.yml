@@ -75,6 +75,8 @@ services:
       - MONGODB_PASSWORD=${MONGODB_PASSWORD}
       - MONGODB_DATABASE=${MONGODB_DATABASE}
       - ENV_URL=${ENV_URL}
+      - MAIL_SERVICE_URL=${MAIL_SERVICE_URL}
+      - FRONTEND_URL=${FRONTEND_URL}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     ports:
