@@ -15,11 +15,8 @@ import {
   FormHelperText,
   SelectChangeEvent,
   Divider,
-  Breadcrumbs,
-  Link,
-  Autocomplete
+  Tooltip
 } from '@mui/material';
-import LockResetIcon from '@mui/icons-material/LockReset';
 
 // User type definition
 interface User {
@@ -29,18 +26,15 @@ interface User {
   authProvider: 'google' | 'github' | 'local';
   lastLogin: string;
   username: string;
-  password?: string;
-  firstTimeLogin?: boolean;
 }
 
 interface FormErrors {
   email?: string;
   role?: string;
   username?: string;
-  password?: string;
 }
 
-const DEFAULT_FIRST_TIME_LOGIN_PASSWORD = 'Aa123456'; // Default password for new users
+
 
 export default function EditUser() {
   const { userId } = useParams<{ userId: string }>();
@@ -48,12 +42,9 @@ export default function EditUser() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [resettingPassword, setResettingPassword] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
-  const [passwordResetSuccess, setPasswordResetSuccess] = useState(false);
-  const [passwordResetError, setPasswordResetError] = useState<string | null>(null);
 
   const fetchUserById = async (id: string): Promise<User> => {
     const response = await fetch(`/api/users/${id}`, {
@@ -72,12 +63,11 @@ export default function EditUser() {
   };
 
   const createUser = async (userData: Partial<User>): Promise<User> => {
-    // Prepare user data for creation
+    // Prepare user data for creation (no password - user will set via setup link)
     const createData = {
       username: userData.username,
       email: userData.email,
       role: userData.role,
-      password: userData.password,
       authProvider: userData.authProvider || 'local'
     };
 
@@ -86,6 +76,7 @@ export default function EditUser() {
       credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
+        'X-Internal-Service': 'true'
       },
       body: JSON.stringify(createData),
     });
@@ -122,33 +113,19 @@ export default function EditUser() {
     return await response.json();
   };
 
-  const resetUserPassword = async (id: string): Promise<void> => {
-    const response = await fetch(`/api/users/${id}/reset-password`, {
-      method: 'POST',
-      credentials: 'include',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
 
-    if (!response.ok) {
-      throw new Error('Failed to reset password');
-    }
-  };
 
   useEffect(() => {
     const loadUser = async () => {
       if (!userId) {
-        // Create mode - initialize empty user with default password
+        // Create mode - initialize empty user (no password - set via setup link)
         setUser({
           _id: '',
           username: '',
           email: '',
           role: 'user',
           authProvider: 'local',
-          lastLogin: '',
-          password: DEFAULT_FIRST_TIME_LOGIN_PASSWORD,
-          firstTimeLogin: true
+          lastLogin: ''
         });
         setLoading(false);
         return;
@@ -221,14 +198,7 @@ export default function EditUser() {
       newErrors.role = 'Role is required';
     }
     
-    // Only validate password for create mode
-    if (isCreateMode) {
-      if (!user?.password?.trim()) {
-        newErrors.password = 'Password is required';
-      } else if (user.password.length < 6) {
-        newErrors.password = 'Password must be at least 6 characters long';
-      }
-    }
+    // No password validation needed - users set password via setup link
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -275,34 +245,7 @@ export default function EditUser() {
     }
   };
 
-  const handleResetPassword = async () => {
-    if (!userId) return;
 
-    const confirmReset = window.confirm(
-      'Are you sure you want to reset this user\'s password? They will receive an email with instructions to set a new password.'
-    );
-
-    if (!confirmReset) return;
-
-    try {
-      setResettingPassword(true);
-      setPasswordResetError(null);
-      setPasswordResetSuccess(false);
-
-      await resetUserPassword(userId);
-      setPasswordResetSuccess(true);
-
-      // Reset success message after 5 seconds
-      setTimeout(() => {
-        setPasswordResetSuccess(false);
-      }, 5000);
-    } catch (error) {
-      console.error('Failed to reset password:', error);
-      setPasswordResetError('Failed to reset password. Please try again.');
-    } finally {
-      setResettingPassword(false);
-    }
-  };
 
   if (loading) {
     return (
@@ -349,17 +292,7 @@ export default function EditUser() {
           </Alert>
         )}
         
-        {passwordResetSuccess && (
-          <Alert severity="success" sx={{ mb: 2 }}>
-            Password reset email has been sent to the user.
-          </Alert>
-        )}
-        
-        {passwordResetError && (
-          <Alert severity="error" sx={{ mb: 2 }}>
-            {passwordResetError}
-          </Alert>
-        )}
+
       </Box>
       
       {/* User Information Section */}
@@ -385,17 +318,23 @@ export default function EditUser() {
             </Grid>
             
             <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Email"
-                name="email"
-                type="email"
-                value={user.email}
-                onChange={handleInputChange}
-                error={!!errors.email}
-                helperText={errors.email}
-                required
-              />
+              <Tooltip 
+                title={user.authProvider !== 'local' ? `Email cannot be changed for ${user.authProvider === 'google' ? 'Google' : 'GitHub'} accounts` : ''}
+                placement="top"
+              >
+                <TextField
+                  fullWidth
+                  label="Email"
+                  name="email"
+                  type="email"
+                  value={user.email}
+                  onChange={handleInputChange}
+                  error={!!errors.email}
+                  helperText={errors.email}
+                  disabled={user.authProvider !== 'local'}
+                  required
+                />
+              </Tooltip>
             </Grid>
             
             <Grid item xs={12} md={6}>
@@ -415,23 +354,6 @@ export default function EditUser() {
                 {errors.role && <FormHelperText>{errors.role}</FormHelperText>}
               </FormControl>
             </Grid>
-
-            {/* Only show password field in create mode */}
-            {isCreateMode && (
-              <Grid item xs={12} md={6}>
-                <TextField
-                  fullWidth
-                  label="Default Password"
-                  name="password"
-                  type="text"
-                  value={user.password || 'Aa123456'}
-                  onChange={handleInputChange}
-                  error={!!errors.password}
-                  helperText={errors.password || 'Default password for the new user'}
-                  required
-                />
-              </Grid>
-            )}
           </Grid>
 
           {/* Buttons positioned on the right side */}
@@ -462,30 +384,7 @@ export default function EditUser() {
         </form>
       </Box>
       
-      {/* Security Section - only show for edit mode */}
-      {!isCreateMode && (
-        <Box sx={{ mb: 6 }}>
-          <Typography variant="h5" component="h2" fontWeight="500" gutterBottom>
-            Security Options
-          </Typography>
-          <Divider sx={{ mb: 3 }} />
-          
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Button
-              variant="outlined"
-              color="warning"
-              startIcon={<LockResetIcon />}
-              onClick={handleResetPassword}
-              disabled={resettingPassword}
-            >
-              {resettingPassword ? 'Resetting...' : 'Reset Password'}
-            </Button>
-            <Typography variant="body2" color="text.secondary">
-              This will send an email to the user with instructions to reset their password.
-            </Typography>
-          </Box>
-        </Box>
-      )}
+
       
       {/* Additional Section - Activity Information - only show for edit mode */}
       {!isCreateMode && (

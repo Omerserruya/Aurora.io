@@ -8,6 +8,7 @@ import AIChatButton from './AIChatButton';
 import { useAccount } from '../hooks/compatibilityHooks';
 import ComputerIcon from '@mui/icons-material/Computer';
 import CloudIcon from '@mui/icons-material/Cloud';
+import WarningAmberOutlinedIcon from '@mui/icons-material/WarningAmberOutlined';
 
 function Layout() {
   const { user, loading } = useUser();
@@ -169,6 +170,30 @@ function Layout() {
         {/* Header */}
         <Header />
         
+        {/* Email Verification Message */}
+        {user?.authProvider === 'local' && !user?.emailVerified && (
+          <Box sx={{
+            width: '100%',
+            p: 1,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 1,
+            bgcolor: alpha(theme.palette.warning.main, 0.1),
+            borderBottom: `1px solid ${alpha(theme.palette.warning.main, 0.2)}`
+          }}>
+            <Typography variant="caption" sx={{ 
+              color: 'warning.main',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 0.5
+            }}>
+              <WarningAmberOutlinedIcon sx={{ fontSize: 16 }} />
+              Please verify your email address. Check your inbox for the verification link.
+            </Typography>
+          </Box>
+        )}
+        
         {/* Content and Chat Container */}
         <Box sx={{ 
           display: 'flex',
@@ -181,7 +206,6 @@ function Layout() {
             maxWidth: isChatOpen ? `calc(100% - ${chatWidth}px)` : '100%',
             width: '100%',
             margin: '0',
-
             transition: isDragging ? 'none' : 'max-width 0.3s ease-in-out'
           }}>
             <Outlet />
