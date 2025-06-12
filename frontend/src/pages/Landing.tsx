@@ -767,7 +767,28 @@ const Landing = () => {
             delay={0.2}
           >
             <FeatureContent>
-              <FeatureTitle>Analytics Dashboard</FeatureTitle>
+              <FeatureTitle>Full Visibility</FeatureTitle>
+              <FeatureDescription>
+                Gain complete visibility into your cloud infrastructure with our comprehensive visualization tools. 
+                Map your entire cloud ecosystem, track resource relationships, and maintain a clear overview 
+                of your infrastructure at all times.
+              </FeatureDescription>
+            </FeatureContent>
+            <FeatureImageContainer>
+              <FeatureImage
+                src="/landing-screenshots/visualization-ai-screenshot.png"
+                alt="Aurora Full Visibility"
+              />
+            </FeatureImageContainer>
+          </FeatureSection>
+
+          <FeatureSection 
+            visible={featuresVisible} 
+            reverse={true}
+            delay={0.4}
+          >
+            <FeatureContent>
+              <FeatureTitle>AI-Powered Top Issues</FeatureTitle>
               <FeatureDescription>
                 Get comprehensive insights into your cloud infrastructure with real-time monitoring, 
                 cost analysis, and performance metrics. Track resource usage, identify optimization 
@@ -784,28 +805,29 @@ const Landing = () => {
 
           <FeatureSection 
             visible={featuresVisible} 
-            reverse={true}
-            delay={0.4}
+            delay={0.6}
           >
             <FeatureContent>
-              <FeatureTitle>AI-Powered Visualization</FeatureTitle>
+              <FeatureTitle>AI-Driven Architect</FeatureTitle>
               <FeatureDescription>
-                Leverage artificial intelligence to understand your cloud architecture visually. 
-                Our AI automatically maps your infrastructure, identifies relationships, and 
-                provides intelligent recommendations for optimization.
+                Aurora.io doesn't just visualize your cloud — it understands it. Our AI continuously analyzes your 
+                architecture to detect misconfigurations, identify design flaws, and highlight critical paths. 
+                It's like having a cloud architect baked into your infrastructure, guiding you toward smarter, 
+                safer, and more scalable decisions — in real time.
               </FeatureDescription>
             </FeatureContent>
             <FeatureImageContainer>
               <FeatureImage
-                src="/landing-screenshots/visualization-ai-screenshot.png"
-                alt="Aurora AI Visualization"
+                src="/landing-screenshots/AI-Architect.png"
+                alt="Aurora AI-Driven Architecture"
               />
             </FeatureImageContainer>
           </FeatureSection>
 
           <FeatureSection 
             visible={featuresVisible} 
-            delay={0.6}
+            reverse={true}
+            delay={0.8}
           >
             <FeatureContent>
               <FeatureTitle>Infrastructure as Code</FeatureTitle>
@@ -824,6 +846,107 @@ const Landing = () => {
           </FeatureSection>
         </FeatureShowcase>
       </SecondSection>
+
+      {/* Contact/Partnership Section */}
+      <Box
+        sx={{
+          minHeight: '60vh',
+          position: 'relative',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: { xs: '30px 20px', md: '50px 40px' },
+          background: 'transparent',
+        }}
+      >
+        <Container maxWidth="lg">
+          <Box
+            sx={{
+              textAlign: 'center',
+              color: 'white',
+              maxWidth: '800px',
+              margin: '0 auto',
+            }}
+          >
+            <Typography
+              variant="h2"
+              sx={{
+                fontSize: { xs: '2.2rem', md: '3rem' },
+                fontWeight: 'bold',
+                marginBottom: 2,
+                textShadow: '0 4px 8px rgba(0,0,0,0.4)',
+                animation: `${fadeInUp} 0.8s ease-out forwards`,
+              }}
+            >
+              Let's Shape the Future of Cloud Together
+            </Typography>
+            
+            <Typography
+              sx={{
+                fontSize: { xs: '1rem', md: '1.2rem' },
+                lineHeight: 1.6,
+                marginBottom: 3,
+                color: 'rgba(255, 255, 255, 0.9)',
+                animation: `${fadeInUp} 0.8s ease-out 0.2s forwards`,
+                opacity: 0,
+              }}
+            >
+              We're building Aurora.io alongside cloud architects, security leaders, and early believers.
+              If you're an investor, a design partner, or just excited about what we're doing — we'd love to connect.
+            </Typography>
+
+            <Box
+              sx={{
+                display: 'flex',
+                justifyContent: 'center',
+                animation: `${fadeInUp} 0.8s ease-out 0.4s forwards`,
+                opacity: 0,
+              }}
+            >
+              <Button
+                variant="contained"
+                sx={{
+                  background: 'linear-gradient(45deg, rgba(99, 149, 255, 0.3), rgba(156, 39, 176, 0.3))',
+                  color: 'white',
+                  border: '2px solid rgba(99, 149, 255, 0.5)',
+                  padding: '16px 48px',
+                  fontSize: '1.2rem',
+                  fontWeight: 600,
+                  borderRadius: '50px',
+                  backdropFilter: 'blur(10px)',
+                  position: 'relative',
+                  overflow: 'hidden',
+                  transition: 'all 0.3s ease-out',
+                  '&::before': {
+                    content: '""',
+                    position: 'absolute',
+                    top: 0,
+                    left: '-100%',
+                    width: '100%',
+                    height: '100%',
+                    background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent)',
+                    transition: 'left 0.5s',
+                  },
+                  '&:hover': {
+                    transform: 'translateY(-3px) scale(1.05)',
+                    boxShadow: '0 12px 30px rgba(99, 149, 255, 0.4)',
+                    borderColor: 'rgba(99, 149, 255, 0.8)',
+                    '&::before': {
+                      left: '100%',
+                    },
+                  },
+                  '&:active': {
+                    transform: 'translateY(-1px) scale(0.98)',
+                  },
+                }}
+                onClick={() => window.location.href = 'mailto:auroraioapp@gmail.com'}
+              >
+                Contact Us
+              </Button>
+            </Box>
+          </Box>
+        </Container>
+      </Box>
 
       {/* Scroll to Top Button */}
       <ScrollToTopButton show={showScrollTop} onClick={scrollToTop}>
