@@ -34,6 +34,21 @@ const slideUp = keyframes`
   100% { transform: translateY(0); opacity: 1; }
 `;
 
+const fadeInLeft = keyframes`
+  0% { transform: translateX(-100px); opacity: 0; }
+  100% { transform: translateX(0); opacity: 1; }
+`;
+
+const fadeInRight = keyframes`
+  0% { transform: translateX(100px); opacity: 0; }
+  100% { transform: translateX(0); opacity: 1; }
+`;
+
+const fadeInUp = keyframes`
+  0% { transform: translateY(50px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+`;
+
 const GradientBackground = styled('div')({
   position: 'fixed',
   top: 0,
@@ -159,11 +174,95 @@ const PageContainer = styled('div')({
 });
 
 const SecondSection = styled('div')({
-  height: '100vh',
+  minHeight: '150vh',
+  padding: '100px 40px',
+  position: 'relative',
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  justifyContent: 'flex-start',
+});
+
+const FeatureShowcase = styled('div')({
+  maxWidth: '1400px',
+  width: '100%',
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '120px',
+});
+
+const FeatureSection = styled('div')<{ 
+  visible: boolean; 
+  reverse?: boolean;
+  delay?: number;
+}>(({ visible, delay = 0 }) => ({
   display: 'flex',
   alignItems: 'center',
+  gap: '80px',
+  opacity: visible ? 1 : 0,
+  animation: visible 
+    ? `${fadeInUp} 0.8s ease-out ${delay}s forwards`
+    : 'none',
+  transition: 'opacity 0.3s ease-out',
+  '@media (max-width: 1024px)': {
+    flexDirection: 'column',
+    gap: '40px',
+    textAlign: 'center',
+  },
+}));
+
+const FeatureContent = styled('div')({
+  flex: 1,
+  maxWidth: '500px',
+});
+
+const FeatureImageContainer = styled('div')({
+  flex: 1,
+  display: 'flex',
   justifyContent: 'center',
-  position: 'relative',
+  alignItems: 'center',
+});
+
+const FeatureImage = styled('img')({
+  width: '750px',
+  maxWidth: '100%',
+  height: 'auto',
+  borderRadius: '20px',
+  boxShadow: '0 25px 50px rgba(0, 0, 0, 0.4)',
+  border: '3px solid rgba(255, 255, 255, 0.1)',
+  transition: 'transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+  willChange: 'transform, box-shadow',
+  '&:hover': {
+    transform: 'scale(1.03) translateY(-5px)',
+    boxShadow: '0 30px 60px rgba(0, 0, 0, 0.5)',
+  },
+});
+
+const FeatureTitle = styled('h3')({
+  color: 'white',
+  fontSize: '2.5rem',
+  fontWeight: 'bold',
+  marginBottom: '20px',
+  textShadow: '0 2px 4px rgba(0,0,0,0.5)',
+});
+
+const FeatureDescription = styled('p')({
+  color: 'rgba(255, 255, 255, 0.9)',
+  fontSize: '1.2rem',
+  lineHeight: 1.6,
+  textShadow: '0 1px 2px rgba(0,0,0,0.3)',
+  marginBottom: '0',
+});
+
+const SectionTitle = styled('h2')({
+  color: 'white',
+  fontSize: '3.5rem',
+  fontWeight: 'bold',
+  textAlign: 'center',
+  marginBottom: '60px',
+  textShadow: '0 4px 8px rgba(0,0,0,0.5)',
+  opacity: 0,
+  animation: `${fadeInUp} 0.8s ease-out 0.2s forwards`,
 });
 
 const CloudContainer = styled(Box)({
@@ -333,6 +432,8 @@ const Landing = () => {
   const [buttonTransform, setButtonTransform] = useState('');
   const buttonRef = useRef<HTMLButtonElement>(null);
   const buttonContainerRef = useRef<HTMLDivElement>(null);
+  const [featuresVisible, setFeaturesVisible] = useState(false);
+  const featuresRef = useRef<HTMLDivElement>(null);
 
   const logoPath = theme.palette.mode === 'dark' 
     ? '/aurora-dark.png'
@@ -384,6 +485,33 @@ const Landing = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [isAutoScrolling, hasTriggeredAutoScroll]);
 
+  // Intersection Observer for features section
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            setFeaturesVisible(true);
+          }
+        });
+      },
+      {
+        threshold: 0.3, // Trigger when 30% of the section is visible
+        rootMargin: '0px 0px -100px 0px', // Start animation 100px before the section comes into view
+      }
+    );
+
+    if (featuresRef.current) {
+      observer.observe(featuresRef.current);
+    }
+
+    return () => {
+      if (featuresRef.current) {
+        observer.unobserve(featuresRef.current);
+      }
+    };
+  }, []);
+
   const handleLogin = () => {
     navigate('/login');
   };
@@ -408,11 +536,21 @@ const Landing = () => {
   };
 
   const scrollToSecondSection = () => {
-    const windowHeight = window.innerHeight;
-    window.scrollTo({
-      top: windowHeight,
-      behavior: 'smooth'
-    });
+    // Prevent auto-scroll when explicitly clicking explore button
+    setIsAutoScrolling(true);
+    setHasTriggeredAutoScroll(true);
+    
+    if (featuresRef.current) {
+      featuresRef.current.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start'
+      });
+    }
+    
+    // Reset after scroll completes
+    setTimeout(() => {
+      setIsAutoScrolling(false);
+    }, 1000);
   };
 
   const handleMouseMove = (e: React.MouseEvent) => {
@@ -562,11 +700,73 @@ const Landing = () => {
 
       </Box>
 
-      {/* Second Section - Placeholder for future content */}
-      <SecondSection>
-        <Typography variant="h3" sx={{ color: 'white', textAlign: 'center' }}>
-          More content coming soon...
-        </Typography>
+      {/* Second Section - Features Showcase */}
+      <SecondSection ref={featuresRef}>
+        <SectionTitle>
+          Powerful Features at Your Fingertips
+        </SectionTitle>
+        
+        <FeatureShowcase>
+          <FeatureSection 
+            visible={featuresVisible} 
+            delay={0.2}
+          >
+            <FeatureContent>
+              <FeatureTitle>Analytics Dashboard</FeatureTitle>
+              <FeatureDescription>
+                Get comprehensive insights into your cloud infrastructure with real-time monitoring, 
+                cost analysis, and performance metrics. Track resource usage, identify optimization 
+                opportunities, and make data-driven decisions.
+              </FeatureDescription>
+            </FeatureContent>
+            <FeatureImageContainer>
+              <FeatureImage
+                src="/landing-screenshots/home-stats-screenshot.png"
+                alt="Aurora Analytics Dashboard"
+              />
+            </FeatureImageContainer>
+          </FeatureSection>
+
+          <FeatureSection 
+            visible={featuresVisible} 
+            delay={0.4}
+          >
+            <FeatureContent>
+              <FeatureTitle>AI-Powered Visualization</FeatureTitle>
+              <FeatureDescription>
+                Leverage artificial intelligence to understand your cloud architecture visually. 
+                Our AI automatically maps your infrastructure, identifies relationships, and 
+                provides intelligent recommendations for optimization.
+              </FeatureDescription>
+            </FeatureContent>
+            <FeatureImageContainer>
+              <FeatureImage
+                src="/landing-screenshots/visualization-ai-screenshot.png"
+                alt="Aurora AI Visualization"
+              />
+            </FeatureImageContainer>
+          </FeatureSection>
+
+          <FeatureSection 
+            visible={featuresVisible} 
+            delay={0.6}
+          >
+            <FeatureContent>
+              <FeatureTitle>Infrastructure as Code</FeatureTitle>
+              <FeatureDescription>
+                Transform your cloud management with intelligent Infrastructure as Code generation. 
+                Aurora automatically creates and maintains your IaC templates, ensuring consistency, 
+                version control, and best practices across your entire infrastructure.
+              </FeatureDescription>
+            </FeatureContent>
+            <FeatureImageContainer>
+              <FeatureImage
+                src="/landing-screenshots/iac-screenshot.png"
+                alt="Aurora Infrastructure as Code"
+              />
+            </FeatureImageContainer>
+          </FeatureSection>
+        </FeatureShowcase>
       </SecondSection>
 
       {/* Scroll to Top Button */}
