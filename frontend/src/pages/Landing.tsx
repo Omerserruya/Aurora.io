@@ -427,8 +427,6 @@ const Landing = () => {
   const navigate = useNavigate();
   const theme = useTheme();
   const [showScrollTop, setShowScrollTop] = useState(false);
-  const [isAutoScrolling, setIsAutoScrolling] = useState(false);
-  const [hasTriggeredAutoScroll, setHasTriggeredAutoScroll] = useState(false);
   const [buttonTransform, setButtonTransform] = useState('');
   const buttonRef = useRef<HTMLButtonElement>(null);
   const buttonContainerRef = useRef<HTMLDivElement>(null);
@@ -443,47 +441,14 @@ const Landing = () => {
     const handleScroll = () => {
       const scrollTop = window.pageYOffset;
       const windowHeight = window.innerHeight;
-      const documentHeight = document.documentElement.scrollHeight;
       const showButton = scrollTop > windowHeight * 0.5;
       
       setShowScrollTop(showButton);
-
-      // Auto scroll to bottom when user starts scrolling down (but not if already auto-scrolling)
-      if (!isAutoScrolling && !hasTriggeredAutoScroll && scrollTop > 50 && scrollTop < windowHeight * 0.2) {
-        setIsAutoScrolling(true);
-        setHasTriggeredAutoScroll(true);
-        
-        // Slow, smooth scroll to bottom with custom animation
-        const startTime = performance.now();
-        const startPosition = scrollTop;
-        const targetPosition = documentHeight - windowHeight;
-        const distance = targetPosition - startPosition;
-        const duration = 3000; // 3 seconds for slow scroll
-        
-        const animateScroll = (currentTime: number) => {
-          const elapsed = currentTime - startTime;
-          const progress = Math.min(elapsed / duration, 1);
-          
-          // Easing function for smooth deceleration
-          const easeOutCubic = 1 - Math.pow(1 - progress, 3);
-          const currentPosition = startPosition + (distance * easeOutCubic);
-          
-          window.scrollTo(0, currentPosition);
-          
-          if (progress < 1) {
-            requestAnimationFrame(animateScroll);
-          } else {
-            setIsAutoScrolling(false);
-          }
-        };
-        
-        requestAnimationFrame(animateScroll);
-      }
     };
 
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
-  }, [isAutoScrolling, hasTriggeredAutoScroll]);
+  }, []);
 
   // Intersection Observer for features section
   useEffect(() => {
@@ -521,36 +486,19 @@ const Landing = () => {
   };
 
   const scrollToTop = () => {
-    setIsAutoScrolling(true); // Prevent auto-scroll during manual scroll
-    setHasTriggeredAutoScroll(true); // Keep it triggered to prevent auto-scroll
     window.scrollTo({
       top: 0,
       behavior: 'smooth'
     });
-    
-    // Reset after scroll completes and allow auto-scroll again if user scrolls manually
-    setTimeout(() => {
-      setIsAutoScrolling(false);
-      setHasTriggeredAutoScroll(false);
-    }, 1000);
   };
 
   const scrollToSecondSection = () => {
-    // Prevent auto-scroll when explicitly clicking explore button
-    setIsAutoScrolling(true);
-    setHasTriggeredAutoScroll(true);
-    
     if (featuresRef.current) {
       featuresRef.current.scrollIntoView({
         behavior: 'smooth',
         block: 'start'
       });
     }
-    
-    // Reset after scroll completes
-    setTimeout(() => {
-      setIsAutoScrolling(false);
-    }, 1000);
   };
 
   const handleMouseMove = (e: React.MouseEvent) => {
