@@ -38,6 +38,7 @@ app.use('/api/mail', mailRoutes);
 const initApp = () => {
   return new Promise<Express>((resolve) => {
     console.log('Mail service initialized successfully');
+    console.log('Note: Mail service is internal-only, accessible only by user service');
     resolve(app);
   });
 };

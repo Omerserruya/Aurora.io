@@ -22,8 +22,8 @@ FROM base AS production
 # Build TypeScript code
 RUN npm run build
 
-# Expose the port
-EXPOSE 4007
+# Note: No EXPOSE directive - internal service only
+# Service runs on port 4007 internally within Docker network
 
 # Start the service
 CMD ["node", "dist/app.js"] 

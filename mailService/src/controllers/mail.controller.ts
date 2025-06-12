@@ -45,7 +45,7 @@ export class MailController {
       const mailOptions = {
         from: {
           name: 'Aurora.io',
-          address: process.env.FROM_EMAIL || 'easyflightcustomers@gmail.com'
+          address: process.env.FROM_EMAIL || 'auroraioapp@gmail.com'
         },
         to,
         subject,

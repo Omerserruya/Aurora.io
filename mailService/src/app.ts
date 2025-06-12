@@ -15,4 +15,9 @@ initApp().then((app) => {
 process.on('SIGTERM', async () => {
   console.log('SIGTERM received. Shutting down mail service...');
   process.exit(0);
+});
+
+process.on('SIGINT', async () => {
+  console.log('SIGINT received (Ctrl+C). Shutting down mail service...');
+  process.exit(0);
 }); 

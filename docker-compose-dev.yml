@@ -336,8 +336,6 @@ services:
       - BREVO_USER=${BREVO_USER}
       - BREVO_PASS=${BREVO_PASS}
       - FROM_EMAIL=${FROM_EMAIL}
-    ports:
-      - "4007:4007"
     healthcheck:
       test: wget -O /dev/null -q http://localhost:4007/health || exit 1
       interval: 10s
