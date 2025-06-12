@@ -238,10 +238,11 @@ const FeatureSection = styled('div')<{
   visible: boolean; 
   reverse?: boolean;
   delay?: number;
-}>(({ visible, delay = 0 }) => ({
+}>(({ visible, reverse = false, delay = 0 }) => ({
   display: 'flex',
   alignItems: 'center',
   gap: '80px',
+  flexDirection: reverse ? 'row-reverse' : 'row',
   opacity: visible ? 1 : 0,
   animation: visible 
     ? `${fadeInUp} 0.8s ease-out ${delay}s forwards`
@@ -783,6 +784,7 @@ const Landing = () => {
 
           <FeatureSection 
             visible={featuresVisible} 
+            reverse={true}
             delay={0.4}
           >
             <FeatureContent>
