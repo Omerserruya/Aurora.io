@@ -30,7 +30,7 @@ export default function Header() {
   const handleLogout = () => {
     handleClose();
     clearUser();
-    navigate('/login');
+    navigate('/');
   };
 
   return (

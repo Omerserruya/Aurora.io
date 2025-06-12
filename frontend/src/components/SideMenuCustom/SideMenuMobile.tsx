@@ -26,10 +26,12 @@ const handleLogout = async () => {
 
     if (response.ok) {
       setUser(null); // Clear user global state using redux
-      // Optionally, redirect to login or home
-      window.location.href = '/'; // Redirect to login page
+      // Redirect to landing page
+      window.location.href = '/';
     } else {
       console.error('Logout failed:', await response.json());
+      // Still redirect to landing page even if server logout fails
+      window.location.href = '/';
     }
   } catch (error) {
     console.error('Error during logout:', error);

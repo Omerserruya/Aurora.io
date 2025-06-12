@@ -43,18 +43,18 @@ export default function OptionsMenu() {
       setUser(null);
       
       if (response.ok) {
-        window.location.href = '/login';
+        window.location.href = '/';
       } else {
         console.error('Logout failed:', await response.json());
-        // Still redirect to login page even if server logout fails
-        window.location.href = '/login';
+        // Still redirect to landing page even if server logout fails
+        window.location.href = '/';
       }
     } catch (error) {
       console.error('Error during logout:', error);
       // Still clear user data and redirect on error
       localStorage.removeItem('user_id');
       setUser(null);
-      window.location.href = '/login';
+      window.location.href = '/';
     }
   };
   
