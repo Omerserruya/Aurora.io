@@ -45,18 +45,18 @@ export default function OptionsMenu() {
       setUser(null);
       
       if (response.ok) {
-        navigate('/');
+        navigate('/', { replace: true });
       } else {
         console.error('Logout failed:', await response.json());
         // Still redirect to landing page even if server logout fails
-        navigate('/');
+        navigate('/', { replace: true });
       }
     } catch (error) {
       console.error('Error during logout:', error);
       // Still clear user data and redirect on error
       localStorage.removeItem('user_id');
       setUser(null);
-      navigate('/');
+      navigate('/', { replace: true });
     }
   };
   

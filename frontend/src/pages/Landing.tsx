@@ -99,11 +99,17 @@ const HeaderBox = styled(Box)({
   zIndex: 100,
   background: 'transparent',
   transition: 'all 0.3s ease-in-out',
+  '@media (max-width: 768px)': {
+    padding: '15px 20px',
+  },
 });
 
 const AuthButtons = styled(Box)({
   display: 'flex',
   gap: '20px',
+  '@media (max-width: 768px)': {
+    gap: '10px',
+  },
 });
 
 const StyledButton = styled(Button)({
@@ -116,6 +122,14 @@ const StyledButton = styled(Button)({
   '&:hover': {
     transform: 'translateY(-2px)',
     boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+  },
+  '@media (max-width: 768px)': {
+    padding: '10px 20px',
+    fontSize: '0.95rem',
+  },
+  '@media (max-width: 480px)': {
+    padding: '8px 16px',
+    fontSize: '0.9rem',
   },
 });
 
@@ -161,11 +175,27 @@ const MainContent = styled(Box)({
   width: '100%',
   padding: '0 20px',
   paddingTop: '100px', // Account for fixed header
+  '@media (max-width: 768px)': {
+    padding: '0 15px',
+    paddingTop: '80px',
+    maxWidth: '90%',
+  },
+  '@media (max-width: 480px)': {
+    padding: '0 10px',
+    paddingTop: '60px',
+    maxWidth: '95%',
+  },
 });
 
 const AuroraLogo = styled('img')({
   height: '80px',
   width: 'auto',
+  '@media (max-width: 768px)': {
+    height: '60px',
+  },
+  '@media (max-width: 480px)': {
+    height: '50px',
+  },
 });
 
 const PageContainer = styled('div')({
@@ -181,6 +211,13 @@ const SecondSection = styled('div')({
   flexDirection: 'column',
   alignItems: 'center',
   justifyContent: 'flex-start',
+  '@media (max-width: 768px)': {
+    padding: '80px 20px',
+    minHeight: 'auto',
+  },
+  '@media (max-width: 480px)': {
+    padding: '60px 15px',
+  },
 });
 
 const FeatureShowcase = styled('div')({
@@ -189,6 +226,12 @@ const FeatureShowcase = styled('div')({
   display: 'flex',
   flexDirection: 'column',
   gap: '120px',
+  '@media (max-width: 768px)': {
+    gap: '80px',
+  },
+  '@media (max-width: 480px)': {
+    gap: '60px',
+  },
 });
 
 const FeatureSection = styled('div')<{ 
@@ -209,11 +252,24 @@ const FeatureSection = styled('div')<{
     gap: '40px',
     textAlign: 'center',
   },
+  '@media (max-width: 768px)': {
+    flexDirection: 'column',
+    gap: '30px',
+    textAlign: 'center',
+  },
+  '@media (max-width: 480px)': {
+    flexDirection: 'column',
+    gap: '20px',
+    textAlign: 'center',
+  },
 }));
 
 const FeatureContent = styled('div')({
   flex: 1,
   maxWidth: '500px',
+  '@media (max-width: 768px)': {
+    maxWidth: '100%',
+  },
 });
 
 const FeatureImageContainer = styled('div')({
@@ -244,6 +300,14 @@ const FeatureTitle = styled('h3')({
   fontWeight: 'bold',
   marginBottom: '20px',
   textShadow: '0 2px 4px rgba(0,0,0,0.5)',
+  '@media (max-width: 768px)': {
+    fontSize: '2rem',
+    marginBottom: '15px',
+  },
+  '@media (max-width: 480px)': {
+    fontSize: '1.75rem',
+    marginBottom: '12px',
+  },
 });
 
 const FeatureDescription = styled('p')({
@@ -252,6 +316,14 @@ const FeatureDescription = styled('p')({
   lineHeight: 1.6,
   textShadow: '0 1px 2px rgba(0,0,0,0.3)',
   marginBottom: '0',
+  '@media (max-width: 768px)': {
+    fontSize: '1.1rem',
+    lineHeight: 1.5,
+  },
+  '@media (max-width: 480px)': {
+    fontSize: '1rem',
+    lineHeight: 1.4,
+  },
 });
 
 const SectionTitle = styled('h2')({
@@ -263,6 +335,14 @@ const SectionTitle = styled('h2')({
   textShadow: '0 4px 8px rgba(0,0,0,0.5)',
   opacity: 0,
   animation: `${fadeInUp} 0.8s ease-out 0.2s forwards`,
+  '@media (max-width: 768px)': {
+    fontSize: '2.5rem',
+    marginBottom: '40px',
+  },
+  '@media (max-width: 480px)': {
+    fontSize: '2rem',
+    marginBottom: '30px',
+  },
 });
 
 const CloudContainer = styled(Box)({
@@ -356,6 +436,18 @@ const ScrollToTopButton = styled(Fab)<{ show: boolean }>(({ show }) => ({
     transform: 'translateY(-2px)',
     boxShadow: '0 8px 24px rgba(99, 149, 255, 0.3)',
   },
+  '@media (max-width: 768px)': {
+    bottom: '15px',
+    right: '15px',
+    width: '48px',
+    height: '48px',
+  },
+  '@media (max-width: 480px)': {
+    bottom: '12px',
+    right: '12px',
+    width: '44px',
+    height: '44px',
+  },
 }));
 
 const StickyHeader = styled(Box)<{ visible: boolean }>(({ visible }) => ({
@@ -420,6 +512,18 @@ const ExploreButton = styled(Button)({
   },
   '&:active': {
     transform: 'scale(0.98)',
+  },
+  '@media (max-width: 768px)': {
+    padding: '16px 40px',
+    fontSize: '1.2rem',
+    minWidth: '200px',
+    minHeight: '55px',
+  },
+  '@media (max-width: 480px)': {
+    padding: '14px 30px',
+    fontSize: '1.1rem',
+    minWidth: '180px',
+    minHeight: '50px',
   },
 });
 
@@ -502,7 +606,8 @@ const Landing = () => {
   };
 
   const handleMouseMove = (e: React.MouseEvent) => {
-    if (!buttonRef.current || !buttonContainerRef.current) return;
+    // Disable 3D effects on mobile/touch devices
+    if (!buttonRef.current || !buttonContainerRef.current || window.innerWidth <= 768) return;
 
     const buttonRect = buttonRef.current.getBoundingClientRect();
     const containerRect = buttonContainerRef.current.getBoundingClientRect();
@@ -590,7 +695,7 @@ const Landing = () => {
           >
             <Box component="div" sx={{ 
               marginBottom: 2, 
-              whiteSpace: 'nowrap',
+              whiteSpace: { xs: 'normal', md: 'nowrap' },
               textAlign: 'center',
               width: '100%',
               display: 'flex',
@@ -603,7 +708,8 @@ const Landing = () => {
               width: '100%',
               display: 'flex',
               justifyContent: 'center',
-              gap: 0
+              gap: 0,
+              flexWrap: { xs: 'wrap', sm: 'nowrap' }
             }}>
               <span>a&nbsp;</span>
               <Box component="span" sx={{ fontWeight: 'bold', fontStyle: 'italic', color: '#9C27B0' }}>
@@ -623,7 +729,7 @@ const Landing = () => {
               onMouseEnter={handleMouseEnter}
               onMouseLeave={handleMouseLeave}
               sx={{
-                padding: '40px', // Expanded interaction area
+                padding: { xs: '20px', md: '40px' }, // Smaller interaction area on mobile
                 display: 'flex',
                 justifyContent: 'center',
                 alignItems: 'center',
