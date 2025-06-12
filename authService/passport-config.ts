@@ -128,7 +128,7 @@ passport.use(
               };
               console.log('New user data:', newUser);
               
-              const newUserResponse = await userServiceApi.post('/add', newUser);
+              const newUserResponse = await userServiceApi.post('/internal/add', newUser);
               console.log('User created successfully');
               return done(null, newUserResponse.data);
             } catch (createError) {
@@ -222,7 +222,7 @@ passport.use(
               };
               console.log('New user data:', newUser);
               
-              const newUserResponse = await userServiceApi.post('/add', newUser);
+              const newUserResponse = await userServiceApi.post('/internal/add', newUser);
               console.log('User created successfully');
               return done(null, newUserResponse.data);
             } catch (createError) {

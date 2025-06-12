@@ -16,7 +16,6 @@ class AWSConnectionController {
     this.getUserConnections = this.getUserConnections.bind(this);
     this.updateConnection = this.updateConnection.bind(this);
     this.deleteConnection = this.deleteConnection.bind(this);
-    this.validateConnection = this.validateConnection.bind(this);
     this.getEncryptedCredentials = this.getEncryptedCredentials.bind(this);
   }
 
@@ -187,29 +186,6 @@ class AWSConnectionController {
         res.status(401).json({ error: 'Authentication required' });
       } else {
         res.status(500).json({ error: 'Failed to delete AWS connection' });
-      }
-    }
-  }
-
-  async validateConnection(req: Request, res: Response): Promise<void> {
-    try {
-      const userId = this.getUserId(req);
-      const connectionId = new Types.ObjectId(req.params.id);
-
-      // For now, as per requirements, always return true
-      // This will be replaced with actual AWS validation later
-      await AWSConnectionModel.updateOne(
-        { _id: connectionId, userId },
-        { $set: { isValidated: true } }
-      );
-      
-      res.json({ isValid: true });
-    } catch (error) {
-      console.error('Error validating AWS connection:', error);
-      if (error instanceof Error && error.message === 'User not authenticated') {
-        res.status(401).json({ error: 'Authentication required' });
-      } else {
-        res.status(500).json({ error: 'Failed to validate AWS connection' });
       }
     }
   }

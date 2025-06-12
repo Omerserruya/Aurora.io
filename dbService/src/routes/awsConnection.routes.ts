@@ -30,11 +30,6 @@ router.delete('/:id', authentification, (req: Request, res: Response) => {
   awsConnectionController.deleteConnection(req, res);
 });
 
-// Validate an AWS connection
-router.post('/:id/validate', authentification, (req: Request, res: Response) => {
-  awsConnectionController.validateConnection(req, res);
-});
-
 // New endpoint for CloudQuery service to fetch encrypted credentials
 router.get('/:id/cloudquery', (req: Request, res: Response) => {
   awsConnectionController.getEncryptedCredentials(req, res);

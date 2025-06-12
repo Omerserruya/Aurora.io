@@ -1,4 +1,6 @@
 import { AWSConnection } from '../types/awsConnection';
+import api from '../utils/api';
+import { useUser } from '../hooks/compatibilityHooks';
 
 // API base URLs according to nginx configuration
 const API_BASE_URL = '/api/db'; // Maps to db-service in nginx config
@@ -21,7 +23,6 @@ export const fetchAwsConnections = async () => {
     return await response.json();
   } catch (error) {
     console.error('Error fetching AWS connections:', error);
-    // Return empty array to avoid breaking the UI
     return [];
   }
 };
@@ -48,6 +49,47 @@ export const createAwsConnection = async (connectionData: Partial<AWSConnection>
   }
 };
 
+export const updateAwsConnection = async (connection: AWSConnection): Promise<AWSConnection> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/aws-connections/${connection._id}`, {
+      method: 'PUT',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(connection),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to update AWS connection: ${response.status} ${response.statusText}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error updating AWS connection:', error);
+    throw error;
+  }
+};
+
+export const deleteAwsConnection = async (connectionId: string): Promise<void> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/aws-connections/${connectionId}`, {
+      method: 'DELETE',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to delete AWS connection: ${response.status} ${response.statusText}`);
+    }
+  } catch (error) {
+    console.error('Error deleting AWS connection:', error);
+    throw error;
+  }
+};
+
 export const validateAwsCredentials = async (awsCredentials: {
   accessKeyId: string;
   secretAccessKey: string;
@@ -57,7 +99,7 @@ export const validateAwsCredentials = async (awsCredentials: {
   try {
     // Log validation attempt for debugging
     console.log('Validating AWS credentials for region:', awsCredentials.region);
-    
+
     // Format the credentials as required by the API
     const payload = {
       awsCredentials: {
@@ -66,7 +108,7 @@ export const validateAwsCredentials = async (awsCredentials: {
         AWS_REGION: awsCredentials.region
       }
     };
-    
+
     // Call the validation API
     const response = await fetch(`${CLOUDQUERY_SERVICE_URL}/validate`, {
       method: 'POST',
@@ -76,11 +118,11 @@ export const validateAwsCredentials = async (awsCredentials: {
       },
       body: JSON.stringify(payload),
     });
-    
+
     // If response is successful and has JSON data
     if (response.ok) {
       const data = await response.json();
-      
+
       // If we have a containerId, validation was successful
       if (data && data.containerId) {
         return { 
@@ -90,7 +132,7 @@ export const validateAwsCredentials = async (awsCredentials: {
         };
       }
     }
-    
+
     // For any other case (errors, invalid response, etc.), return "Invalid credentials"
     return { 
       valid: false, 
@@ -106,7 +148,7 @@ export const validateAwsCredentials = async (awsCredentials: {
   }
 };
 
-export const executeCloudQuery = async (connectionId: string): Promise<{ success: boolean; message: string; containerId?: string }> => {
+export const executeCloudQuery = async (connectionId: string) => {
   try {
     // Call the cloud query API
     const response = await fetch(`${CLOUDQUERY_SERVICE_URL}/query/${connectionId}`, {
@@ -114,77 +156,16 @@ export const executeCloudQuery = async (connectionId: string): Promise<{ success
       credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
-      }
+      },
     });
-    
-    // If response is successful
-    if (response.ok) {
-      const data = await response.json();
-      
-      // If the query was started successfully
-      if (data && data.containerId) {
-        return { 
-          success: true, 
-          message: 'Cloud query started successfully',
-          containerId: data.containerId
-        };
-      }
+
+    if (!response.ok) {
+      throw new Error(`Failed to execute cloud query: ${response.status} ${response.statusText}`);
     }
-    
-    // Handle error response
-    const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
-    return { 
-      success: false, 
-      message: errorData.error || 'Failed to start cloud query'
-    };
+
+    return await response.json();
   } catch (error) {
     console.error('Error executing cloud query:', error);
-    return { 
-      success: false, 
-      message: 'Failed to connect to cloud query service'
-    };
-  }
-};
-
-export const updateAwsConnection = async (connectionId: string, updateData: Partial<AWSConnection>) => {
-  try {
-    const response = await fetch(`${API_BASE_URL}/aws-connections/${connectionId}`, {
-      method: 'PUT',
-      credentials: 'include',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(updateData),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to update AWS connection: ${response.status} ${response.statusText}`);
-    }
-
-    return await response.json();
-  } catch (error) {
-    console.error('Error updating AWS connection:', error);
-    throw error;
-  }
-};
-
-export const deleteAwsConnection = async (connectionId: string) => {
-  try {
-    const response = await fetch(`${API_BASE_URL}/aws-connections/${connectionId}`, {
-      method: 'DELETE',
-      credentials: 'include',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to delete AWS connection: ${response.status} ${response.statusText}`);
-    }
-
-    return await response.json();
-  } catch (error) {
-    console.error('Error deleting AWS connection:', error);
     throw error;
   }
 }; 

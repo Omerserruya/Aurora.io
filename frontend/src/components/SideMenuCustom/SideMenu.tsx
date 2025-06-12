@@ -35,7 +35,7 @@ export default function SideMenu() {
   const theme = useTheme();
 
   const bottomMenuItems = [
-    { text: 'About', icon: <InfoRoundedIcon />, path: '/about' },
+    { text: 'Docs', icon: <InfoRoundedIcon />, path: '/about' },
   ];
 
   const logoPath = theme.palette.mode === 'dark' 
