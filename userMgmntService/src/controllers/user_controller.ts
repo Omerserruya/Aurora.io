@@ -8,6 +8,7 @@ import multer from "multer";
 import { authentification } from "@shared/authMiddleware";
 import crypto from "crypto";
 import axios from "axios";
+const PASSWORD_MIN_LENGTH = 8;
 
 // Configure multer for file uploads
 const upload = multer({
@@ -603,9 +604,9 @@ const resetPassword = async (req: Request, res: Response) => {
     }
     
     // Validate new password length
-    if (newPassword.length < 8) {
+    if (newPassword.length < PASSWORD_MIN_LENGTH) {
       return res.status(400).json({ 
-        message: 'New password must be at least 8 characters long' 
+        message: `New password must be at least ${PASSWORD_MIN_LENGTH} characters long` 
       });
     }
     
@@ -814,8 +815,6 @@ export const requestPasswordOTP = async (req: Request, res: Response): Promise<v
   }
 };
 
-
-
 export const verifyEmail = async (req: Request, res: Response): Promise<void> => {
   try {
     const { token } = req.body;
@@ -903,8 +902,8 @@ export const setPasswordAfterOTP = async (req: Request, res: Response): Promise<
     }
 
     // Validate password length
-    if (newPassword.length < 8) {
-      res.status(400).json({ message: 'Password must be at least 8 characters long' });
+    if (newPassword.length < PASSWORD_MIN_LENGTH) {
+      res.status(400).json({ message: `Password must be at least ${PASSWORD_MIN_LENGTH} characters long` });
       return;
     }
 

@@ -23,6 +23,8 @@ import GitHubIcon from '@mui/icons-material/GitHub';
 import { StyledBackground, SocialButton } from '../styles/AuthStyles';
 import { styled, Theme } from '@mui/material/styles';
 
+const PASSWORD_MIN_LENGTH = 8;
+
 interface RegisterFormData {
   username: string;
   email: string;
@@ -73,8 +75,8 @@ const Register = () => {
     }
     if (!formData.password) {
       newErrors.password = 'Password is required';
-    } else if (formData.password.length < 8) {
-      newErrors.password = 'Password must be at least 8 characters';
+    } else if (formData.password.length < PASSWORD_MIN_LENGTH) {
+      newErrors.password = `Password must be at least ${PASSWORD_MIN_LENGTH} characters`;
     }
     if (formData.password !== formData.confirmPassword) {
       newErrors.confirmPassword = 'Passwords do not match';

@@ -23,6 +23,8 @@ import {
 import { Visibility, VisibilityOff, Email, Lock, VpnKey, Schedule, CheckCircleOutlined } from '@mui/icons-material';
 import { StyledCard, StyledTextField } from '../styles/AuthStyles';
 
+const PASSWORD_MIN_LENGTH = 8;
+
 interface OTPResponse {
   message: string;
   expiresIn: string;
@@ -233,8 +235,8 @@ const PasswordFlow: React.FC = () => {
       return;
     }
 
-    if (newPassword.length < 8) {
-      setError('Password must be at least 8 characters long');
+    if (newPassword.length < PASSWORD_MIN_LENGTH) {
+      setError(`Password must be at least ${PASSWORD_MIN_LENGTH} characters long`);
       return;
     }
 
@@ -673,10 +675,10 @@ const PasswordFlow: React.FC = () => {
               <Box sx={{ pl: 2 }}>
                 <Typography 
                   variant="body2" 
-                  color={newPassword.length >= 8 ? 'success.main' : 'text.secondary'}
+                  color={newPassword.length >= PASSWORD_MIN_LENGTH ? 'success.main' : 'text.secondary'}
                   sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
                 >
-                  {newPassword.length >= 8 ? '✓' : '•'} At least 8 characters
+                  {newPassword.length >= PASSWORD_MIN_LENGTH ? '✓' : '•'} At least {PASSWORD_MIN_LENGTH} characters
                 </Typography>
                 <Typography 
                   variant="body2" 
@@ -692,7 +694,7 @@ const PasswordFlow: React.FC = () => {
               fullWidth
               variant="contained"
               onClick={handleSetPassword}
-              disabled={loading || !newPassword || !confirmPassword || newPassword !== confirmPassword || newPassword.length < 8 || timeLeft <= 0}
+              disabled={loading || !newPassword || !confirmPassword || newPassword !== confirmPassword || newPassword.length < PASSWORD_MIN_LENGTH || timeLeft <= 0}
               startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <Lock />}
               sx={{ 
                 py: 1.5,
