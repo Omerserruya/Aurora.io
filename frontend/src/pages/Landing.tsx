@@ -419,7 +419,7 @@ const Sparkle = styled('div')<{ top?: string; left?: string; delay?: number }>((
   boxShadow: '0 0 10px white',
 }));
 
-const ScrollToTopButton = styled(Fab)<{ show: boolean }>(({ show }) => ({
+const ScrollToTopButton = styled(Fab)<{ $show: boolean }>(({ $show }) => ({
   position: 'fixed',
   bottom: '20px',
   right: '20px',
@@ -428,9 +428,9 @@ const ScrollToTopButton = styled(Fab)<{ show: boolean }>(({ show }) => ({
   backdropFilter: 'blur(10px)',
   border: '1px solid rgba(99, 149, 255, 0.3)',
   color: 'white',
-  opacity: show ? 1 : 0,
-  visibility: show ? 'visible' : 'hidden',
-  transform: show ? 'translateY(0)' : 'translateY(20px)',
+  opacity: $show ? 1 : 0,
+  visibility: $show ? 'visible' : 'hidden',
+  transform: $show ? 'translateY(0)' : 'translateY(20px)',
   transition: 'all 0.3s ease-in-out',
   '&:hover': {
     background: 'rgba(99, 149, 255, 0.3)',
@@ -949,7 +949,7 @@ const Landing = () => {
       </Box>
 
       {/* Scroll to Top Button */}
-      <ScrollToTopButton show={showScrollTop} onClick={scrollToTop}>
+      <ScrollToTopButton $show={showScrollTop} onClick={scrollToTop}>
         <KeyboardArrowUpIcon />
       </ScrollToTopButton>
     </PageContainer>
