@@ -149,7 +149,7 @@ function IAC() {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await axios.get<ApiResponse>('http://localhost/api/iac/generate_tf', {
+      const response = await axios.get<ApiResponse>('https://aurora-io.cs.colman.ac.il/api/iac/generate_tf', {
         params: {
           user_id: user?._id,
           account_id: account?._id
