@@ -34,6 +34,8 @@ services:
       - MONGODB_PASSWORD=${MONGODB_PASSWORD}
       - MONGODB_DATABASE=${MONGODB_DATABASE}
       - ENV_URL=${ENV_URL}
+      - MAIL_SERVICE_URL=${MAIL_SERVICE_URL}
+      - FRONTEND_URL=${FRONTEND_URL}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     ports:
@@ -156,6 +158,8 @@ services:
       chatbot-service:
         condition: service_healthy
       mcp-service:
+        condition: service_healthy
+      mail-service:
         condition: service_healthy
     networks:
       - default
@@ -299,6 +303,36 @@ services:
       start_period: 30s
     networks:
       - default
+
+  mail-service:
+    build:
+      context: ./mailService
+      dockerfile: Dockerfile
+      target: production
+    environment:
+      - PORT=${PORT_MAIL:-4007}
+      - NODE_ENV=${NODE_ENV}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      - FRONTEND_URL=${FRONTEND_URL}
+      - BREVO_USER=${BREVO_USER}
+      - BREVO_PASS=${BREVO_PASS}
+      - FROM_EMAIL=${FROM_EMAIL}
+    healthcheck:
+      test: wget -O /dev/null -q http://localhost:4007/health || exit 1
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - default
+
+volumes:
+  frontend-build:   # Named volume for frontend build output
+  mongodb_data:     # Persistent storage for MongoDB
+  neo4j_data:       # Persistent storage for Neo4j data
+  neo4j_logs:       # Persistent storage for Neo4j logs
+  neo4j_import:     # Directory for Neo4j imports
+  neo4j_plugins:    # Directory for Neo4j plugins
 
 networks:
   default:

@@ -588,27 +588,101 @@ usersRoute.post('/reset-password', authentification, userController.resetPasswor
 
 /**
  * @swagger
- * /users/profile/me:
- *   get:
- *     summary: Get current user profile
- *     description: Get the authenticated user's profile information including firstTimeLogin status
+ * /users/verify-email:
+ *   post:
+ *     summary: Verify user's email
  *     tags: [Users]
- *     security:
- *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - token
+ *             properties:
+ *               token:
+ *                 type: string
+ *                 description: The verification token
  *     responses:
  *       200:
- *         description: User profile retrieved successfully
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/User'
- *       401:
- *         description: Unauthorized - user not authenticated
+ *         description: Email verified successfully
+ *       400:
+ *         description: Invalid request
+ *       404:
+ *         description: Invalid token
+ */
+usersRoute.post('/verify-email', userController.verifyEmail);
+
+/**
+ * @swagger
+ * /users/request-password-otp:
+ *   post:
+ *     summary: Request OTP for password setup or reset
+ *     tags: [Users]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 description: User's email address
+ *               type:
+ *                 type: string
+ *                 enum: [password_setup, password_reset]
+ *                 default: password_setup
+ *                 description: Type of OTP request
+ *     responses:
+ *       200:
+ *         description: OTP sent successfully
+ *       400:
+ *         description: Invalid request
  *       404:
  *         description: User not found
- *       500:
- *         description: Server error
  */
-usersRoute.get('/profile/me', authentification, userController.getUserProfile);
+usersRoute.post('/request-password-otp', userController.requestPasswordOTP);
+
+/**
+ * @swagger
+ * /users/verify-otp-and-set-password:
+ *   post:
+ *     summary: Verify OTP and set password in one step
+ *     tags: [Users]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - otpCode
+ *               - newPassword
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 description: User's email address
+ *               otpCode:
+ *                 type: string
+ *                 description: 6-digit OTP code
+ *               newPassword:
+ *                 type: string
+ *                 minLength: 8
+ *                 description: New password (min 8 characters)
+ *     responses:
+ *       200:
+ *         description: Password set successfully
+ *       400:
+ *         description: Invalid OTP or password
+ *       404:
+ *         description: User not found
+ */
+usersRoute.post('/verify-password-otp', userController.verifyPasswordOTP);
+usersRoute.post('/set-password-after-otp', userController.setPasswordAfterOTP);
 
 export default usersRoute;

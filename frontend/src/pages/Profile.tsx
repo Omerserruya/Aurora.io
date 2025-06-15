@@ -39,6 +39,8 @@ import { AddAccountDialog, EditAccountDialog } from '../components/AccountConnec
 import { AWSConnection } from '../types/awsConnection';
 import { fetchAwsConnections as fetchAwsConnectionsApi, createAwsConnection, updateAwsConnection, deleteAwsConnection } from '../api/awsConnectionApi';
 
+const PASSWORD_MIN_LENGTH = 8;
+
 interface User {
   _id: string;
   username: string;
@@ -724,14 +726,18 @@ export default function Profile() {
               
               if (!newPassword) {
                 errors.newPassword = 'New password is required';
-              } else if (newPassword.length < 8) {
-                errors.newPassword = 'Password must be at least 8 characters long';
+              } else if (newPassword.length < PASSWORD_MIN_LENGTH) {
+                errors.newPassword = `Password must be at least ${PASSWORD_MIN_LENGTH} characters long`;
               }
               
               if (!confirmPassword) {
                 errors.confirmPassword = 'Please confirm your new password';
               } else if (newPassword !== confirmPassword) {
                 errors.confirmPassword = 'Passwords do not match';
+              }
+              
+              if (currentPassword === newPassword) {
+                errors.newPassword = 'New password must be different from current password';
               }
               
               setPasswordErrors(errors);

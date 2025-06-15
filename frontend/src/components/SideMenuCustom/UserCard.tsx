@@ -11,7 +11,7 @@ export default function UserCard() {
 
   const handleLogout = () => {
     clearUser();
-    navigate('/login');
+    navigate('/');
   };
 
   return (

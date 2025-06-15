@@ -6,11 +6,26 @@ import path from "path";
 import fs from "fs";
 import multer from "multer";
 import { authentification } from "@shared/authMiddleware";
+import crypto from "crypto";
+import axios from "axios";
+const PASSWORD_MIN_LENGTH = 8;
 
 // Configure multer for file uploads
 const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB limit
   dest: 'uploads/', // Destination folder for uploads
+});
+
+// Get the Mail Service URL from environment variables or use a default
+const MAIL_SERVICE_URL = process.env.MAIL_SERVICE_URL || 'http://mail-service:4007/api/mail';
+const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost';
+// Create axios instance for mail service
+const mailServiceClient = axios.create({
+  baseURL: MAIL_SERVICE_URL,
+  headers: {
+    'Content-Type': 'application/json',
+    'X-Internal-Service': 'true'
+  }
 });
 
 // Helper function to create a new user
@@ -57,8 +72,9 @@ export const addUser = async (req: Request, res: Response): Promise<void> => {
       return;
     }
     
-    // Check for at least one authentication method
-    if (!password && !googleId && !githubId) {
+    // Check for at least one authentication method (except for admin-created users)
+    const isAdminCreatingUser = !password && !googleId && !githubId && isInternalServiceRequest;
+    if (!password && !googleId && !githubId && !isAdminCreatingUser) {
       res.status(400).json({ message: 'At least one authentication method is required (password, googleId, or githubId)' });
       return;
     }
@@ -93,8 +109,11 @@ export const addUser = async (req: Request, res: Response): Promise<void> => {
       email
     };
 
-    // Add password if provided (for regular login)
-    if (password) {
+    // Check if this is an admin-created local user first
+    const isAdminCreatedLocalUser = !googleId && !githubId && !password && isInternalServiceRequest;
+
+    // Add password if provided (but not for admin-created users)
+    if (password && !isAdminCreatedLocalUser) {
       const salt = await bcrypt.genSalt(10);
       userData.password = await bcrypt.hash(password, salt);
     }
@@ -111,14 +130,63 @@ export const addUser = async (req: Request, res: Response): Promise<void> => {
       userData.role = role;
     }
 
-    // Set firstTimeLogin to true for local auth provider users
-    if (!googleId && !githubId && password) {
-      userData.firstTimeLogin = true;
+    // Handle admin-created local users
+    if (isAdminCreatedLocalUser) {
+      // Set authProvider to local for admin-created users
+      userData.authProvider = 'local';
+      // Mark as admin-created to bypass validation
+      userData.isAdminCreated = true;
+      // No password set - user will set it via OTP flow
+      
+      // Send email with setup link instead of credentials
+      try {
+        await mailServiceClient.post('/send-template', {
+          to: email,
+          subject: 'Complete Your Aurora.io Account Setup',
+          template: 'admin-created-account',
+          context: {
+            name: username,
+            email: email,
+            setupUrl: `${FRONTEND_URL}/set-password?email=${encodeURIComponent(email)}`
+          }
+        });
+      } catch (error) {
+        console.error('Failed to send setup email:', error);
+        // Don't fail the user creation if email sending fails
+      }
     }
 
+    // Generate verification token for local users (but not admin-created users)
+    if (!googleId && !githubId && password) {
+      userData.verificationToken = crypto.randomBytes(32).toString('hex');
+      console.log('Generated verification token:', userData.verificationToken);
+    }
     // Create and save new user
     const newUser = new userModel(userData);
     const savedUser = await newUser.save();
+
+    // Send verification email for local users (but not admin-created users)
+    if (!googleId && !githubId && password) {
+      try {
+        if (!savedUser.verificationToken) {
+          throw new Error('Verification token is missing');
+        }
+        const verificationUrl = `${FRONTEND_URL}/verify-email?token=${encodeURIComponent(savedUser.verificationToken)}`;
+        console.log('Sending verification URL:', verificationUrl);
+        await mailServiceClient.post('/send-template', {
+          to: savedUser.email,
+          subject: 'Welcome to Aurora.io - Verify Your Email',
+          template: 'welcome-verification',
+          context: {
+            name: savedUser.username,
+            verificationUrl
+          }
+        });
+      } catch (error) {
+        console.error('Failed to send verification email:', error);
+        // Don't fail the registration if email sending fails
+      }
+    }
     
     res.status(201).json(savedUser);
   } catch (error: any) {
@@ -536,9 +604,9 @@ const resetPassword = async (req: Request, res: Response) => {
     }
     
     // Validate new password length
-    if (newPassword.length < 8) {
+    if (newPassword.length < PASSWORD_MIN_LENGTH) {
       return res.status(400).json({ 
-        message: 'New password must be at least 8 characters long' 
+        message: `New password must be at least ${PASSWORD_MIN_LENGTH} characters long` 
       });
     }
     
@@ -577,6 +645,14 @@ const resetPassword = async (req: Request, res: Response) => {
       });
     }
     
+    // Check if new password is same as current password
+    const isSamePassword = await bcrypt.compare(newPassword, user.password);
+    if (isSamePassword) {
+      return res.status(400).json({
+        message: 'New password must be different from current password'
+      });
+    }
+    
     // Hash the new password
     const saltRounds = 10;
     const hashedNewPassword = await bcrypt.hash(newPassword, saltRounds);
@@ -585,8 +661,7 @@ const resetPassword = async (req: Request, res: Response) => {
     const updatedUser = await userModel.findByIdAndUpdate(
       userId,
       { 
-        password: hashedNewPassword,
-        firstTimeLogin: false // User has now changed their default password
+        password: hashedNewPassword
       },
       { new: true }
     );
@@ -634,8 +709,7 @@ const getUserProfile = async (req: Request, res: Response) => {
     console.log('User profile found:', { 
       id: user._id, 
       email: user.email, 
-      authProvider: user.authProvider, 
-      firstTimeLogin: user.firstTimeLogin 
+      authProvider: user.authProvider
     });
     
     return res.status(200).json(user);
@@ -645,6 +719,265 @@ const getUserProfile = async (req: Request, res: Response) => {
       message: 'Error fetching user profile', 
       error: error.message 
     });
+  }
+};
+
+// Request password OTP - generates and sends 6-digit code
+export const requestPasswordOTP = async (req: Request, res: Response): Promise<void> => {
+  try {
+    // Clean up any expired OTPs first
+    await cleanupExpiredOTPs();
+
+    const { email, type = 'password_setup' } = req.body;
+
+    if (!email) {
+      res.status(400).json({ message: 'Email is required' });
+      return;
+    }
+
+    // Validate type
+    if (!['password_setup', 'password_reset'].includes(type)) {
+      res.status(400).json({ message: 'Invalid OTP type' });
+      return;
+    }
+
+    // Find user by email
+    const user = await userModel.findOne({ email: email.toLowerCase() });
+    if (!user) {
+      res.status(404).json({ message: 'User not found' });
+      return;
+    }
+
+    // Get user with admin flags for validation
+    const userWithFlags = await userModel.findOne({ email: email.toLowerCase() }).select('+isAdminCreated +password');
+    
+    // For password_setup, ensure user is admin-created
+    if (type === 'password_setup') {
+      if (userWithFlags?.isAdminCreated !== true) {
+        res.status(400).json({ message: 'Password setup is only available for admin-created accounts. Please use password reset instead.' });
+        return;
+      }
+    }
+
+    // For password_reset, ensure user is not admin-created (has completed setup)
+    if (type === 'password_reset') {
+      if (userWithFlags?.isAdminCreated === true) {
+        res.status(400).json({ message: 'Admin-created users should use password setup, not reset. Please use the setup link from your admin.' });
+        return;
+      }
+      if (!userWithFlags?.password) {
+        res.status(400).json({ message: 'User has no password to reset. Please contact administrator.' });
+        return;
+      }
+    }
+
+    // Generate 6-digit OTP
+    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes from now
+
+    // Update user with OTP and clear any previous verification state
+    await userModel.findByIdAndUpdate(user._id, {
+      otpCode,
+      otpExpires,
+      otpType: type,
+      $unset: { otpVerified: 1 } // Clear any previous verification
+    });
+
+    // Send OTP email
+    try {
+      const action = type === 'password_setup' ? 'set up' : 'reset';
+      await mailServiceClient.post('/send-template', {
+        to: email,
+        subject: `Your Aurora.io Password ${action === 'set up' ? 'Setup' : 'Reset'} Code`,
+        template: 'password-otp',
+        context: {
+          name: user.username,
+          otpCode,
+          action
+        }
+      });
+    } catch (error) {
+      console.error('Failed to send OTP email:', error);
+      res.status(500).json({ message: 'Failed to send OTP email' });
+      return;
+    }
+
+    res.status(200).json({ 
+      message: 'OTP sent successfully',
+      expiresIn: '10 minutes'
+    });
+  } catch (error: any) {
+    console.error('Error in requestPasswordOTP:', error);
+    res.status(500).json({ 
+      message: 'Failed to send OTP',
+      error: error.message
+    });
+  }
+};
+
+export const verifyEmail = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { token } = req.body;
+
+    if (!token) {
+      res.status(400).json({ message: 'Verification token is required' });
+      return;
+    }
+
+    // Find user with this verification token, explicitly selecting the verificationToken field
+    const user = await userModel.findOne({ verificationToken: token }).select('+verificationToken +emailVerified');
+
+    if (!user) {
+      res.status(404).json({ message: 'Invalid verification token' });
+      return;
+    }
+
+    // Update user's email verification status
+    user.emailVerified = true;
+    user.verificationToken = undefined; // Remove the token after verification
+    await user.save();
+
+    res.status(200).json({ message: 'Email verified successfully' });
+  } catch (error: any) {
+    console.error('Error verifying email:', error);
+    res.status(500).json({ 
+      message: 'Failed to verify email',
+      error: error.message
+    });
+  }
+};
+
+// Verify OTP - gives immediate feedback, marks OTP as recently verified
+export const verifyPasswordOTP = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { email, otpCode } = req.body;
+
+    if (!email || !otpCode) {
+      res.status(400).json({ message: 'Email and OTP code are required' });
+      return;
+    }
+
+    // Find user with valid OTP
+    const user = await userModel.findOne({ 
+      email: email.toLowerCase(),
+      otpCode,
+      otpExpires: { $gt: new Date() }
+    }).select('+otpCode +otpExpires +otpType');
+
+    if (!user) {
+      res.status(400).json({ message: 'Invalid or expired OTP code' });
+      return;
+    }
+
+    // Mark OTP as verified by clearing code but keeping expiry for password setting (10 minutes)
+    const newExpiry = new Date(Date.now() + 10 * 60 * 1000);
+    await userModel.findByIdAndUpdate(user._id, {
+      $unset: { otpCode: 1 }, // Remove the OTP code
+      otpVerified: true, // Mark as verified
+      otpExpires: newExpiry // 10 minutes to set password
+    });
+
+    res.status(200).json({ 
+      message: 'OTP verified successfully',
+      expiresAt: newExpiry.toISOString(),
+      expiresIn: '10 minutes'
+    });
+  } catch (error: any) {
+    console.error('Error in verifyPasswordOTP:', error);
+    res.status(500).json({ 
+      message: 'Failed to verify OTP',
+      error: error.message
+    });
+  }
+};
+
+// Set password - requires recently verified OTP
+export const setPasswordAfterOTP = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { email, newPassword } = req.body;
+
+    if (!email || !newPassword) {
+      res.status(400).json({ message: 'Email and new password are required' });
+      return;
+    }
+
+    // Validate password length
+    if (newPassword.length < PASSWORD_MIN_LENGTH) {
+      res.status(400).json({ message: `Password must be at least ${PASSWORD_MIN_LENGTH} characters long` });
+      return;
+    }
+
+    // Find user with recently verified OTP
+    const user = await userModel.findOne({ 
+      email: email.toLowerCase(),
+      otpVerified: true, // OTP was verified
+      otpExpires: { $gt: new Date() } // Still within verification window
+    }).select('+otpCode +otpExpires +otpType +otpVerified +isAdminCreated +password');
+
+    if (!user) {
+      res.status(400).json({ message: 'OTP verification required or expired' });
+      return;
+    }
+
+    // Check if new password is same as current password (only for existing passwords)
+    if (user.password) {
+      const isSamePassword = await bcrypt.compare(newPassword, user.password);
+      if (isSamePassword) {
+        res.status(400).json({
+          message: 'New password must be different from current password'
+        });
+        return;
+      }
+    }
+
+    // Hash new password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+    // Update user with new password and clear OTP data
+    await userModel.findByIdAndUpdate(user._id, {
+      password: hashedPassword,
+      emailVerified: true,
+      isAdminCreated: false,
+      $unset: { 
+        otpCode: 1,
+        otpExpires: 1,
+        otpType: 1,
+        otpVerified: 1
+      }
+    });
+
+    res.status(200).json({ 
+      message: 'Password set successfully'
+    });
+  } catch (error: any) {
+    console.error('Error in setPasswordAfterOTP:', error);
+    res.status(500).json({ 
+      message: 'Failed to set password',
+      error: error.message
+    });
+  }
+};
+
+// Internal utility function to clean up expired OTPs
+const cleanupExpiredOTPs = async (): Promise<void> => {
+  try {
+    const result = await userModel.updateMany(
+      { otpExpires: { $lt: new Date() } }, // Find users with expired OTPs
+      { 
+        $unset: { 
+          otpCode: 1,
+          otpExpires: 1,
+          otpType: 1,
+          otpVerified: 1
+        }
+      }
+    );
+    if (result.modifiedCount > 0) {
+      console.log(`Cleaned up expired OTPs for ${result.modifiedCount} users`);
+    }
+  } catch (error) {
+    console.error('Error cleaning up expired OTPs:', error);
   }
 };
 
@@ -665,5 +998,9 @@ export default {
   verifyUserToken,
   updateUserToken,
   resetPassword,
-  getUserProfile
+  getUserProfile,
+      verifyEmail,
+    requestPasswordOTP,
+    verifyPasswordOTP,
+    setPasswordAfterOTP
 };

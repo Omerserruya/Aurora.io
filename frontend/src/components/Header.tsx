@@ -7,6 +7,8 @@ import { useUser } from '../hooks/compatibilityHooks';
 import { useNavigate } from 'react-router-dom';
 import { Person as PersonIcon, Logout as LogoutIcon } from '@mui/icons-material';
 
+import packageJson from '../../package.json';
+
 export default function Header() {
   const { user, clearUser } = useUser();
   const navigate = useNavigate();
@@ -30,7 +32,7 @@ export default function Header() {
   const handleLogout = () => {
     handleClose();
     clearUser();
-    navigate('/login');
+    navigate('/');
   };
 
   return (
@@ -167,6 +169,25 @@ export default function Header() {
               <LogoutIcon sx={{ mr: 2, fontSize: 20 }} />
               Logout
             </MenuItem>
+            <Divider />
+            <Box sx={{ 
+              px: 2, 
+              py: 1,
+              textAlign: 'center',
+              backgroundColor: alpha(theme.palette.grey[500], 0.05)
+            }}>
+              <Typography 
+                variant="caption" 
+                color="text.secondary" 
+                sx={{ 
+                  fontSize: '0.8rem',
+                  fontWeight: 500,
+                  opacity: 0.7
+                }}
+              >
+                Aurora.io v{packageJson.version}
+              </Typography>
+            </Box>
           </Menu>
         </Box>
       </Stack>
