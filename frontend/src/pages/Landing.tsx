@@ -214,9 +214,17 @@ const SecondSection = styled('div')({
   '@media (max-width: 768px)': {
     padding: '80px 20px',
     minHeight: 'auto',
+    paddingTop: '60px', // Reduce top padding to bring content into view sooner
   },
   '@media (max-width: 480px)': {
     padding: '60px 15px',
+    paddingTop: '40px', // Even less padding on very small screens
+  },
+  '@media (max-height: 600px)': {
+    // Special handling for devices with very small height
+    minHeight: 'auto',
+    paddingTop: '40px',
+    paddingBottom: '40px',
   },
 });
 
@@ -257,11 +265,17 @@ const FeatureSection = styled('div')<{
     flexDirection: 'column',
     gap: '30px',
     textAlign: 'center',
+    // Ensure content is visible on mobile even if intersection observer fails
+    opacity: 1,
+    animation: `${fadeInUp} 0.6s ease-out ${delay}s forwards`,
   },
   '@media (max-width: 480px)': {
     flexDirection: 'column',
     gap: '20px',
     textAlign: 'center',
+    // Ensure content is visible on mobile even if intersection observer fails
+    opacity: 1,
+    animation: `${fadeInUp} 0.6s ease-out ${delay}s forwards`,
   },
 }));
 
@@ -339,10 +353,16 @@ const SectionTitle = styled('h2')({
   '@media (max-width: 768px)': {
     fontSize: '2.5rem',
     marginBottom: '40px',
+    // Ensure title is visible on mobile
+    opacity: 1,
+    animation: `${fadeInUp} 0.6s ease-out 0.1s forwards`,
   },
   '@media (max-width: 480px)': {
     fontSize: '2rem',
     marginBottom: '30px',
+    // Ensure title is visible on mobile
+    opacity: 1,
+    animation: `${fadeInUp} 0.6s ease-out 0.1s forwards`,
   },
 });
 
@@ -537,10 +557,7 @@ const Landing = () => {
   const buttonContainerRef = useRef<HTMLDivElement>(null);
   const [featuresVisible, setFeaturesVisible] = useState(false);
   const featuresRef = useRef<HTMLDivElement>(null);
-
-  const logoPath = theme.palette.mode === 'dark' 
-    ? '/aurora-dark.png'
-    : '/aurora-light.png';
+  const logoPath = '/aurora-dark.png';
 
   useEffect(() => {
     const handleScroll = () => {
@@ -555,19 +572,33 @@ const Landing = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Intersection Observer for features section
+  // Intersection Observer for features section with mobile-friendly settings
   useEffect(() => {
+    // Check if user is on mobile/small screen
+    const isMobile = window.innerWidth <= 768;
+    const isSmallHeight = window.innerHeight <= 600;
+    
+    // Set fallback timeout for mobile devices or small screens
+    const fallbackTimeout = setTimeout(() => {
+      if (!featuresVisible && (isMobile || isSmallHeight)) {
+        setFeaturesVisible(true);
+      }
+    }, 1000); // Show features after 1 second if intersection observer fails
+
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
             setFeaturesVisible(true);
+            clearTimeout(fallbackTimeout);
           }
         });
       },
       {
-        threshold: 0.3, // Trigger when 30% of the section is visible
-        rootMargin: '0px 0px -100px 0px', // Start animation 100px before the section comes into view
+        // Use more mobile-friendly threshold
+        threshold: isMobile ? 0.1 : 0.3, // Lower threshold for mobile devices
+        // Adjust root margin based on screen size
+        rootMargin: isMobile ? '0px 0px -20px 0px' : '0px 0px -100px 0px',
       }
     );
 
@@ -576,11 +607,12 @@ const Landing = () => {
     }
 
     return () => {
+      clearTimeout(fallbackTimeout);
       if (featuresRef.current) {
         observer.unobserve(featuresRef.current);
       }
     };
-  }, []);
+  }, [featuresVisible]);
 
   const handleLogin = () => {
     navigate('/login');
