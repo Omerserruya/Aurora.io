@@ -8,6 +8,8 @@ export interface User {
   createdAt?: Date;
   updatedAt?: Date;
   avatarUrl?: string;
+  emailVerified?: boolean;
+  authProvider?: 'google' | 'github' | 'local';
 }
 
 interface UserState {

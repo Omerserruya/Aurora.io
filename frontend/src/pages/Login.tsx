@@ -15,7 +15,7 @@ import {
   IconButton,
   useTheme,
 } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import GoogleIcon from '@mui/icons-material/Google';
 import GitHubIcon from '@mui/icons-material/GitHub';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
@@ -62,6 +62,7 @@ const StyledTextField = styled(TextField)(({ theme }: { theme: Theme }) => ({
 
 const Login = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const theme = useTheme();
   const { setUser, refreshUserDetails } = useUser();
   const [formData, setFormData] = useState<LoginFormData>({
@@ -81,6 +82,22 @@ const Login = () => {
     : '/aurora-light.png';
 
   useEffect(() => {
+    // Handle messages from SetPassword page
+    if (location.state?.message) {
+      setSnackbar({
+        open: true,
+        message: location.state.message,
+        severity: 'success',
+      });
+      // Pre-fill email if provided
+      if (location.state.email) {
+        setFormData(prev => ({ ...prev, email: location.state.email }));
+      }
+      // Clear the state
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+
+    // Handle URL error parameters
     const params = new URLSearchParams(window.location.search);
     const error = params.get('error');
     
@@ -108,7 +125,7 @@ const Login = () => {
       // Clear the URL parameter without refreshing the page
       window.history.replaceState({}, document.title, window.location.pathname);
     }
-  }, []);
+  }, [location, navigate]);
 
   const validateForm = () => {
     const newErrors: Partial<LoginFormData> = {};
@@ -289,7 +306,7 @@ const Login = () => {
 
               <Grid container justifyContent="space-between" sx={{ mb: 2 }}>
                 <Grid item>
-                  <Link href="#" variant="body2" color="primary">
+                  <Link href="/forgot-password" variant="body2" color="primary">
                     Forgot password?
                   </Link>
                 </Grid>
