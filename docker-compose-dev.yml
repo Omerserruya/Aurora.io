@@ -19,6 +19,8 @@ services:
         condition: service_healthy
       mcp-service:
         condition: service_healthy
+      mail-service:
+        condition: service_healthy
     networks:
       - default
   frontend:
@@ -73,6 +75,8 @@ services:
       - MONGODB_PASSWORD=${MONGODB_PASSWORD}
       - MONGODB_DATABASE=${MONGODB_DATABASE}
       - ENV_URL=${ENV_URL}
+      - MAIL_SERVICE_URL=${MAIL_SERVICE_URL}
+      - FRONTEND_URL=${FRONTEND_URL}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     ports:
@@ -307,6 +311,33 @@ services:
         condition: service_healthy
     healthcheck:
       test: wget -O /dev/null -q http://localhost:4006/api/mcp/health || exit 1
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - default
+
+  mail-service:
+    build:
+      context: ./mailService
+      dockerfile: Dockerfile
+      target: development
+    volumes:
+      - ./mailService/src:/app/src
+      - ./mailService/package.json:/app/package.json
+      - ./mailService/tsconfig.json:/app/tsconfig.json
+      - ./shared:/app/shared
+    environment:
+      - PORT=${PORT_MAIL:-4007}
+      - NODE_ENV=${NODE_ENV}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      - FRONTEND_URL=${FRONTEND_URL}
+      - BREVO_USER=${BREVO_USER}
+      - BREVO_PASS=${BREVO_PASS}
+      - FROM_EMAIL=${FROM_EMAIL}
+    healthcheck:
+      test: wget -O /dev/null -q http://localhost:4007/health || exit 1
       interval: 10s
       timeout: 5s
       retries: 5
