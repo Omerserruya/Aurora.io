@@ -9,6 +9,7 @@ import ListItemText from '@mui/material/ListItemText';
 import ListItemIcon, { listItemIconClasses } from '@mui/material/ListItemIcon';
 import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
 import MoreVertRoundedIcon from '@mui/icons-material/MoreVertRounded';
+import { useNavigate } from 'react-router-dom';
 import MenuButton from './MenuButton';
 import { useUser } from '../hooks/compatibilityHooks';
 
@@ -19,6 +20,7 @@ const MenuItem = styled(MuiMenuItem)({
 export default function OptionsMenu() {
   const [anchorEl, setAnchorEl] = React.useState(null);
   const open = Boolean(anchorEl);
+  const navigate = useNavigate();
   const handleClick = (event: { currentTarget: React.SetStateAction<null>; }) => {
     setAnchorEl(event.currentTarget);
   };
@@ -43,23 +45,23 @@ export default function OptionsMenu() {
       setUser(null);
       
       if (response.ok) {
-        window.location.href = '/login';
+        navigate('/', { replace: true });
       } else {
         console.error('Logout failed:', await response.json());
-        // Still redirect to login page even if server logout fails
-        window.location.href = '/login';
+        // Still redirect to landing page even if server logout fails
+        navigate('/', { replace: true });
       }
     } catch (error) {
       console.error('Error during logout:', error);
       // Still clear user data and redirect on error
       localStorage.removeItem('user_id');
       setUser(null);
-      window.location.href = '/login';
+      navigate('/', { replace: true });
     }
   };
   
   const handleProfile = () => {
-    window.location.href = '/profile';
+    navigate('/profile');
   };
 
   return (

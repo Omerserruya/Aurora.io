@@ -4,6 +4,7 @@ import Divider from '@mui/material/Divider';
 import Drawer, { drawerClasses } from '@mui/material/Drawer';
 import Stack from '@mui/material/Stack';
 import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
+import { useNavigate } from 'react-router-dom';
 import { useUser } from '../../hooks/compatibilityHooks';
 import MenuContent from './MenuContent';
 import UserAvatar from '../UserAvatar';
@@ -15,6 +16,7 @@ interface SideMenuMobileProps {
 
 
 function SideMenuMobile({ open, toggleDrawer }: SideMenuMobileProps) {
+  const navigate = useNavigate();
   const { setUser } = useUser();
 
 const handleLogout = async () => {
@@ -26,10 +28,12 @@ const handleLogout = async () => {
 
     if (response.ok) {
       setUser(null); // Clear user global state using redux
-      // Optionally, redirect to login or home
-      window.location.href = '/'; // Redirect to login page
+      // Redirect to landing page
+      navigate('/', { replace: true });
     } else {
       console.error('Logout failed:', await response.json());
+      // Still redirect to landing page even if server logout fails
+      navigate('/', { replace: true });
     }
   } catch (error) {
     console.error('Error during logout:', error);

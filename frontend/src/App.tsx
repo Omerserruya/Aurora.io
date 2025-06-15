@@ -10,6 +10,7 @@ import ThemeProvider from './theme/ThemeProvider';
 import Layout from './components/Layout';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import Landing from './pages/Landing';
 import VerifyEmail from './pages/VerifyEmail';
 import OAuthCallback from './components/OAuthCallback';
 import ScrollToTop from './components/ScrollToTop';
@@ -40,6 +41,9 @@ function App() {
     <ThemeProvider>
       <ScrollToTop />
       <Routes>
+        {/* Public landing page */}
+        <Route path="/" element={<Landing />} />
+        
         {/* Auth routes - outside FirstTimeLoginHandler */}
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
