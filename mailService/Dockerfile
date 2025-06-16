@@ -22,6 +22,7 @@ FROM base AS production
 # Build TypeScript code
 RUN npm run build
 
+COPY src/templates ./dist/templates
 # Note: No EXPOSE directive - internal service only
 # Service runs on port 4007 internally within Docker network
 
