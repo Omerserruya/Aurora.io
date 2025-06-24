@@ -786,9 +786,10 @@ export const requestPasswordOTP = async (req: Request, res: Response): Promise<v
     // Send OTP email
     try {
       const action = type === 'password_setup' ? 'set up' : 'reset';
+      const subjectAction = type === 'password_setup' ? 'Verification' : 'Reset';
       await mailServiceClient.post('/send-template', {
         to: email,
-        subject: `Your Aurora.io Password ${action === 'set up' ? 'Setup' : 'Reset'} Code`,
+        subject: `Your Aurora.io Password ${subjectAction} Code`,
         template: 'password-otp',
         context: {
           name: user.username,
