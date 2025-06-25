@@ -315,7 +315,6 @@ services:
       - JWT_SECRET_KEY=${JWT_SECRET_KEY}
       - FRONTEND_URL=${FRONTEND_URL}
       - MAIL_API_KEY=${MAIL_API_KEY}
-      - MAIL_SERVICE_URL=${MAIL_SERVICE_URL}
       - FROM_EMAIL=${FROM_EMAIL}
     healthcheck:
       test: wget -O /dev/null -q http://localhost:4007/health || exit 1
