@@ -4,14 +4,16 @@
     <mj-font name="Roboto" href="https://fonts.googleapis.com/css?family=Roboto" />
     <mj-attributes>
       <mj-all font-family="Roboto, Arial, sans-serif" />
+      <mj-section padding="0" />
+      <mj-column padding="0" />
     </mj-attributes>
   </mj-head>
-  <mj-body background-color="#f8f9fa">
-    <mj-section background-color="#ffffff" padding="40px">
+  <mj-body background-color="#f8f9fa" width="600px">
+    <mj-section background-color="#ffffff" padding="0 40px">
       <mj-column>
         <mj-image src="https://img.mailinblue.com/9375480/images/content_library/original/685aceae288fd92d38974454.png" alt="Aurora.io Logo" width="120px" padding="0 0 32px 0" />
 
-        <mj-text font-size="28px" color="#1a1a1a" font-weight="bold" padding="0 0 24px 0" align="center">
+        <mj-text font-size="28px" color="#1a1a1a" font-weight="bold" padding="0 0 24px 0" line-height="1.3">
           Welcome to Aurora.io!
         </mj-text>
 
@@ -20,28 +22,24 @@
         </mj-text>
 
         <mj-text font-size="16px" color="#4a4a4a" line-height="1.6" padding="0 0 24px 0">
-          An administrator has created an Aurora.io account for you. Click the button below to set up your password:
+          An administrator has created an Aurora.io account for you. To get started, please set up your password by clicking the button below:
         </mj-text>
 
-        <mj-button background-color="#4A90E2" color="white" href="{{setupUrl}}" padding="0 0 24px 0">
-          Set Up Your Password
+        <mj-button background-color="#4A90E2" color="white" href="{{setupUrl}}" padding="0 0 32px 0" border-radius="6px" font-weight="bold">
+          Access Your Account
         </mj-button>
 
-        <mj-text font-size="14px" color="#666666" line-height="1.5" padding="0 0 8px 0">
-          If the button doesn't work, copy this link:
+        <mj-text font-size="14px" color="#666666" line-height="1.5" padding="0 0 24px 0">
+          If the button doesn't work, you can also copy and paste this link into your browser:
         </mj-text>
 
-        <mj-text font-size="14px" color="#4A90E2" line-height="1.5" padding="0 0 24px 0">
+        <mj-text font-size="14px" color="#4A90E2" line-height="1.5" padding="0 0 32px 0">
           {{setupUrl}}
         </mj-text>
 
-        <mj-text font-size="14px" color="#666666" line-height="1.5" padding="0 0 24px 0">
-          If you didn't request this account, you can safely ignore this email.
-        </mj-text>
+        <mj-divider border-color="#f0f0f0" padding="0 0 32px 0" />
 
-        <mj-divider border-color="#e0e0e0" />
-
-        <mj-text font-size="13px" color="#999999" align="center" padding="24px 0 0 0">
+        <mj-text font-size="13px" color="#666666" align="center" padding="0 0 32px 0">
           © 2025 Aurora.io. All rights reserved.
         </mj-text>
       </mj-column>
