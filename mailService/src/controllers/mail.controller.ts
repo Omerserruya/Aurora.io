@@ -1,77 +1,26 @@
 import { Request, Response } from 'express';
-import nodemailer from 'nodemailer';
+import { TransactionalEmailsApi, ApiClient, SendSmtpEmail } from 'sib-api-v3-sdk';
 import { TemplateService } from '../services/template.service';
 
 export class MailController {
-  private transporter: nodemailer.Transporter;
+  private brevoApiInstance: TransactionalEmailsApi;
   private templateService: TemplateService;
 
   constructor() {
-    console.log('Initializing mail controller with credentials:', {
-      user: process.env.BREVO_USER ? '***' : 'missing',
-      pass: process.env.BREVO_PASS ? '***' : 'missing',
-      from: process.env.FROM_EMAIL || 'missing'
-    });
-
-    this.transporter = nodemailer.createTransport({
-      host: 'smtp-relay.brevo.com',
-      port: 587,
-      secure: false,
-      auth: {
-        user: process.env.BREVO_USER,
-        pass: process.env.BREVO_PASS
-      }
-    });
-
     this.templateService = new TemplateService();
-  }
 
-  sendEmail = async (req: Request, res: Response) => {
-    try {
-      console.log('Received email request:', {
-        body: req.body,
-        headers: req.headers
-      });
-
-      const { to, subject, html } = req.body;
-
-      if (!to || !subject || !html) {
-        console.log('Missing required fields:', { to, subject, html });
-        return res.status(400).json({ 
-          error: 'Missing required fields: to, subject, and html are required' 
-        });
-      }
-
-      const mailOptions = {
-        from: {
-          name: 'Aurora.io',
-          address: process.env.FROM_EMAIL || 'auroraioapp@gmail.com'
-        },
-        to,
-        subject,
-        html
-      };
-
-      console.log('Attempting to send email with options:', {
-        ...mailOptions,
-        from: process.env.FROM_EMAIL ? '***' : 'missing'
-      });
-
-      const info = await this.transporter.sendMail(mailOptions);
-      console.log('Email sent successfully:', info.messageId);
-      
-      res.status(200).json({ 
-        message: 'Email sent successfully',
-        messageId: info.messageId
-      });
-    } catch (error) {
-      console.error('Failed to send email:', error);
-      res.status(500).json({ 
-        error: 'Failed to send email',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      });
+    const apiKey = process.env.MAIL_API_KEY;
+    
+    if (!apiKey) {
+      throw new Error('MAIL_API_KEY environment variable is required');
     }
-  };
+    
+    // Initialize Brevo API following official documentation
+    const defaultClient = ApiClient.instance;
+    const apiKeyAuth = defaultClient.authentications['api-key'];
+    apiKeyAuth.apiKey = apiKey;
+    this.brevoApiInstance = new TransactionalEmailsApi();
+    }
 
   sendTemplateEmail = async (req: Request, res: Response) => {
     try {
@@ -84,30 +33,46 @@ export class MailController {
       }
 
       // Render the template
-      const html = await this.templateService.render(template, context);
+      let html: string;
+      try {
+        html = await this.templateService.render(template, context);
+      } catch (error) {
+        console.error(`Template rendering failed for '${template}':`, error instanceof Error ? error.message : error);
+        return res.status(500).json({ 
+          error: 'Template rendering failed',
+          details: `Could not render template '${template}': ${error instanceof Error ? error.message : 'Unknown error'}`
+        });
+      }
 
-      // Send the email
-      const mailOptions = {
-        from: {
+      // Use Brevo API
+      const sendSmtpEmail = new SendSmtpEmail();
+      sendSmtpEmail.to = [{ email: to }];
+      sendSmtpEmail.sender = {
           name: 'Aurora.io',
-          address: process.env.FROM_EMAIL || 'easyflightcustomers@gmail.com'
-        },
-        to,
-        subject,
-        html
+        email: process.env.FROM_EMAIL || 'auroraioapp@gmail.com'
       };
+      sendSmtpEmail.subject = subject;
+      sendSmtpEmail.htmlContent = html;
 
-      const info = await this.transporter.sendMail(mailOptions);
-      console.log('Template email sent successfully:', info.messageId);
-      
-      res.status(200).json({ 
-        message: 'Email sent successfully',
-        messageId: info.messageId
-      });
+      try {
+        const result = await this.brevoApiInstance.sendTransacEmail(sendSmtpEmail);
+        
+        res.status(200).json({ 
+          message: 'Email sent successfully',
+          messageId: result.body?.messageId || 'sent'
+        });
+      } catch (error) {
+        console.error(`Brevo API call failed for email to '${to}':`, error instanceof Error ? error.message : error);
+        return res.status(500).json({ 
+          error: 'Email delivery failed',
+          details: `Brevo API error sending to '${to}': ${error instanceof Error ? error.message : 'Unknown error'}`
+        });
+      }
     } catch (error) {
-      console.error('Failed to send template email:', error);
+      console.error(`Unexpected error in sendTemplateEmail:`, error instanceof Error ? error.message : error);
+      
       res.status(500).json({ 
-        error: 'Failed to send template email',
+        error: 'Unexpected email service error',
         details: error instanceof Error ? error.message : 'Unknown error'
       });
     }

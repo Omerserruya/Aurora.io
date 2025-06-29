@@ -333,8 +333,7 @@ services:
       - NODE_ENV=${NODE_ENV}
       - JWT_SECRET_KEY=${JWT_SECRET_KEY}
       - FRONTEND_URL=${FRONTEND_URL}
-      - BREVO_USER=${BREVO_USER}
-      - BREVO_PASS=${BREVO_PASS}
+      - MAIL_API_KEY=${MAIL_API_KEY}
       - FROM_EMAIL=${FROM_EMAIL}
     healthcheck:
       test: wget -O /dev/null -q http://localhost:4007/health || exit 1
