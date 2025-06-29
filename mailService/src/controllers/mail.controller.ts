@@ -1,9 +1,9 @@
 import { Request, Response } from 'express';
-import * as SibApiV3Sdk from 'sib-api-v3-sdk';
+import { TransactionalEmailsApi, ApiClient, SendSmtpEmail } from 'sib-api-v3-sdk';
 import { TemplateService } from '../services/template.service';
 
 export class MailController {
-  private brevoApiInstance: SibApiV3Sdk.TransactionalEmailsApi;
+  private brevoApiInstance: TransactionalEmailsApi;
   private templateService: TemplateService;
 
   constructor() {
@@ -14,14 +14,12 @@ export class MailController {
     if (!apiKey) {
       throw new Error('MAIL_API_KEY environment variable is required');
     }
-
-    console.log('Initializing mail controller with Brevo API');
     
     // Initialize Brevo API following official documentation
-    const defaultClient = SibApiV3Sdk.ApiClient.instance;
+    const defaultClient = ApiClient.instance;
     const apiKeyAuth = defaultClient.authentications['api-key'];
     apiKeyAuth.apiKey = apiKey;
-    this.brevoApiInstance = new SibApiV3Sdk.TransactionalEmailsApi();
+    this.brevoApiInstance = new TransactionalEmailsApi();
     }
 
   sendTemplateEmail = async (req: Request, res: Response) => {
@@ -35,10 +33,19 @@ export class MailController {
       }
 
       // Render the template
-      const html = await this.templateService.render(template, context);
+      let html: string;
+      try {
+        html = await this.templateService.render(template, context);
+      } catch (error) {
+        console.error(`Template rendering failed for '${template}':`, error instanceof Error ? error.message : error);
+        return res.status(500).json({ 
+          error: 'Template rendering failed',
+          details: `Could not render template '${template}': ${error instanceof Error ? error.message : 'Unknown error'}`
+        });
+      }
 
       // Use Brevo API
-      const sendSmtpEmail = new SibApiV3Sdk.SendSmtpEmail();
+      const sendSmtpEmail = new SendSmtpEmail();
       sendSmtpEmail.to = [{ email: to }];
       sendSmtpEmail.sender = {
           name: 'Aurora.io',
@@ -47,17 +54,25 @@ export class MailController {
       sendSmtpEmail.subject = subject;
       sendSmtpEmail.htmlContent = html;
 
-      const result = await this.brevoApiInstance.sendTransacEmail(sendSmtpEmail);
-      console.log('Template email sent successfully via API:', result.body?.messageId || 'success');
-      
-      res.status(200).json({ 
-        message: 'Email sent successfully',
-        messageId: result.body?.messageId || 'sent'
-      });
+      try {
+        const result = await this.brevoApiInstance.sendTransacEmail(sendSmtpEmail);
+        
+        res.status(200).json({ 
+          message: 'Email sent successfully',
+          messageId: result.body?.messageId || 'sent'
+        });
+      } catch (error) {
+        console.error(`Brevo API call failed for email to '${to}':`, error instanceof Error ? error.message : error);
+        return res.status(500).json({ 
+          error: 'Email delivery failed',
+          details: `Brevo API error sending to '${to}': ${error instanceof Error ? error.message : 'Unknown error'}`
+        });
+      }
     } catch (error) {
-      console.error('Failed to send template email:', error);
+      console.error(`Unexpected error in sendTemplateEmail:`, error instanceof Error ? error.message : error);
+      
       res.status(500).json({ 
-        error: 'Failed to send template email',
+        error: 'Unexpected email service error',
         details: error instanceof Error ? error.message : 'Unknown error'
       });
     }
