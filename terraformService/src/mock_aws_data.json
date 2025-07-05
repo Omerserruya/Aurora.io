@@ -1,0 +1,60 @@
+{
+    "vpcs": [
+        {
+            "name": "MainVpc",
+            "cidr_block": "10.0.0.0/16"
+        }
+    ],
+    "subnets": [
+        {
+            "name": "web1Subnet",
+            "cidr_block": "10.0.1.0/24",
+            "vpc_name": "MainVpc"
+        },
+        {
+            "name": "web2Subnet",
+            "cidr_block": "10.0.2.0/24",
+            "vpc_name": "MainVpc"
+        }
+    ],
+    "amis": [
+        {
+            "name": "ami_web1",
+            "ami_id": "ami-0abcdef1234567890",
+            "tags": {
+                "OS": "Ubuntu",
+                "Purpose": "WebServer1"
+            }
+        },
+        {
+            "name": "ami_web2",
+            "ami_id": "ami-0123456789abcdef0",
+            "tags": {
+                "OS": "AmazonLinux",
+                "Purpose": "WebServer2"
+            }
+        }
+    ],
+    "instances": [
+        {
+            "name": "web1",
+            "ami_id": "ami-0abcdef1234567890",
+            "instance_type": "t2.micro",
+            "subnet_name": "web1Subnet",
+            "tags": {
+                "Name": "Web1-Instance",
+                "Environment": "dev"
+            }
+        },
+        {
+            "name": "web2",
+            "ami_id": "ami-0123456789abcdef0",
+            "instance_type": "t2.micro",
+            "subnet_name": "web2Subnet",
+            "tags": {
+                "Name": "Web2-Instance",
+                "Environment": "staging"
+            }
+        }
+    ]
+}

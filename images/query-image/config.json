@@ -1,0 +1,20 @@
+{
+    "ec2": ["InstanceId", "InstanceType", "VpcId", "SubnetId", "ImageId", "Image"],
+    "vpc": ["VpcId", "CidrBlock"],
+    "subnet": ["SubnetId", "VpcId", "CidrBlock"],
+    "security_group": ["GroupId", "GroupName", "VpcId", "Description", "InboundRules","OutboundRules"],
+    "s3": ["Name", "CreationDate"],
+    "route_table": ["RouteTableId", "VpcId", "Routes", "Associations"],
+    "internet_gateway": ["InternetGatewayId", "Attachments"],
+    "nat_gateway": ["NatGatewayId", "SubnetId", "VpcId"],
+    "network_acl": ["NetworkAclId", "VpcId", "Entries"],
+    "elastic_ip": ["PublicIp", "AllocationId", "InstanceId", "NetworkInterfaceId"],
+    "transit_gateway": ["TransitGatewayId", "State", "Options"],
+    "load_balancer": ["LoadBalancerArn", "LoadBalancerName", "VpcId", "Type", "Scheme"],
+    "ecs_cluster": ["ClusterArn", "ClusterName", "Status"],
+    "ecs_task": ["TaskArn", "ClusterArn", "TaskDefinitionArn", "LastStatus"],
+    "lambda_function": ["FunctionName", "FunctionArn", "Runtime", "VpcConfig"],
+    "iam_role": ["RoleName", "RoleId", "AssumeRolePolicyDocument"],
+    "iam_user": ["UserName", "UserId", "CreateDate"],
+    "iam_policy": ["PolicyName", "PolicyId", "AttachmentCount"]
+}
